@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0a0e1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="META FLOW+">
+<link rel="manifest" href="manifest.json">
+<title>META FLOW+ | 나의 문해력 성장 리포트</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg:#0a0e1a; --panel:#0e1520; --panel2:#111d2e;
+  --border:#1a2840; --cyan:#00d2ff; --green:#2ed573;
+  --yellow:#ffd32a; --red:#ff4757; --purple:#a29bfe;
+  --text:#dde8f5; --sub:#4a6a88; --sub2:#6a8aaa;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Noto Sans KR',sans-serif;
+  min-height:100vh;overflow-x:hidden;
+  padding-bottom:80px;
+}
+
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,210,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,210,255,0.02) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0;
+}
+
+.app{max-width:480px;margin:0 auto;position:relative;z-index:1;}
+
+/* 로딩 화면 */
+.loading-screen{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:999;transition:opacity 0.5s;
+}
+.loading-screen.hide{opacity:0;pointer-events:none;}
+.loading-logo{
+  font-family:'Orbitron',monospace;font-size:28px;font-weight:900;
+  background:linear-gradient(90deg,var(--cyan),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:8px;
+}
+.loading-sub{font-size:11px;color:var(--sub2);letter-spacing:2px;margin-bottom:32px;}
+.loading-spinner{
+  width:40px;height:40px;border-radius:50%;
+  border:3px solid rgba(0,210,255,0.1);
+  border-top:3px solid var(--cyan);
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-status{font-size:11px;color:var(--sub);margin-top:12px;font-family:'Orbitron',monospace;letter-spacing:1px;}
+
+/* 로그인 화면 */
+.login-screen{
+  display:none;padding:40px 24px;
+  min-height:100vh;display:none;
+  flex-direction:column;align-items:center;justify-content:center;
+}
+.login-screen.show{display:flex;}
+
+.login-logo{
+  font-family:'Orbitron',monospace;font-size:32px;font-weight:900;
+  background:linear-gradient(90deg,var(--cyan),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:6px;text-align:center;
+}
+.login-tagline{font-size:12px;color:var(--sub2);text-align:center;margin-bottom:40px;line-height:1.7;}
+
+.input-group{width:100%;margin-bottom:12px;}
+.input-label{font-size:10px;color:var(--sub2);letter-spacing:1px;font-family:'Orbitron',monospace;margin-bottom:6px;display:block;}
+.input-field{
+  width:100%;padding:14px 16px;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);
+  font-size:14px;font-family:'Noto Sans KR',sans-serif;
+  transition:border-color 0.2s;outline:none;
+}
+.input-field:focus{border-color:var(--cyan);}
+
+.login-btn{
+  width:100%;padding:14px;margin-top:8px;
+  background:linear-gradient(135deg,rgba(0,210,255,0.15),rgba(46,213,115,0.15));
+  border:1px solid var(--cyan);border-radius:10px;
+  color:var(--cyan);cursor:pointer;
+  font-family:'Orbitron',monospace;font-size:12px;font-weight:700;
+  letter-spacing:2px;transition:all 0.2s;
+}
+.login-btn:active{background:rgba(0,210,255,0.25);}
+
+.login-error{
+  color:var(--red);font-size:11px;text-align:center;
+  margin-top:8px;display:none;
+}
+
+/* 헤더 */
+.header{
+  background:linear-gradient(135deg,#0a0e1a,#0d1829);
+  border-bottom:1px solid var(--border);
+  padding:14px 18px 12px;
+  position:sticky;top:0;z-index:100;
+}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.logo{
+  font-family:'Orbitron',monospace;font-size:13px;font-weight:900;
+  background:linear-gradient(90deg,var(--cyan),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.student-badge{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(0,210,255,0.08);border:1px solid rgba(0,210,255,0.2);
+  border-radius:20px;padding:4px 10px;
+  font-size:11px;color:var(--cyan);font-family:'Orbitron',monospace;
+}
+
+.sync-status{
+  display:flex;align-items:center;gap:5px;
+  font-size:9px;color:var(--sub);font-family:'Orbitron',monospace;letter-spacing:1px;
+}
+.sync-dot{width:5px;height:5px;border-radius:50%;background:var(--sub);}
+.sync-dot.synced{background:var(--green);animation:blink 2s infinite;}
+.sync-dot.syncing{background:var(--yellow);animation:blink 0.5s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+.level-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.ls-item{background:rgba(0,0,0,0.2);border-radius:7px;padding:7px 4px;text-align:center;}
+.ls-val{font-family:'Orbitron',monospace;font-size:15px;font-weight:900;display:block;margin-bottom:2px;}
+.ls-label{font-size:8px;color:var(--sub2);}
+
+/* 네비게이션 */
+.nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;
+  background:rgba(10,14,26,0.96);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);
+  display:flex;z-index:100;
+}
+.nav-btn{
+  flex:1;padding:11px 4px 9px;background:transparent;border:none;
+  color:var(--sub);cursor:pointer;
+  font-size:10px;text-align:center;transition:all 0.2s;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.nav-icon{font-size:19px;line-height:1;}
+.nav-btn.active{color:var(--cyan);}
+
+/* 페이지 */
+.page{display:none;padding:14px;}
+.page.active{display:block;}
+
+/* 인바디 카드 */
+.inbody-card{
+  background:linear-gradient(135deg,#0d1829,#0a1220);
+  border:1px solid var(--border);border-radius:16px;
+  padding:18px;margin-bottom:12px;position:relative;overflow:hidden;
+}
+.inbody-card::before{
+  content:'';position:absolute;top:-30px;right:-30px;
+  width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,210,255,0.06),transparent);
+}
+.ib-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.ib-title{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:var(--sub2);}
+.ib-date{font-size:10px;color:var(--sub);font-family:'Orbitron',monospace;}
+
+.level-display{display:flex;align-items:flex-end;gap:10px;margin-bottom:14px;}
+.level-big{
+  font-family:'Orbitron',monospace;font-size:44px;font-weight:900;line-height:1;
+  background:linear-gradient(135deg,var(--cyan),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.level-name{font-size:16px;font-weight:700;margin-bottom:2px;}
+.level-sub{font-size:10px;color:var(--sub2);}
+
+.growth-gauge{margin-bottom:14px;}
+.gg-label{display:flex;justify-content:space-between;font-size:9px;color:var(--sub2);font-family:'Orbitron',monospace;letter-spacing:1px;margin-bottom:5px;}
+.gg-track{height:7px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;}
+.gg-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--cyan),var(--green));transition:width 1.2s cubic-bezier(0.34,1.2,0.64,1);}
+
+.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.metric-item{background:rgba(0,0,0,0.2);border-radius:9px;padding:9px 6px;text-align:center;}
+.metric-val{font-family:'Orbitron',monospace;font-size:18px;font-weight:900;display:block;margin-bottom:2px;}
+.metric-label{font-size:8px;color:var(--sub2);}
+
+/* 성장 배너 */
+.growth-banner{
+  background:rgba(46,213,115,0.07);border:1px solid rgba(46,213,115,0.18);
+  border-radius:10px;padding:11px 13px;display:flex;align-items:center;gap:10px;margin-bottom:12px;
+}
+.gb-text{font-size:11px;color:var(--text);line-height:1.7;}
+.gb-text strong{color:var(--green);}
+
+/* 차트 카드 */
+.chart-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+.cc-title{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:var(--sub2);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.cc-title::before{content:'';width:12px;height:2px;background:var(--cyan);}
+canvas{width:100%;display:block;border-radius:6px;}
+
+/* 세션 리스트 */
+.section-title{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:var(--sub2);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.section-title::before{content:'';width:12px;height:2px;background:var(--cyan);}
+.session-list{display:flex;flex-direction:column;gap:7px;}
+.session-item{
+  background:var(--panel2);border:1px solid var(--border);border-radius:9px;
+  padding:11px 13px;display:flex;align-items:center;gap:11px;
+}
+.si-num{font-family:'Orbitron',monospace;font-size:10px;color:var(--sub);min-width:26px;}
+.si-info{flex:1;}
+.si-exp{font-size:12px;font-weight:700;margin-bottom:2px;}
+.si-date{font-size:9px;color:var(--sub2);}
+.si-level{padding:3px 9px;border-radius:7px;font-family:'Orbitron',monospace;font-size:8px;font-weight:700;letter-spacing:1px;}
+.level-basic{background:rgba(255,71,87,0.15);color:var(--red);}
+.level-proficient{background:rgba(255,211,42,0.15);color:var(--yellow);}
+.level-advanced{background:rgba(0,210,255,0.15);color:var(--cyan);}
+.level-excellent{background:rgba(46,213,115,0.15);color:var(--green);}
+
+/* Firebase 실시간 피드 */
+.realtime-feed{
+  background:rgba(0,210,255,0.04);border:1px solid rgba(0,210,255,0.12);
+  border-radius:10px;padding:12px;margin-bottom:12px;
+}
+.rf-title{font-size:9px;color:var(--cyan);font-family:'Orbitron',monospace;letter-spacing:2px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.rf-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:blink 1s infinite;}
+.rf-item{font-size:10px;color:var(--sub2);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+.rf-item:last-child{border-bottom:none;}
+.rf-item span{color:var(--cyan);}
+
+/* 서술 입력 */
+.input-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+.ic-exp{font-size:13px;font-weight:700;margin-bottom:4px;}
+.ic-sub{font-size:10px;color:var(--sub2);margin-bottom:10px;line-height:1.6;}
+textarea{
+  width:100%;padding:12px;background:var(--panel2);
+  border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-size:13px;font-family:'Noto Sans KR',sans-serif;
+  resize:none;outline:none;line-height:1.7;transition:border-color 0.2s;
+}
+textarea:focus{border-color:var(--cyan);}
+.submit-btn{
+  width:100%;padding:12px;margin-top:8px;
+  background:linear-gradient(135deg,rgba(0,210,255,0.12),rgba(46,213,115,0.12));
+  border:1px solid var(--cyan);border-radius:9px;
+  color:var(--cyan);cursor:pointer;
+  font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:2px;
+  transition:all 0.2s;
+}
+.submit-btn:active{background:rgba(0,210,255,0.22);}
+.submit-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* 저장 완료 토스트 */
+.toast{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(46,213,115,0.9);color:#000;
+  padding:10px 20px;border-radius:20px;
+  font-size:12px;font-weight:700;
+  opacity:0;transition:all 0.3s;pointer-events:none;
+  white-space:nowrap;z-index:200;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* 리포트 */
+.report-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:10px;}
+.rc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:11px;}
+.rc-exp{font-size:13px;font-weight:700;margin-bottom:2px;}
+.rc-date{font-size:9px;color:var(--sub2);}
+.rc-answer{
+  background:rgba(0,0,0,0.2);border-radius:7px;padding:11px;margin-bottom:11px;
+  font-size:11px;line-height:1.8;color:rgba(255,255,255,0.7);
+  border-left:3px solid var(--cyan);
+}
+.rc-analysis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:11px;}
+.ra-item{text-align:center;}
+.ra-val{font-family:'Orbitron',monospace;font-size:15px;font-weight:900;display:block;margin-bottom:2px;}
+.ra-label{font-size:8px;color:var(--sub2);}
+.rc-feedback{
+  background:rgba(46,213,115,0.05);border:1px solid rgba(46,213,115,0.13);
+  border-radius:7px;padding:9px 11px;
+  font-size:11px;color:rgba(255,255,255,0.7);line-height:1.7;
+}
+.rc-feedback strong{color:var(--green);}
+
+/* 설정 */
+.profile-card{
+  background:linear-gradient(135deg,#0d1829,#0a1220);
+  border:1px solid var(--border);border-radius:14px;
+  padding:22px;text-align:center;margin-bottom:12px;
+}
+.profile-avatar{
+  width:66px;height:66px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan),var(--green));
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;margin:0 auto 10px;
+  box-shadow:0 0 18px rgba(0,210,255,0.25);
+}
+.profile-name{font-size:17px;font-weight:700;margin-bottom:2px;}
+.profile-info{font-size:11px;color:var(--sub2);}
+.setting-item{
+  background:var(--panel);border:1px solid var(--border);border-radius:9px;
+  padding:13px 14px;display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:7px;font-size:12px;cursor:pointer;transition:all 0.2s;
+}
+.si-right{color:var(--sub);font-size:10px;font-family:'Orbitron',monospace;}
+.logout-btn{
+  width:100%;padding:13px;margin-top:8px;
+  background:rgba(255,71,87,0.08);border:1px solid rgba(255,71,87,0.3);
+  border-radius:9px;color:var(--red);cursor:pointer;
+  font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:2px;
+}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.page.active > *{animation:fadeUp 0.35s ease forwards;}
+.page.active > *:nth-child(1){animation-delay:0s;}
+.page.active > *:nth-child(2){animation-delay:0.05s;}
+.page.active > *:nth-child(3){animation-delay:0.1s;}
+.page.active > *:nth-child(4){animation-delay:0.15s;}
+.page.active > *:nth-child(5){animation-delay:0.2s;}
+</style>
+</head>
+<body>
+
+<!-- 로딩 -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-logo">META FLOW+</div>
+  <div class="loading-sub">깊어지는 과학 탐구</div>
+  <div class="loading-spinner"></div>
+  <div class="loading-status" id="loadingStatus">Firebase 연결 중...</div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<div class="app">
+
+<!-- 로그인 화면 -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-logo">META FLOW+</div>
+  <div class="login-tagline">
+    깊어지는 과학 탐구<br>손끝으로 보는 나만의 문해력 성장 리포트
+  </div>
+  <div class="input-group">
+    <label class="input-label">학번</label>
+    <input class="input-field" id="studentId" type="text" placeholder="예) 2031" maxlength="10">
+  </div>
+  <div class="input-group">
+    <label class="input-label">이름</label>
+    <input class="input-field" id="studentName" type="text" placeholder="이름 입력">
+  </div>
+  <div class="input-group">
+    <label class="input-label">학년/반</label>
+    <input class="input-field" id="studentClass" type="text" placeholder="예) 2학년 3반">
+  </div>
+  <button class="login-btn" onclick="doLogin()">시작하기 →</button>
+  <div class="login-error" id="loginError">학번과 이름을 입력해주세요</div>
+</div>
+
+<!-- 메인 앱 -->
+<div id="mainApp" style="display:none;">
+
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">META FLOW+</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="sync-status">
+          <div class="sync-dot" id="syncDot"></div>
+          <span id="syncText">연결 중</span>
+        </div>
+        <div class="student-badge">👤 <span id="headerName">-</span></div>
+      </div>
+    </div>
+    <div class="level-summary">
+      <div class="ls-item">
+        <span class="ls-val" style="color:var(--cyan)" id="hTotalSessions">0</span>
+        <span class="ls-label">총 회차</span>
+      </div>
+      <div class="ls-item">
+        <span class="ls-val" style="color:var(--green)" id="hCurrentLevel">-</span>
+        <span class="ls-label">현재 레벨</span>
+      </div>
+      <div class="ls-item">
+        <span class="ls-val" style="color:var(--yellow)" id="hLevelUp">-</span>
+        <span class="ls-label">레벨 변화</span>
+      </div>
+      <div class="ls-item">
+        <span class="ls-val" style="color:var(--purple)" id="hAvgTerms">0개</span>
+        <span class="ls-label">평균 용어</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 홈 -->
+  <div class="page active" id="page-home">
+
+    <div class="inbody-card">
+      <div class="ib-header">
+        <div class="ib-title">문해력 진단 리포트</div>
+        <div class="ib-date" id="lastDate">-</div>
+      </div>
+      <div class="level-display">
+        <div class="level-big" id="levelNum">-</div>
+        <div>
+          <div class="level-name" id="levelName">데이터 없음</div>
+          <div class="level-sub">PISA 2025 기준</div>
+        </div>
+      </div>
+      <div class="growth-gauge">
+        <div class="gg-label">
+          <span>문해력 성장도</span>
+          <span id="growthPct">0%</span>
+        </div>
+        <div class="gg-track">
+          <div class="gg-fill" id="mainGauge" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <span class="metric-val" style="color:var(--cyan)" id="mTerms">0</span>
+          <span class="metric-label">과학 용어</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-val" style="color:var(--green)" id="mCause">0</span>
+          <span class="metric-label">인과관계</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-val" style="color:var(--yellow)" id="mSentences">0</span>
+          <span class="metric-label">문장 수</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="growth-banner" id="growthBanner">
+      <div style="font-size:22px;">📊</div>
+      <div class="gb-text" id="growthMsg">실험 후 서술을 입력하면 여기에 성장 메시지가 표시됩니다.</div>
+    </div>
+
+    <!-- Firebase 실시간 피드 -->
+    <div class="realtime-feed">
+      <div class="rf-title"><div class="rf-dot"></div>Firebase 실시간 연결</div>
+      <div id="realtimeFeed">
+        <div class="rf-item">데이터를 불러오는 중...</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="cc-title">회차별 문해력 성장</div>
+      <canvas id="growthChart" height="150"></canvas>
+    </div>
+
+    <div class="section-title">실험 기록</div>
+    <div class="session-list" id="sessionList">
+      <div style="text-align:center;color:var(--sub);font-size:12px;padding:20px;">
+        아직 실험 기록이 없어요<br>서술 탭에서 첫 번째 실험을 입력해보세요!
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 서술 입력 -->
+  <div class="page" id="page-write">
+    <div class="section-title">실험 후 서술 입력</div>
+
+    <div class="input-card">
+      <div class="ic-exp">실험명</div>
+      <select class="input-field" id="expName" style="margin-bottom:10px;">
+        <option value="산염기 적정 실험">⚗️ 산염기 적정 실험</option>
+        <option value="삼투압 실험">🔬 삼투압 실험</option>
+        <option value="앙금 생성 반응">🧪 앙금 생성 반응</option>
+        <option value="기체 발생 반응">💨 기체 발생 반응</option>
+        <option value="전기화학 실험">⚡ 전기화학 실험</option>
+      </select>
+
+      <div class="ic-exp" style="margin-top:6px;">서술 문제</div>
+      <div class="ic-sub" id="writeQuestion">
+        이번 실험에서 일어난 화학 반응을 관찰된 현상과 연결하여 과학 용어를 사용해 설명하세요.
+      </div>
+
+      <textarea id="answerText" rows="6" placeholder="여기에 자유롭게 서술하세요...&#10;&#10;예) HCl의 H⁺와 NaOH의 OH⁻가 반응하여..."></textarea>
+
+      <button class="submit-btn" id="submitBtn" onclick="submitAnswer()">
+        💾 Firebase에 저장하기
+      </button>
+    </div>
+
+    <div class="input-card" style="border-color:rgba(0,210,255,0.2);">
+      <div class="cc-title" style="margin-bottom:8px;">💡 문해력 향상 팁</div>
+      <div style="font-size:11px;color:var(--sub2);line-height:2;">
+        ✅ 과학 용어 사용 (H⁺, OH⁻, pH, BTB...)<br>
+        ✅ 인과관계 표현 (때문에, 따라서, 그러므로)<br>
+        ✅ 반응 전후 변화 설명<br>
+        ✅ 수치 포함 (pH 7, 20방울...)
+      </div>
+    </div>
+  </div>
+
+  <!-- 리포트 -->
+  <div class="page" id="page-report">
+    <div class="section-title">상세 실험 리포트</div>
+    <div id="reportList">
+      <div style="text-align:center;color:var(--sub);font-size:12px;padding:30px;">
+        아직 기록이 없어요
+      </div>
+    </div>
+  </div>
+
+  <!-- 설정 -->
+  <div class="page" id="page-setting">
+    <div class="profile-card">
+      <div class="profile-avatar">👨‍🎓</div>
+      <div class="profile-name" id="profileName">-</div>
+      <div class="profile-info" id="profileInfo">-</div>
+    </div>
+
+    <div class="section-title">학습 정보</div>
+    <div class="setting-item">
+      <span>📊 총 실험 횟수</span>
+      <span class="si-right" id="settingTotal">0회</span>
+    </div>
+    <div class="setting-item">
+      <span>🎯 현재 레벨</span>
+      <span class="si-right" id="settingLevel" style="color:var(--cyan)">-</span>
+    </div>
+    <div class="setting-item">
+      <span>☁️ Firebase 동기화</span>
+      <span class="si-right" id="settingSync" style="color:var(--green)">연결됨</span>
+    </div>
+    <div class="setting-item">
+      <span>🎯 평가 기준</span>
+      <span class="si-right">PISA 2025</span>
+    </div>
+    <div class="setting-item">
+      <span>📱 앱 버전</span>
+      <span class="si-right">v1.0.0</span>
+    </div>
+
+    <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+  </div>
+
+  <!-- 네비게이션 -->
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showPage('home',this)">
+      <span class="nav-icon">🏠</span><span>홈</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('write',this)">
+      <span class="nav-icon">✍️</span><span>서술</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('report',this)">
+      <span class="nav-icon">📋</span><span>리포트</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('setting',this)">
+      <span class="nav-icon">⚙️</span><span>설정</span>
+    </button>
+  </nav>
+
+</div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ── Firebase 설정 ──────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBX-BE14JViw82xAiA3Gts6p-SC6gVBjG8",
+  authDomain: "student-literacy.firebaseapp.com",
+  projectId: "student-literacy",
+  storageBucket: "student-literacy.firebasestorage.app",
+  messagingSenderId: "66926306937",
+  appId: "1:66926306937:web:5204bff44a4cc5d62d16a8",
+  measurementId: "G-CDG864KFKL"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ── 상태 ──────────────────────────────────────
+let currentStudent = null;
+let sessions = [];
+let unsubscribe = null;
+
+// ── 로딩 완료 ─────────────────────────────────
+setTimeout(() => {
+  document.getElementById('loadingStatus').textContent = 'Firebase 연결 완료!';
+  setTimeout(() => {
+    document.getElementById('loadingScreen').classList.add('hide');
+    const saved = localStorage.getItem('metaflow_student');
+    if (saved) {
+      currentStudent = JSON.parse(saved);
+      showMain();
+    } else {
+      document.getElementById('loginScreen').classList.add('show');
+    }
+  }, 800);
+}, 1500);
+
+// ── 로그인 ────────────────────────────────────
+window.doLogin = function() {
+  const id = document.getElementById('studentId').value.trim();
+  const name = document.getElementById('studentName').value.trim();
+  const cls = document.getElementById('studentClass').value.trim();
+  if (!id || !name) {
+    document.getElementById('loginError').style.display='block';
+    return;
+  }
+  currentStudent = { id, name, cls };
+  localStorage.setItem('metaflow_student', JSON.stringify(currentStudent));
+  document.getElementById('loginScreen').classList.remove('show');
+  showMain();
+};
+
+// ── 메인 앱 표시 ──────────────────────────────
+function showMain() {
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('headerName').textContent = currentStudent.name;
+  document.getElementById('profileName').textContent = currentStudent.name;
+  document.getElementById('profileInfo').textContent =
+    (currentStudent.cls || '') + ' · 학번 ' + currentStudent.id;
+
+  // Firebase 실시간 연결
+  connectFirebase();
+}
+
+// ── Firebase 실시간 연결 ───────────────────────
+function connectFirebase() {
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  dot.className = 'sync-dot syncing';
+  txt.textContent = '동기화 중';
+
+  const q = query(
+    collection(db, 'sessions'),
+    where('studentId', '==', currentStudent.id),
+    orderBy('createdAt', 'desc')
+  );
+
+  if (unsubscribe) unsubscribe();
+
+  unsubscribe = onSnapshot(q, (snapshot) => {
+    dot.className = 'sync-dot synced';
+    txt.textContent = '연결됨';
+
+    sessions = [];
+    snapshot.forEach(doc => {
+      sessions.push({ id: doc.id, ...doc.data() });
+    });
+
+    updateUI();
+    updateRealtimeFeed(snapshot.docChanges());
+  }, (err) => {
+    dot.className = 'sync-dot';
+    txt.textContent = '오류';
+    console.error(err);
+  });
+}
+
+// ── 실시간 피드 업데이트 ──────────────────────
+function updateRealtimeFeed(changes) {
+  if (!changes.length) {
+    document.getElementById('realtimeFeed').innerHTML =
+      '<div class="rf-item">Firebase 연결 완료 · 데이터 동기화 중</div>';
+    return;
+  }
+  const feed = document.getElementById('realtimeFeed');
+  feed.innerHTML = '';
+  changes.slice(0, 3).forEach(change => {
+    const d = change.doc.data();
+    const item = document.createElement('div');
+    item.className = 'rf-item';
+    if (change.type === 'added') {
+      item.innerHTML = `<span>새 데이터</span> ${d.experimentName} · ${getLevelName(d.level)}`;
+    } else if (change.type === 'modified') {
+      item.innerHTML = `<span>수정됨</span> ${d.experimentName}`;
+    }
+    feed.appendChild(item);
+  });
+  if (!feed.children.length) {
+    feed.innerHTML = '<div class="rf-item">Firebase 실시간 연결 활성화됨 ✅</div>';
+  }
+}
+
+// ── UI 전체 업데이트 ──────────────────────────
+function updateUI() {
+  const total = sessions.length;
+  const latest = sessions[0];
+
+  // 헤더
+  document.getElementById('hTotalSessions').textContent = total;
+
+  if (!latest) {
+    document.getElementById('hCurrentLevel').textContent = '-';
+    document.getElementById('hLevelUp').textContent = '-';
+    document.getElementById('levelNum').textContent = '-';
+    document.getElementById('levelName').textContent = '데이터 없음';
+    document.getElementById('settingTotal').textContent = '0회';
+    return;
+  }
+
+  const currentLevel = latest.level || 1;
+  const prevLevel = sessions[1]?.level || currentLevel;
+  const levelDiff = currentLevel - prevLevel;
+
+  document.getElementById('hCurrentLevel').textContent = getLevelShort(currentLevel);
+  document.getElementById('hLevelUp').textContent = levelDiff >= 0 ? '+' + levelDiff : String(levelDiff);
+  document.getElementById('hAvgTerms').textContent =
+    Math.round(sessions.reduce((a,s) => a+(s.terms||0), 0)/total) + '개';
+
+  // 인바디 카드
+  document.getElementById('levelNum').textContent = currentLevel;
+  document.getElementById('levelName').textContent = getLevelName(currentLevel);
+  const pct = Math.round((currentLevel/4)*100);
+  document.getElementById('growthPct').textContent = pct + '%';
+  document.getElementById('mainGauge').style.width = pct + '%';
+  document.getElementById('lastDate').textContent = formatDate(latest.createdAt);
+  document.getElementById('mTerms').textContent = (latest.terms||0) + '개';
+  document.getElementById('mCause').textContent = (latest.causal||0) + '개';
+  document.getElementById('mSentences').textContent = (latest.sentences||0) + '개';
+
+  // 성장 메시지
+  let msg = '';
+  if (levelDiff > 0) msg = `지난 회차보다 <strong>레벨 ${levelDiff} 상승!</strong> 🚀 계속 이 페이스로 가요!`;
+  else if (levelDiff === 0) msg = `<strong>같은 레벨 유지 중!</strong> 인과관계 표현을 더 늘려보세요.`;
+  else msg = `<strong>더 자세한 설명</strong>이 필요해요. 과학 용어를 더 활용해보세요!`;
+  document.getElementById('growthMsg').innerHTML = msg;
+
+  // 세션 리스트
+  renderSessionList();
+  renderReportList();
+  drawGrowthChart();
+
+  // 설정
+  document.getElementById('settingTotal').textContent = total + '회';
+  document.getElementById('settingLevel').textContent = getLevelName(currentLevel);
+}
+
+// ── 세션 리스트 렌더 ──────────────────────────
+function renderSessionList() {
+  const list = document.getElementById('sessionList');
+  if (!sessions.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--sub);font-size:12px;padding:20px;">아직 실험 기록이 없어요</div>';
+    return;
+  }
+  list.innerHTML = sessions.map((s, i) => `
+    <div class="session-item">
+      <div class="si-num">#${sessions.length - i}</div>
+      <div class="si-info">
+        <div class="si-exp">${s.experimentName}</div>
+        <div class="si-date">${formatDate(s.createdAt)} · ${currentStudent.cls||''}</div>
+      </div>
+      <div class="si-level level-${getLevelClass(s.level)}">${getLevelShort(s.level)}</div>
+    </div>
+  `).join('');
+}
+
+// ── 리포트 렌더 ───────────────────────────────
+function renderReportList() {
+  const list = document.getElementById('reportList');
+  if (!sessions.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--sub);font-size:12px;padding:30px;">아직 기록이 없어요</div>';
+    return;
+  }
+  list.innerHTML = sessions.map((s, i) => `
+    <div class="report-card">
+      <div class="rc-header">
+        <div>
+          <div class="rc-exp">${s.experimentName} #${sessions.length - i}</div>
+          <div class="rc-date">${formatDate(s.createdAt)} · ${getLevelName(s.level)}</div>
+        </div>
+        <div class="si-level level-${getLevelClass(s.level)}">${getLevelShort(s.level)}</div>
+      </div>
+      <div class="rc-answer">${s.answer}</div>
+      <div class="rc-analysis">
+        <div class="ra-item">
+          <span class="ra-val" style="color:var(--cyan)">${s.terms||0}개</span>
+          <span class="ra-label">과학 용어</span>
+        </div>
+        <div class="ra-item">
+          <span class="ra-val" style="color:var(--green)">${s.causal||0}개</span>
+          <span class="ra-label">인과관계</span>
+        </div>
+        <div class="ra-item">
+          <span class="ra-val" style="color:var(--yellow)">${s.sentences||0}개</span>
+          <span class="ra-label">문장 수</span>
+        </div>
+      </div>
+      <div class="rc-feedback">
+        <strong>🤖 AI 피드백</strong><br>${s.feedback || '분석 중...'}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── 서술 제출 ─────────────────────────────────
+window.submitAnswer = async function() {
+  const answer = document.getElementById('answerText').value.trim();
+  if (!answer || answer.length < 10) {
+    showToast('⚠️ 10자 이상 서술해주세요');
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Firebase 저장 중...';
+
+  // 간단한 문해력 분석
+  const analysis = analyzeText(answer);
+
+  try {
+    await addDoc(collection(db, 'sessions'), {
+      studentId: currentStudent.id,
+      studentName: currentStudent.name,
+      studentClass: currentStudent.cls || '',
+      experimentName: document.getElementById('expName').value,
+      answer: answer,
+      level: analysis.level,
+      terms: analysis.terms,
+      causal: analysis.causal,
+      sentences: analysis.sentences,
+      feedback: analysis.feedback,
+      createdAt: serverTimestamp()
+    });
+
+    showToast('✅ Firebase에 저장됐어요!');
+    document.getElementById('answerText').value = '';
+    showPage('home', document.querySelector('.nav-btn'));
+
+  } catch(e) {
+    showToast('❌ 저장 실패: ' + e.message);
+    console.error(e);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '💾 Firebase에 저장하기';
+};
+
+// ── 텍스트 분석 (간단 버전) ───────────────────
+function analyzeText(text) {
+  const sciTerms = ['H⁺','OH⁻','pH','이온','중화','산성','염기','농도','반투막',
+    '삼투압','전자','산화','환원','촉매','평형','BTB','페놀프탈레인','몰','반응'];
+  const causalWords = ['때문에','따라서','그러므로','그래서','결과적으로','의해','으로 인해','때문','이므로'];
+
+  const terms = sciTerms.filter(t => text.includes(t)).length;
+  const causal = causalWords.filter(w => text.includes(w)).length;
+  const sentences = text.split(/[.!?。]/).filter(s => s.trim().length > 3).length;
+
+  let level = 1;
+  if (terms >= 2 && sentences >= 2) level = 2;
+  if (terms >= 3 && causal >= 1 && sentences >= 3) level = 3;
+  if (terms >= 4 && causal >= 2 && sentences >= 4) level = 4;
+
+  const feedbacks = {
+    1: '과학 용어를 사용해서 더 구체적으로 설명해보세요.',
+    2: '인과관계 표현(때문에, 따라서)을 추가해보세요!',
+    3: '이온 수준의 설명을 추가하면 Excellent가 될 수 있어요!',
+    4: '완벽해요! 새로운 상황에 적용해보는 것도 도전해보세요!'
+  };
+
+  return { level, terms, causal, sentences, feedback: feedbacks[level] };
+}
+
+// ── 성장 그래프 ───────────────────────────────
+function drawGrowthChart() {
+  const cv = document.getElementById('growthChart');
+  if (!cv || sessions.length < 1) return;
+  const ctx = cv.getContext('2d');
+  cv.width = cv.offsetWidth * window.devicePixelRatio;
+  cv.height = 150 * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  const W = cv.offsetWidth, H = 150;
+  ctx.clearRect(0,0,W,H);
+
+  const data = [...sessions].reverse();
+  const maxL = 4;
+  const pL=38,pR=14,pT=14,pB=26;
+  const cW=W-pL-pR, cH=H-pT-pB;
+
+  // 그리드
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=pT+cH-(i/maxL)*cH;
+    ctx.beginPath();ctx.moveTo(pL,y);ctx.lineTo(W-pR,y);ctx.stroke();
+  }
+
+  // y축
+  const lbs=['','Basic','Prof','Adv','Excel'];
+  ctx.fillStyle='rgba(100,130,160,0.7)';ctx.font='8px Orbitron,monospace';ctx.textAlign='right';
+  for(let i=1;i<=4;i++){
+    ctx.fillText(lbs[i],pL-4,pT+cH-(i/maxL)*cH+3);
+  }
+
+  if(data.length===1){
+    const x=pL+cW/2, y=pT+cH-(data[0].level/maxL)*cH;
+    ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);
+    ctx.fillStyle=getLevelColor(data[0].level);ctx.fill();
+    return;
+  }
+
+  // 면
+  const grad=ctx.createLinearGradient(0,pT,0,H-pB);
+  grad.addColorStop(0,'rgba(0,210,255,0.18)');grad.addColorStop(1,'rgba(0,210,255,0.01)');
+  ctx.fillStyle=grad;ctx.beginPath();
+  data.forEach((d,i)=>{
+    const x=pL+(i/(data.length-1))*cW;
+    const y=pT+cH-(d.level/maxL)*cH;
+    if(i===0)ctx.moveTo(x,H-pB);ctx.lineTo(x,y);
+  });
+  ctx.lineTo(pL+cW,H-pB);ctx.closePath();ctx.fill();
+
+  // 선
+  ctx.beginPath();ctx.lineWidth=2.2;
+  data.forEach((d,i)=>{
+    const x=pL+(i/(data.length-1))*cW;
+    const y=pT+cH-(d.level/maxL)*cH;
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  });
+  const lg=ctx.createLinearGradient(pL,0,pL+cW,0);
+  lg.addColorStop(0,'#ff4757');lg.addColorStop(0.5,'#ffd32a');lg.addColorStop(1,'#2ed573');
+  ctx.strokeStyle=lg;ctx.stroke();
+
+  // 점
+  data.forEach((d,i)=>{
+    const x=pL+(i/(data.length-1))*cW;
+    const y=pT+cH-(d.level/maxL)*cH;
+    ctx.beginPath();ctx.arc(x,y,4.5,0,Math.PI*2);
+    ctx.fillStyle=getLevelColor(d.level);ctx.fill();
+    ctx.strokeStyle='white';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='rgba(150,180,210,0.7)';
+    ctx.textAlign='center';ctx.font='8px Noto Sans KR,sans-serif';
+    ctx.fillText(i+1+'회',x,H-pB+14);
+  });
+}
+
+// ── 유틸 ─────────────────────────────────────
+function getLevelName(l) {
+  return {1:'Basic',2:'Proficient',3:'Advanced',4:'Excellent'}[l]||'Basic';
+}
+function getLevelShort(l) {
+  return {1:'BAS',2:'PRO',3:'ADV',4:'EXC'}[l]||'-';
+}
+function getLevelClass(l) {
+  return {1:'basic',2:'proficient',3:'advanced',4:'excellent'}[l]||'basic';
+}
+function getLevelColor(l) {
+  return {1:'#ff4757',2:'#ffd32a',3:'#00d2ff',4:'#2ed573'}[l]||'#ff4757';
+}
+function formatDate(ts) {
+  if(!ts) return '-';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.getFullYear()+'.'+(d.getMonth()+1).toString().padStart(2,'0')+'.'+d.getDate().toString().padStart(2,'0');
+}
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── 페이지 전환 ───────────────────────────────
+window.showPage = function(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo(0,0);
+  if(name==='home') setTimeout(drawGrowthChart,200);
+};
+
+// ── 로그아웃 ─────────────────────────────────
+window.doLogout = function() {
+  if(!confirm('로그아웃 하시겠어요?')) return;
+  if(unsubscribe) unsubscribe();
+  localStorage.removeItem('metaflow_student');
+  location.reload();
+};
+
+window.addEventListener('resize', drawGrowthChart);
+</script>
+</body>
+</html>
