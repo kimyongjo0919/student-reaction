@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>산염기 적정 실험 설계 시스템</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg:#080c14; --panel:#0e1520; --panel2:#0b1219;
+  --border:#1a2840; --border2:#243650;
+  --cyan:#00d2ff; --acid:#ff4757; --base:#2ed573;
+  --yellow:#ffd32a; --purple:#a29bfe;
+  --text:#dde8f5; --sub:#4a6a88; --sub2:#6a8aaa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;user-select:none;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,210,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,210,255,0.02) 1px,transparent 1px);background-size:50px 50px;pointer-events:none;}
+
+.app{max-width:1200px;margin:0 auto;padding:14px;position:relative;z-index:1;}
+
+header{text-align:center;padding:16px 0 12px;margin-bottom:16px;border-bottom:1px solid var(--border);}
+header .sub{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:4px;color:var(--cyan);margin-bottom:6px;}
+header h1{font-family:'Orbitron',monospace;font-size:clamp(14px,2.4vw,22px);font-weight:900;background:linear-gradient(90deg,#ff4757,#ffd32a,#2ed573);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+header p{font-size:11px;color:var(--sub2);margin-top:4px;}
+
+/* 스텝 바 */
+.step-bar{display:flex;margin-bottom:16px;border-radius:10px;overflow:hidden;border:1px solid var(--border);}
+.step-item{flex:1;padding:9px;text-align:center;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;color:var(--sub);background:var(--panel2);transition:all 0.3s;border-right:1px solid var(--border);}
+.step-item:last-child{border-right:none;}
+.step-item .sn{display:block;font-size:13px;font-weight:900;margin-bottom:1px;}
+.step-item.active{background:rgba(0,210,255,0.08);color:var(--cyan);}
+.step-item.done{background:rgba(46,213,115,0.06);color:var(--base);}
+
+/* 레이아웃 */
+.layout{display:grid;grid-template-columns:250px 1fr 230px;gap:12px;align-items:start;}
+@media(max-width:900px){.layout{grid-template-columns:1fr;}}
+
+/* 패널 */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;}
+.ptitle{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:var(--sub2);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.ptitle::before{content:'';width:14px;height:2px;background:var(--cyan);flex-shrink:0;}
+
+/* 카드 섹션 */
+.cs-label{font-size:10px;color:var(--sub2);letter-spacing:1px;margin-bottom:7px;display:flex;align-items:center;gap:5px;}
+.cs-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px;}
+
+.nfc-btn{position:relative;padding:7px 8px;border-radius:8px;border:1.5px solid;background:transparent;cursor:pointer;transition:all 0.2s;text-align:center;overflow:hidden;}
+.nfc-btn::after{content:'NFC';position:absolute;top:2px;right:4px;font-size:6px;font-family:'Orbitron',monospace;opacity:0.3;letter-spacing:0.5px;}
+.nfc-btn .nb-icon{font-size:16px;display:block;margin-bottom:2px;}
+.nfc-btn .nb-name{font-size:10px;font-weight:700;display:block;}
+.nfc-btn .nb-sub{font-size:8px;opacity:0.55;display:block;margin-top:1px;}
+
+.nfc-btn.equip{border-color:#a29bfe;color:#a29bfe;}
+.nfc-btn.equip:hover,.nfc-btn.equip.active{background:rgba(162,155,254,0.15);box-shadow:0 0 10px rgba(162,155,254,0.2);transform:translateY(-1px);}
+.nfc-btn.equip.active{border-width:2px;}
+.nfc-btn.acid-c{border-color:var(--acid);color:var(--acid);}
+.nfc-btn.acid-c:hover,.nfc-btn.acid-c.active{background:rgba(255,71,87,0.12);box-shadow:0 0 10px rgba(255,71,87,0.2);transform:translateY(-1px);}
+.nfc-btn.acid-c.active{border-width:2px;}
+.nfc-btn.base-c{border-color:var(--base);color:var(--base);}
+.nfc-btn.base-c:hover,.nfc-btn.base-c.active{background:rgba(46,213,115,0.12);box-shadow:0 0 10px rgba(46,213,115,0.2);transform:translateY(-1px);}
+.nfc-btn.base-c.active{border-width:2px;}
+.nfc-btn.ind-c{border-color:var(--yellow);color:var(--yellow);}
+.nfc-btn.ind-c:hover,.nfc-btn.ind-c.active{background:rgba(255,211,42,0.12);box-shadow:0 0 10px rgba(255,211,42,0.2);transform:translateY(-1px);}
+.nfc-btn.ind-c.active{border-width:2px;}
+
+/* NFC 탭 컨트롤러 */
+.nfc-controller{
+  margin-top:10px;
+  background:rgba(0,210,255,0.04);
+  border:1.5px solid rgba(0,210,255,0.2);
+  border-radius:12px;padding:12px;
+}
+.nfc-ctrl-title{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:var(--cyan);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.nfc-ctrl-title .pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:blink 1.2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+
+/* NFC 탭 버튼 - 실물 카드처럼 */
+.nfc-tap-btn{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,rgba(0,210,255,0.08),rgba(0,210,255,0.03));
+  border:2px solid rgba(0,210,255,0.3);
+  border-radius:10px;color:var(--cyan);
+  cursor:pointer;font-family:'Orbitron',monospace;
+  font-size:12px;font-weight:700;letter-spacing:2px;
+  transition:all 0.15s;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-bottom:8px;
+}
+.nfc-tap-btn:active:not(:disabled){
+  transform:scale(0.96);
+  background:rgba(0,210,255,0.2);
+  box-shadow:0 0 20px rgba(0,210,255,0.4);
+}
+.nfc-tap-btn:disabled{opacity:0.25;cursor:not-allowed;}
+
+.tap-hint{font-size:9px;color:var(--sub2);font-family:'Orbitron',monospace;letter-spacing:1px;text-align:center;line-height:1.8;}
+.tap-count-display{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  background:rgba(0,0,0,0.2);border-radius:8px;padding:6px 10px;
+  margin-top:6px;
+}
+.tap-count-num{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;color:var(--cyan);min-width:30px;text-align:center;}
+.tap-mode-badge{
+  padding:3px 8px;border-radius:6px;
+  font-family:'Orbitron',monospace;font-size:9px;font-weight:700;
+  letter-spacing:1px;transition:all 0.3s;
+}
+
+/* 태그 피드 */
+.tag-feed{background:rgba(0,210,255,0.03);border:1px solid rgba(0,210,255,0.1);border-radius:7px;padding:7px 10px;font-family:'Orbitron',monospace;font-size:9px;color:var(--sub2);display:flex;align-items:center;gap:7px;min-height:30px;margin-top:8px;letter-spacing:1px;transition:all 0.3s;}
+.tag-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:blink 1.5s infinite;flex-shrink:0;}
+
+/* 중앙 */
+.lab-center{display:flex;flex-direction:column;gap:10px;}
+
+.apparatus-wrap{
+  background:var(--panel2);border:1px solid var(--border);border-radius:14px;
+  padding:14px;position:relative;
+  display:flex;flex-direction:column;align-items:center;
+  min-height:420px;
+}
+
+.lock-overlay{
+  position:absolute;inset:0;border-radius:14px;
+  background:rgba(8,12,20,0.88);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:15;transition:opacity 0.4s;
+  font-family:'Orbitron',monospace;text-align:center;gap:7px;
+}
+.lock-overlay.hidden{opacity:0;pointer-events:none;}
+.lock-icon{font-size:28px;}
+.lock-text{font-size:10px;color:var(--sub2);letter-spacing:1px;line-height:1.8;}
+.lock-progress{display:flex;gap:6px;margin-top:5px;}
+.lp-dot{width:26px;height:26px;border-radius:7px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:13px;transition:all 0.3s;}
+.lp-dot.done{border-color:var(--base);background:rgba(46,213,115,0.1);}
+
+/* 방울 */
+.drop-el{position:absolute;width:9px;height:13px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;pointer-events:none;opacity:0;left:50%;transform:translateX(-50%);}
+@keyframes dropFall{0%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}70%{opacity:0.9;transform:translateX(-50%) translateY(85px) scale(0.85);}100%{opacity:0;transform:translateX(-50%) translateY(118px) scale(0.3);}}
+
+/* 연속 주입 시 빠른 방울 */
+@keyframes dropFallFast{0%{opacity:1;transform:translateX(-50%) translateY(0);}100%{opacity:0;transform:translateX(-50%) translateY(110px);}}
+
+#labSvg{width:100%;max-width:370px;}
+
+/* 조작 영역 */
+.ctrl-area{display:flex;flex-direction:column;gap:9px;}
+.drop-info{text-align:center;font-family:'Orbitron',monospace;font-size:10px;color:var(--sub2);letter-spacing:1px;}
+.drop-info .big{color:var(--cyan);font-size:17px;font-weight:900;}
+
+/* ── 버튼 영역 ── */
+.btn-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+.btn-grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px;}
+
+.dbtn{
+  padding:11px 8px;border-radius:9px;border:1.5px solid var(--cyan);
+  background:rgba(0,210,255,0.06);color:var(--cyan);cursor:pointer;
+  font-family:'Orbitron',monospace;font-size:10px;font-weight:700;
+  letter-spacing:1px;transition:all 0.15s;text-align:center;
+}
+.dbtn:hover:not(:disabled){background:rgba(0,210,255,0.14);box-shadow:0 0 12px rgba(0,210,255,0.22);transform:translateY(-1px);}
+.dbtn:disabled{opacity:0.22;cursor:not-allowed;}
+
+.dbtn.purple{border-color:var(--purple);background:rgba(162,155,254,0.06);color:var(--purple);}
+.dbtn.purple:hover:not(:disabled){background:rgba(162,155,254,0.14);box-shadow:0 0 12px rgba(162,155,254,0.22);}
+
+/* ★ 연속 주입 버튼 */
+.stream-btn{
+  grid-column:1/-1;
+  padding:13px;border-radius:10px;
+  border:2px solid var(--yellow);
+  background:rgba(255,211,42,0.06);
+  color:var(--yellow);cursor:pointer;
+  font-family:'Orbitron',monospace;font-size:12px;font-weight:900;
+  letter-spacing:2px;transition:all 0.15s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  position:relative;overflow:hidden;
+}
+.stream-btn:disabled{opacity:0.22;cursor:not-allowed;}
+.stream-btn.streaming{
+  background:rgba(255,211,42,0.18);
+  box-shadow:0 0 20px rgba(255,211,42,0.35), inset 0 0 20px rgba(255,211,42,0.08);
+  animation:streamPulse 0.6s infinite;
+}
+@keyframes streamPulse{0%,100%{border-color:var(--yellow);}50%{border-color:#fff7aa;}}
+
+/* 스트림 진행 바 */
+.stream-progress{
+  position:absolute;bottom:0;left:0;height:3px;
+  background:var(--yellow);width:0%;
+  transition:width 0.1s linear;
+  border-radius:0 0 10px 10px;
+}
+
+.dbtn.reset{border-color:var(--border2);background:transparent;color:var(--sub2);}
+.dbtn.reset:hover{border-color:var(--sub2);color:var(--text);}
+
+/* 그래프 */
+.graph-wrap{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:11px;}
+canvas#phGraph{width:100%;height:160px;display:block;border-radius:6px;background:rgba(0,0,0,0.2);}
+.ph-readout{display:flex;align-items:center;gap:10px;margin-top:9px;padding:9px 11px;background:rgba(0,0,0,0.18);border-radius:8px;}
+.ph-num{font-family:'Orbitron',monospace;font-size:30px;font-weight:900;transition:color 0.4s;min-width:72px;}
+.ph-bar-area{flex:1;}
+.ph-bar-track{height:11px;border-radius:6px;background:linear-gradient(to right,#f00 0%,#ff4500 8%,#ff8c00 14%,#ffd700 21%,#adff2f 28%,#0f0 35%,#00fa9a 50%,#00bfff 64%,#1e90ff 71%,#4169e1 78%,#8a2be2 85%,#4b0082 100%);position:relative;margin-bottom:3px;}
+.ph-needle{position:absolute;top:-4px;width:3px;height:19px;background:#fff;border-radius:2px;transform:translateX(-50%);transition:left 0.35s cubic-bezier(0.34,1.2,0.64,1);box-shadow:0 0 6px rgba(255,255,255,0.9);}
+.ph-bar-labels{display:flex;justify-content:space-between;font-size:7px;color:var(--sub);font-family:'Orbitron',monospace;}
+
+/* 오른쪽 */
+.info-col{display:flex;flex-direction:column;gap:9px;}
+.info-box{background:var(--panel2);border:1px solid var(--border);border-radius:11px;padding:11px;}
+.ib-label{font-size:9px;letter-spacing:2px;color:var(--sub);text-transform:uppercase;margin-bottom:7px;}
+.ib-val{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;}
+.ind-colorbox{height:40px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-top:7px;border:1px solid var(--border);transition:background 0.5s,color 0.4s;}
+.rec-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:3px;}
+.rec-chip{background:rgba(0,0,0,0.22);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center;}
+.rc-val{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;}
+.rc-label{font-size:8px;color:var(--sub2);margin-top:2px;}
+.eq-box{background:rgba(0,0,0,0.22);border:1px solid var(--border);border-radius:7px;padding:9px;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:1px;text-align:center;line-height:2;}
+.checklist{display:flex;flex-direction:column;gap:4px;}
+.cl-item{display:flex;align-items:center;gap:7px;font-size:10px;padding:4px 7px;border-radius:5px;transition:all 0.3s;}
+.cl-item.done{background:rgba(46,213,115,0.07);color:var(--base);}
+.cl-item.pending{color:var(--sub2);}
+.cl-check{width:14px;height:14px;border-radius:3px;border:1.5px solid;display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0;transition:all 0.3s;}
+.cl-item.done .cl-check{border-color:var(--base);background:rgba(46,213,115,0.18);}
+.cl-item.pending .cl-check{border-color:var(--sub);}
+.output-box{background:rgba(46,213,115,0.04);border:1px solid rgba(46,213,115,0.18);border-radius:10px;padding:11px;font-size:11px;line-height:2.1;display:none;}
+.output-box.show{display:block;}
+
+/* 중화점 플래시 */
+.neutral-flash{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:100;background:linear-gradient(135deg,#ffd32a,#ff9f43);color:#000;border-radius:16px;padding:22px 34px;text-align:center;pointer-events:none;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);}
+.neutral-flash.show{transform:translate(-50%,-50%) scale(1);}
+.nf-title{font-family:'Orbitron',monospace;font-size:19px;font-weight:900;margin-bottom:5px;}
+.nf-sub{font-size:12px;}
+
+/* 스트리밍 물결 */
+@keyframes streamWave{0%{d:path("M130,230 Q160,224 190,230 Q220,236 250,230");}50%{d:path("M130,230 Q160,236 190,230 Q220,224 250,230");}100%{d:path("M130,230 Q160,224 190,230 Q220,236 250,230");}}
+</style>
+</head>
+<body>
+<div class="neutral-flash" id="neutralFlash">
+  <div class="nf-title">🎯 중화점 도달!</div>
+  <div class="nf-sub" id="nfSub">완전 중화 달성!</div>
+</div>
+
+<div class="app">
+<header>
+  <div class="sub">Acid-Base Titration · NFC Card System v2</div>
+  <h1>산염기 적정 실험 설계 시스템</h1>
+  <p>NFC 카드 탭 횟수로 주입량을 조절하세요 · 꾹 누르면 연속 주입</p>
+</header>
+
+<div class="step-bar">
+  <div class="step-item" id="step1"><span class="sn">①</span>기구 세팅</div>
+  <div class="step-item" id="step2"><span class="sn">②</span>시약 선택</div>
+  <div class="step-item" id="step3"><span class="sn">③</span>실험 실행</div>
+</div>
+
+<div class="layout">
+
+<!-- 왼쪽 카드 패널 -->
+<div class="panel">
+  <div class="ptitle">NFC 카드</div>
+
+  <div class="cs-label"><div class="cs-dot" style="background:#a29bfe;"></div>실험기구</div>
+  <div class="card-grid">
+    <button class="nfc-btn equip" id="eq-stand" onclick="tagEquip('stand',this)"><span class="nb-icon">🗼</span><span class="nb-name">스탠드</span><span class="nb-sub">Stand</span></button>
+    <button class="nfc-btn equip" id="eq-clamp" onclick="tagEquip('clamp',this)"><span class="nb-icon">🔩</span><span class="nb-name">클램프</span><span class="nb-sub">Clamp</span></button>
+    <button class="nfc-btn equip" id="eq-burette" onclick="tagEquip('burette',this)"><span class="nb-icon">🧪</span><span class="nb-name">뷰렛</span><span class="nb-sub">Burette</span></button>
+    <button class="nfc-btn equip" id="eq-flask" onclick="tagEquip('flask',this)"><span class="nb-icon">⚗️</span><span class="nb-name">삼각플라스크</span><span class="nb-sub">Flask</span></button>
+    <button class="nfc-btn equip" id="eq-pipette" onclick="tagEquip('pipette',this)"><span class="nb-icon">💉</span><span class="nb-name">피펫</span><span class="nb-sub">Pipette</span></button>
+    <button class="nfc-btn equip" id="eq-beaker" onclick="tagEquip('beaker',this)"><span class="nb-icon">🫙</span><span class="nb-name">비커</span><span class="nb-sub">Beaker</span></button>
+  </div>
+
+  <div class="cs-label"><div class="cs-dot" style="background:var(--acid);"></div>산 (비커)</div>
+  <div class="card-grid">
+    <button class="nfc-btn acid-c" onclick="tagReagent('acid','HCl',1.0,10,this)"><span class="nb-icon">🔴</span><span class="nb-name">HCl</span><span class="nb-sub">1.0M·10mL</span></button>
+    <button class="nfc-btn acid-c" onclick="tagReagent('acid','HCl',0.1,10,this)"><span class="nb-icon">🔴</span><span class="nb-name">HCl</span><span class="nb-sub">0.1M·10mL</span></button>
+    <button class="nfc-btn acid-c" onclick="tagReagent('acid','CH₃COOH',0.1,10,this)"><span class="nb-icon">🟠</span><span class="nb-name">CH₃COOH</span><span class="nb-sub">0.1M·10mL</span></button>
+    <button class="nfc-btn acid-c" onclick="tagReagent('acid','HCl',0.1,20,this)"><span class="nb-icon">🔴</span><span class="nb-name">HCl</span><span class="nb-sub">0.1M·20mL</span></button>
+  </div>
+
+  <div class="cs-label"><div class="cs-dot" style="background:var(--base);"></div>염기 (뷰렛)</div>
+  <div class="card-grid">
+    <button class="nfc-btn base-c" onclick="tagReagent('base','NaOH',1.0,0,this)"><span class="nb-icon">🟢</span><span class="nb-name">NaOH</span><span class="nb-sub">1.0M</span></button>
+    <button class="nfc-btn base-c" onclick="tagReagent('base','NaOH',0.1,0,this)"><span class="nb-icon">🟢</span><span class="nb-name">NaOH</span><span class="nb-sub">0.1M</span></button>
+    <button class="nfc-btn base-c" onclick="tagReagent('base','Ca(OH)₂',0.1,0,this)"><span class="nb-icon">🔵</span><span class="nb-name">Ca(OH)₂</span><span class="nb-sub">0.1M</span></button>
+  </div>
+
+  <div class="cs-label"><div class="cs-dot" style="background:var(--yellow);"></div>지시약</div>
+  <div class="card-grid">
+    <button class="nfc-btn ind-c" onclick="tagReagent('indicator','BTB',0,0,this)"><span class="nb-icon">💛</span><span class="nb-name">BTB</span><span class="nb-sub">지시약</span></button>
+    <button class="nfc-btn ind-c" onclick="tagReagent('indicator','PP',0,0,this)"><span class="nb-icon">🩷</span><span class="nb-name">페놀프탈레인</span><span class="nb-sub">지시약</span></button>
+    <button class="nfc-btn ind-c" onclick="tagReagent('indicator','MO',0,0,this)"><span class="nb-icon">🟠</span><span class="nb-name">메틸오렌지</span><span class="nb-sub">지시약</span></button>
+    <button class="nfc-btn ind-c" onclick="tagReagent('indicator','NONE',0,0,this)"><span class="nb-icon">⬜</span><span class="nb-name">없음</span><span class="nb-sub">무지시약</span></button>
+  </div>
+
+  <!-- NFC 탭 컨트롤러 -->
+  <div class="nfc-controller">
+    <div class="nfc-ctrl-title"><div class="pulse-dot"></div>NFC 뷰렛 컨트롤러</div>
+
+    <button class="nfc-tap-btn" id="nfcTapBtn" onclick="nfcTap()" disabled>
+      📲 NFC TAP
+    </button>
+
+    <div class="tap-hint">
+      1탭 = 1방울 &nbsp;|&nbsp; 빠른 2탭 = 5방울<br>
+      빠른 3탭 = 연속 주입 ON/OFF
+    </div>
+
+    <div class="tap-count-display">
+      <div>
+        <div style="font-size:8px;color:var(--sub2);font-family:'Orbitron',monospace;letter-spacing:1px;margin-bottom:2px;">탭 횟수</div>
+        <div class="tap-count-num" id="tapCountNum">0</div>
+      </div>
+      <div style="flex:1;text-align:center;">
+        <div class="tap-mode-badge" id="tapModeBadge" style="background:rgba(100,100,100,0.15);color:var(--sub2);">대기중</div>
+        <div style="font-size:9px;color:var(--sub2);font-family:'Orbitron',monospace;margin-top:4px;" id="tapModeDesc">기구·시약 선택 필요</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tag-feed" id="tagFeed">
+    <div class="tag-dot"></div>
+    <span id="tagText">카드를 선택하면 여기에 표시됩니다</span>
+  </div>
+</div>
+
+<!-- 중앙 실험대 -->
+<div class="lab-center">
+  <div class="apparatus-wrap" id="apparatus">
+    <div class="lock-overlay" id="lockOverlay">
+      <div class="lock-icon">🔒</div>
+      <div class="lock-text">실험기구 카드를 먼저 태그하세요<br>필수: 스탠드 · 클램프 · 뷰렛 · 삼각플라스크</div>
+      <div class="lock-progress">
+        <div class="lp-dot" id="lp-stand">🗼</div>
+        <div class="lp-dot" id="lp-clamp">🔩</div>
+        <div class="lp-dot" id="lp-burette">🧪</div>
+        <div class="lp-dot" id="lp-flask">⚗️</div>
+      </div>
+    </div>
+
+    <div class="drop-el" id="dropEl" style="background:#2ed573;top:153px;"></div>
+
+    <svg id="labSvg" viewBox="0 0 380 420" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <clipPath id="flaskClip"><path d="M130,230 L100,340 Q95,360 115,365 L265,365 Q285,360 280,340 L250,230 Z"/></clipPath>
+        <clipPath id="buretteClip"><rect x="181" y="22" width="18" height="178"/></clipPath>
+      </defs>
+
+      <!-- 스탠드 -->
+      <g id="g-stand" opacity="0.12" style="transition:opacity 0.5s">
+        <rect x="30" y="390" width="120" height="11" rx="4" fill="#a29bfe" opacity="0.6"/>
+        <rect x="72" y="50" width="12" height="342" rx="3" fill="#a29bfe" opacity="0.5"/>
+        <rect x="60" y="95" width="130" height="9" rx="4" fill="#a29bfe" opacity="0.35"/>
+        <rect x="170" y="83" width="22" height="34" rx="4" fill="#a29bfe" opacity="0.45"/>
+        <circle cx="175" cy="100" r="4" fill="#a29bfe"/><circle cx="185" cy="100" r="4" fill="#a29bfe"/>
+      </g>
+
+      <!-- 뷰렛 -->
+      <g id="g-burette" opacity="0.12" style="transition:opacity 0.5s">
+        <path d="M173,15 L207,15 L200,28 L180,28 Z" fill="none" stroke="#2ed573" stroke-width="1.5"/>
+        <rect x="181" y="20" width="18" height="180" rx="2" fill="rgba(46,213,115,0.04)" stroke="#2ed573" stroke-width="1.5"/>
+        <rect id="buretteLiq" x="182.5" y="21" width="15" height="178" rx="1.5" fill="rgba(46,213,115,0.35)" clip-path="url(#buretteClip)"/>
+        <line x1="181" y1="55" x2="188" y2="55" stroke="#2ed573" stroke-width="1" opacity="0.5"/>
+        <text x="177" y="58" font-size="7" fill="#2ed573" opacity="0.5" text-anchor="end" font-family="Orbitron,monospace">5</text>
+        <line x1="181" y1="90" x2="188" y2="90" stroke="#2ed573" stroke-width="1" opacity="0.5"/>
+        <text x="177" y="93" font-size="7" fill="#2ed573" opacity="0.5" text-anchor="end" font-family="Orbitron,monospace">10</text>
+        <line x1="181" y1="125" x2="188" y2="125" stroke="#2ed573" stroke-width="1" opacity="0.5"/>
+        <text x="177" y="128" font-size="7" fill="#2ed573" opacity="0.5" text-anchor="end" font-family="Orbitron,monospace">15</text>
+        <line x1="181" y1="160" x2="188" y2="160" stroke="#2ed573" stroke-width="1" opacity="0.5"/>
+        <text x="177" y="163" font-size="7" fill="#2ed573" opacity="0.5" text-anchor="end" font-family="Orbitron,monospace">20</text>
+        <rect x="183" y="200" width="14" height="11" rx="2" fill="rgba(0,0,0,0.4)" stroke="#2ed573" stroke-width="1.5"/>
+        <rect x="179" y="203" width="22" height="4" rx="2" fill="#2ed573" opacity="0.45"/>
+        <line x1="190" y1="211" x2="190" y2="230" stroke="#2ed573" stroke-width="2" stroke-linecap="round"/>
+        <text id="buretteUsedText" x="213" y="118" font-size="8" fill="#2ed573" opacity="0" font-family="Orbitron,monospace">0.0mL</text>
+      </g>
+
+      <!-- 삼각 플라스크 -->
+      <g id="g-flask" opacity="0.12" style="transition:opacity 0.5s">
+        <path d="M130,230 L100,340 Q95,360 115,365 L265,365 Q285,360 280,340 L250,230 Z" fill="rgba(255,255,255,0.02)" stroke="#6699cc" stroke-width="2"/>
+        <path id="flaskLiq" d="M130,230 L100,340 Q95,360 115,365 L265,365 Q285,360 280,340 L250,230 Z" fill="rgba(0,210,255,0.25)" clip-path="url(#flaskClip)"/>
+        <path id="flaskWave" d="M130,230 Q160,226 190,230 Q220,234 250,230" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" clip-path="url(#flaskClip)"/>
+        <path d="M170,160 L170,232 L130,232" fill="none" stroke="#6699cc" stroke-width="2"/>
+        <path d="M210,160 L210,232 L250,232" fill="none" stroke="#6699cc" stroke-width="2"/>
+        <rect x="170" y="130" width="40" height="32" rx="3" fill="rgba(255,255,255,0.02)" stroke="#6699cc" stroke-width="2"/>
+        <line x1="101" y1="320" x2="111" y2="320" stroke="#6699cc" stroke-width="1.2" opacity="0.45"/>
+        <text x="113" y="323" font-size="8" fill="#6699cc" opacity="0.55" font-family="Orbitron,monospace">50</text>
+        <line x1="98" y1="298" x2="111" y2="298" stroke="#6699cc" stroke-width="1.2" opacity="0.45"/>
+        <text x="113" y="301" font-size="8" fill="#6699cc" opacity="0.55" font-family="Orbitron,monospace">75</text>
+        <line x1="97" y1="278" x2="111" y2="278" stroke="#6699cc" stroke-width="1.2" opacity="0.45"/>
+        <text x="113" y="281" font-size="8" fill="#6699cc" opacity="0.55" font-family="Orbitron,monospace">100</text>
+        <!-- 실시간 mL -->
+        <text id="flaskVolText" x="190" y="318" font-size="14" fill="rgba(255,255,255,0)" text-anchor="middle" font-family="Orbitron,monospace" font-weight="700">—</text>
+        <text id="flaskMlLabel" x="190" y="333" font-size="9" fill="rgba(255,255,255,0)" text-anchor="middle" font-family="Orbitron,monospace">mL</text>
+        <g id="rippleGroup" clip-path="url(#flaskClip)"></g>
+        <path d="M130,230 L100,340 Q95,360 115,365 L265,365 Q285,360 280,340 L250,230 Z" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      </g>
+
+      <!-- 피펫 -->
+      <g id="g-pipette" opacity="0" style="transition:opacity 0.5s">
+        <line x1="310" y1="40" x2="310" y2="195" stroke="#70a1ff" stroke-width="3" stroke-linecap="round"/>
+        <ellipse cx="310" cy="34" rx="7" ry="10" fill="rgba(112,161,255,0.28)" stroke="#70a1ff" stroke-width="1.5"/>
+        <line x1="309.2" y1="195" x2="310.8" y2="225" stroke="#70a1ff" stroke-width="1.8"/>
+        <text x="323" y="120" font-size="8" fill="#70a1ff" opacity="0.5" font-family="Orbitron,monospace">피펫</text>
+      </g>
+
+      <!-- 비커 -->
+      <g id="g-beaker" opacity="0" style="transition:opacity 0.5s">
+        <path d="M298,252 L298,372 Q298,382 308,382 L360,382 Q370,382 370,372 L370,252 Z" fill="rgba(255,255,255,0.02)" stroke="#74b9ff" stroke-width="1.5"/>
+        <text x="334" y="246" font-size="8" fill="#74b9ff" opacity="0.45" text-anchor="middle" font-family="Orbitron,monospace">비커</text>
+      </g>
+
+      <!-- pH 표시 -->
+      <text id="svgPH" x="190" y="410" font-size="11" fill="rgba(0,210,255,0)" text-anchor="middle" font-family="Orbitron,monospace" font-weight="700">pH —</text>
+
+      <!-- 연속주입 표시 -->
+      <text id="streamingText" x="190" y="395" font-size="10" fill="rgba(255,211,42,0)" text-anchor="middle" font-family="Orbitron,monospace">● 연속 주입 중...</text>
+    </svg>
+  </div>
+
+  <!-- 조작 버튼 -->
+  <div class="ctrl-area">
+    <div class="drop-info">
+      <span class="big" id="dropCount">0</span> 방울 &nbsp;|&nbsp;
+      추가: <span style="color:var(--base)" id="addedVol">0.00</span>mL &nbsp;|&nbsp;
+      총: <span style="color:var(--cyan)" id="totalVol">—</span>mL
+    </div>
+
+    <div class="btn-grid">
+      <button class="dbtn" id="btn1" onclick="addDrop(1)" disabled>💧 1방울</button>
+      <button class="dbtn purple" id="btn5" onclick="addDrop(5)" disabled>💧 5방울</button>
+      <button class="dbtn purple" id="btn10" onclick="addDrop(10)" disabled>💧 10방울</button>
+    </div>
+
+    <!-- ★ 연속 주입 버튼 -->
+    <div class="btn-grid2">
+      <button class="stream-btn" id="streamBtn" disabled
+        onmousedown="startStream()" onmouseup="stopStream()" onmouseleave="stopStream()"
+        ontouchstart="startStream(event)" ontouchend="stopStream()">
+        <span id="streamBtnIcon">⏸</span>
+        <span id="streamBtnText">꾹 누르면 연속 주입</span>
+        <div class="stream-progress" id="streamProgress"></div>
+      </button>
+      <button class="dbtn reset" onclick="resetAll()">↺ 초기화</button>
+    </div>
+  </div>
+
+  <!-- pH 그래프 -->
+  <div class="graph-wrap">
+    <div class="ptitle" style="margin-bottom:7px;">pH 적정 곡선</div>
+    <canvas id="phGraph" width="600" height="160"></canvas>
+    <div class="ph-readout">
+      <div class="ph-num" id="phNum">—</div>
+      <div class="ph-bar-area">
+        <div class="ph-bar-track"><div class="ph-needle" id="phNeedle" style="left:50%"></div></div>
+        <div class="ph-bar-labels"><span>0</span><span>2</span><span>4</span><span>6</span><span>7</span><span>8</span><span>10</span><span>12</span><span>14</span></div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px;font-weight:700;transition:color 0.4s;" id="phStatusTxt">—</div>
+        <div style="font-size:9px;color:var(--sub2);font-family:'Orbitron',monospace;margin-top:2px;" id="phDropTxt">0 drops</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 오른쪽 -->
+<div class="info-col">
+  <div class="info-box">
+    <div class="ib-label">기구 체크리스트</div>
+    <div class="checklist">
+      <div class="cl-item pending" id="cl-stand"><div class="cl-check">✓</div>스탠드</div>
+      <div class="cl-item pending" id="cl-clamp"><div class="cl-check">✓</div>클램프</div>
+      <div class="cl-item pending" id="cl-burette"><div class="cl-check">✓</div>뷰렛</div>
+      <div class="cl-item pending" id="cl-flask"><div class="cl-check">✓</div>삼각플라스크</div>
+      <div class="cl-item pending" id="cl-pipette"><div class="cl-check">✓</div>피펫 (선택)</div>
+      <div class="cl-item pending" id="cl-beaker"><div class="cl-check">✓</div>비커 (선택)</div>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <div class="ib-label">용액 상태</div>
+    <div class="ib-val" id="solutionState" style="font-size:10px;line-height:1.9;color:var(--sub2);">기구·시약 선택 후 표시</div>
+    <div class="ind-colorbox" id="indColorBox" style="background:rgba(100,100,100,0.08);color:var(--sub2);">—</div>
+  </div>
+
+  <div class="info-box">
+    <div class="ib-label">알짜 이온 반응식</div>
+    <div class="eq-box" id="eqBox" style="color:var(--sub2);">시약 선택 후 표시</div>
+  </div>
+
+  <div class="info-box">
+    <div class="ib-label">실험 기록</div>
+    <div class="rec-grid">
+      <div class="rec-chip"><div class="rc-val" id="recPH" style="color:var(--sub2)">—</div><div class="rc-label">현재 pH</div></div>
+      <div class="rec-chip"><div class="rc-val" id="recDrops" style="color:var(--cyan)">0</div><div class="rc-label">총 방울</div></div>
+      <div class="rec-chip"><div class="rc-val" id="recNeutral" style="color:var(--yellow)">—</div><div class="rc-label">중화점 방울</div></div>
+      <div class="rec-chip"><div class="rc-val" id="recVol" style="color:var(--base)">—</div><div class="rc-label">적정 부피</div></div>
+    </div>
+  </div>
+
+  <div class="output-box" id="outputBox">
+    <div class="ib-label" style="margin-bottom:5px;">✅ 실험 설계 산출물</div>
+    <div id="outputContent"></div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<!-- 학생 정보 바 -->
+<div style="max-width:1200px;margin:10px auto;padding:0 14px;">
+  <div id="studentInfoBar">
+    <button onclick="openStudentLogin()" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(0,210,255,0.3);background:rgba(0,210,255,0.08);color:var(--cyan);cursor:pointer;font-size:11px;font-family:'Orbitron',monospace;">👤 학생 정보 입력</button>
+  </div>
+</div>
+
+<!-- 서술 입력 모달 -->
+<div class="wm-overlay" id="writeModal">
+  <div class="wm-box">
+    <div class="wm-header">
+      <div>
+        <div style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:var(--cyan);margin-bottom:4px;">META FLOW+ · 문해력 서술</div>
+        <div style="font-size:15px;font-weight:700;">실험 결과를 설명해보세요</div>
+      </div>
+      <button onclick="closeWriteModal()" style="background:none;border:none;color:var(--sub);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+
+    <div style="background:rgba(0,210,255,0.06);border:1px solid rgba(0,210,255,0.15);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--sub2);">
+      🧪 <span id="wm-expSummary"></span>
+    </div>
+
+    <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:8px;line-height:1.8;">
+      💡 이번 실험에서 일어난 화학 반응을 <strong style="color:var(--cyan)">과학 용어</strong>를 사용해 설명하세요.<br>
+      <span style="font-size:10px;color:var(--sub2)">예: H⁺, OH⁻, pH, 중화점, BTB 색 변화, 이온...</span>
+    </div>
+
+    <textarea id="wm-answer" rows="5" placeholder="여기에 자유롭게 서술하세요...&#10;&#10;예) HCl의 H⁺와 NaOH의 OH⁻가 반응하여 물이 생성되면서 pH가 상승하였고, BTB 지시약이 노란색에서 초록색으로 변화하였습니다..." style="width:100%;padding:12px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:'Noto Sans KR',sans-serif;resize:none;outline:none;line-height:1.7;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+
+    <div id="wm-result" style="display:none;"></div>
+
+    <button id="wm-submitBtn" onclick="submitAnswer()" style="width:100%;padding:13px;margin-top:10px;background:linear-gradient(135deg,rgba(0,210,255,0.12),rgba(46,213,115,0.12));border:1px solid var(--cyan);border-radius:10px;color:var(--cyan);cursor:pointer;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:2px;transition:all 0.2s;">
+      💾 META FLOW+에 저장
+    </button>
+  </div>
+</div>
+
+<!-- 학생 로그인 모달 -->
+<div class="wm-overlay" id="loginModal">
+  <div class="wm-box">
+    <div class="wm-header">
+      <div>
+        <div style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:var(--cyan);margin-bottom:4px;">META FLOW+</div>
+        <div style="font-size:15px;font-weight:700;">학생 정보 입력</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div>
+        <div style="font-size:10px;color:var(--sub2);letter-spacing:1px;font-family:'Orbitron',monospace;margin-bottom:5px;">학번</div>
+        <input id="lm-id" type="text" placeholder="예) 2031" style="width:100%;padding:11px 14px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--sub2);letter-spacing:1px;font-family:'Orbitron',monospace;margin-bottom:5px;">이름</div>
+        <input id="lm-name" type="text" placeholder="이름 입력" style="width:100%;padding:11px 14px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--sub2);letter-spacing:1px;font-family:'Orbitron',monospace;margin-bottom:5px;">학년/반</div>
+        <input id="lm-class" type="text" placeholder="예) 2학년 3반" style="width:100%;padding:11px 14px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+      </div>
+      <button onclick="saveStudentInfo()" style="width:100%;padding:13px;background:linear-gradient(135deg,rgba(0,210,255,0.12),rgba(46,213,115,0.12));border:1px solid var(--cyan);border-radius:10px;color:var(--cyan);cursor:pointer;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:2px;margin-top:4px;">
+        시작하기 →
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+.wm-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.8);
+  z-index:500;display:none;align-items:center;justify-content:center;
+  padding:20px;backdrop-filter:blur(4px);
+}
+.wm-overlay.show{display:flex;}
+.wm-box{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:16px;padding:22px;
+  max-width:480px;width:100%;
+  max-height:90vh;overflow-y:auto;
+  animation:modalIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes modalIn{from{opacity:0;transform:scale(0.9) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.wm-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
+</style>
+
+<script>
+// ── 상태 ──
+const S = {
+  equip:{stand:false,clamp:false,burette:false,flask:false,pipette:false,beaker:false},
+  acid:null, base:null, indicator:'BTB',
+  drops:0, ph:null,
+  neutralized:false, neutralDrop:null,
+  phHistory:[],
+  dropML:0.05, acidVolML:10,
+  streaming:false, streamTimer:null, streamInterval:null,
+  ready:false,
+  // NFC 탭 상태
+  tapCount:0, tapTimer:null, tapWindow:600, // ms
+  isStreamingByTap:false
+};
+const REQUIRED=['stand','clamp','burette','flask'];
+
+// ── 기구 태그 ──
+function tagEquip(type,btn){
+  btn.classList.toggle('active');
+  S.equip[type]=btn.classList.contains('active');
+  document.getElementById('cl-'+type).className='cl-item '+(S.equip[type]?'done':'pending');
+  const lp=document.getElementById('lp-'+type);
+  if(lp) lp.classList.toggle('done',S.equip[type]);
+  const g=document.getElementById('g-'+type);
+  if(g) g.style.opacity=S.equip[type]?'1':'0.12';
+  updateTagFeed('equip',type+(S.equip[type]?' 장착':' 제거'));
+  checkReady();
+}
+
+// ── 시약 태그 ──
+function tagReagent(type,formula,conc,vol,btn){
+  const gc={'acid':'acid-c','base':'base-c','indicator':'ind-c'};
+  document.querySelectorAll('.nfc-btn.'+gc[type]).forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(type==='acid') S.acid={formula,conc,vol:vol||10};
+  else if(type==='base') S.base={formula,conc};
+  else S.indicator=formula;
+  updateTagFeed(type,formula+(conc?' '+conc+'M':'')+(vol?' '+vol+'mL':''));
+  updateEquation();
+  checkReady();
+  if(type==='acid'){
+    S.drops=0;S.neutralized=false;S.neutralDrop=null;S.phHistory=[];
+    if(S.ready){S.ph=calcPH(0);S.phHistory=[{drops:0,ph:S.ph}];updateAll();drawGraph();}
+  }
+}
+
+function updateTagFeed(type,msg){
+  const c={equip:'#a29bfe',acid:'var(--acid)',base:'var(--base)',indicator:'var(--yellow)'};
+  document.getElementById('tagFeed').style.borderColor=c[type];
+  document.getElementById('tagFeed').style.color=c[type];
+  document.getElementById('tagText').textContent='📲 '+msg;
+}
+
+// ── 준비 확인 ──
+function checkReady(){
+  const eq=REQUIRED.every(e=>S.equip[e]);
+  const re=S.acid&&S.base;
+  S.ready=eq&&re;
+  document.getElementById('lockOverlay').classList.toggle('hidden',eq);
+  ['btn1','btn5','btn10','streamBtn','nfcTapBtn'].forEach(id=>{
+    document.getElementById(id).disabled=!S.ready;
+  });
+  document.getElementById('step1').className='step-item '+(eq?'done':'active');
+  document.getElementById('step2').className='step-item '+(S.ready?'done':(eq?'active':''));
+  document.getElementById('step3').className='step-item '+(S.ready?'active':'');
+
+  // NFC 컨트롤러 배지 업데이트
+  updateTapBadge();
+
+  if(S.ready&&S.ph===null){
+    S.ph=calcPH(0);S.phHistory=[{drops:0,ph:S.ph}];updateAll();drawGraph();
+  }
+}
+
+// ── NFC 탭 로직 ──
+function nfcTap(){
+  if(!S.ready) return;
+
+  // 연속 주입 중이면 정지
+  if(S.isStreamingByTap){ stopStreamByTap(); return; }
+
+  S.tapCount++;
+  document.getElementById('tapCountNum').textContent=S.tapCount;
+
+  // 탭 타이머 리셋
+  clearTimeout(S.tapTimer);
+  S.tapTimer=setTimeout(()=>{
+    const tc=S.tapCount;
+    S.tapCount=0;
+    document.getElementById('tapCountNum').textContent=0;
+    executeTap(tc);
+  }, S.tapWindow);
+
+  // 즉각 시각 피드백
+  const btn=document.getElementById('nfcTapBtn');
+  btn.style.transform='scale(0.93)';
+  btn.style.background='rgba(0,210,255,0.25)';
+  setTimeout(()=>{btn.style.transform='';btn.style.background='';},150);
+
+  updateTapBadge();
+}
+
+function executeTap(count){
+  if(count===1){ addDrop(1); updateTapMode('1탭','1방울 주입','rgba(0,210,255,0.15)','var(--cyan)'); }
+  else if(count===2){ addDrop(5); updateTapMode('2탭','5방울 주입','rgba(162,155,254,0.15)','var(--purple)'); }
+  else if(count>=3){ startStreamByTap(); }
+}
+
+function startStreamByTap(){
+  S.isStreamingByTap=true;
+  updateTapMode('3탭','연속 주입 ON','rgba(255,211,42,0.15)','var(--yellow)');
+  document.getElementById('nfcTapBtn').textContent='📲 NFC TAP (정지하려면 탭)';
+  startStreamCore();
+}
+
+function stopStreamByTap(){
+  S.isStreamingByTap=false;
+  stopStreamCore();
+  document.getElementById('nfcTapBtn').innerHTML='📲 NFC TAP';
+  updateTapMode('대기','—','rgba(100,100,100,0.12)','var(--sub2)');
+}
+
+function updateTapMode(mode,desc,bg,color){
+  const badge=document.getElementById('tapModeBadge');
+  badge.textContent=mode; badge.style.background=bg; badge.style.color=color;
+  document.getElementById('tapModeDesc').textContent=desc;
+}
+
+function updateTapBadge(){
+  if(!S.ready){
+    updateTapMode('대기중','기구·시약 선택 필요','rgba(100,100,100,0.12)','var(--sub2)');
+  } else if(!S.isStreamingByTap){
+    updateTapMode('준비','탭하여 주입','rgba(0,210,255,0.1)','var(--cyan)');
+  }
+}
+
+// ── 연속 주입 (버튼 누르고 있기) ──
+function startStream(e){
+  if(e) e.preventDefault();
+  if(!S.ready||S.streaming) return;
+  startStreamCore();
+  // 진행 바
+  let p=0;
+  const prog=document.getElementById('streamProgress');
+  prog.style.width='0%';
+}
+
+function stopStream(){
+  if(!S.streaming) return;
+  stopStreamCore();
+}
+
+function startStreamCore(){
+  if(S.streaming) return;
+  S.streaming=true;
+  const btn=document.getElementById('streamBtn');
+  btn.classList.add('streaming');
+  document.getElementById('streamBtnIcon').textContent='▶';
+  document.getElementById('streamBtnText').textContent='연속 주입 중... (떼면 정지)';
+  document.getElementById('streamingText').style.fill='rgba(255,211,42,0.8)';
+
+  // 50ms마다 1방울 (빠른 연속)
+  S.streamInterval=setInterval(()=>{ addDropQuick(); },55);
+}
+
+function stopStreamCore(){
+  S.streaming=false;
+  clearInterval(S.streamInterval); S.streamInterval=null;
+  const btn=document.getElementById('streamBtn');
+  btn.classList.remove('streaming');
+  document.getElementById('streamBtnIcon').textContent='⏸';
+  document.getElementById('streamBtnText').textContent='꾹 누르면 연속 주입';
+  document.getElementById('streamProgress').style.width='0%';
+  document.getElementById('streamingText').style.fill='rgba(255,211,42,0)';
+}
+
+// ── 방울 추가 (일반, 순차) ──
+async function addDrop(n){
+  if(!S.ready) return;
+  for(let i=0;i<n;i++){
+    await animateDrop(false);
+    applyDrop();
+    if(i<n-1) await sleep(70);
+  }
+}
+
+// ── 방울 추가 (연속 주입용 - 애니 간소화) ──
+function addDropQuick(){
+  if(!S.ready) return;
+  applyDrop();
+  // 빠른 방울 애니
+  const d=document.getElementById('dropEl');
+  d.style.background='#2ed573';
+  d.style.animation='none';
+  d.offsetHeight;
+  d.style.animation='dropFallFast 0.25s ease-in forwards';
+  // 파문
+  setTimeout(addRipple,210);
+  updateAll(); drawGraph(); updateBuretteLiq();
+}
+
+function applyDrop(){
+  S.drops++;
+  S.ph=Math.max(0,Math.min(14,calcPH(S.drops)));
+  // 그래프는 5방울마다 or 중화점 근처에서만 추가 (성능)
+  if(S.drops%2===0||Math.abs(S.drops-neutralDrops())<5){
+    S.phHistory.push({drops:S.drops,ph:S.ph});
+  }
+  const nd=neutralDrops();
+  if(!S.neutralized&&S.drops>=nd&&S.drops<=nd+3){
+    S.neutralized=true; S.neutralDrop=S.drops;
+    showNeutralFlash(); showOutput();
+    if(S.streaming||S.isStreamingByTap){ stopStreamCore(); stopStreamByTap(); }
+    S.phHistory.push({drops:S.drops,ph:S.ph}); // 중화점 반드시 기록
+  }
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function animateDrop(fast=false){
+  return new Promise(resolve=>{
+    const d=document.getElementById('dropEl');
+    d.style.background='#2ed573';
+    d.style.animation='none';
+    d.offsetHeight;
+    d.style.animation=(fast?'dropFallFast 0.25s':'dropFall 0.42s')+' ease-in forwards';
+    setTimeout(addRipple, fast?200:340);
+    setTimeout(()=>{ updateAll(); drawGraph(); updateBuretteLiq(); resolve(); }, fast?260:440);
+  });
+}
+
+function addRipple(){
+  const g=document.getElementById('rippleGroup');
+  const wy=getWaveY();
+  const el=document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+  el.setAttribute('cx','190');el.setAttribute('cy',wy);
+  el.setAttribute('rx','22');el.setAttribute('ry','6');
+  el.setAttribute('fill','none');el.setAttribute('stroke','rgba(255,255,255,0.4)');
+  el.setAttribute('stroke-width','1.5');
+  el.style.animation='ripple 0.45s ease-out forwards';
+  g.appendChild(el); setTimeout(()=>el.remove(),460);
+}
+
+// ── 플라스크 파도 Y ──
+function getWaveY(){
+  if(!S.acid) return 300;
+  const total=S.acid.vol+S.drops*S.dropML;
+  const minY=352,maxY=238;
+  return minY-Math.min((total/160)*(minY-maxY),minY-maxY);
+}
+
+// ── pH 계산 ──
+function calcPH(drops){
+  if(!S.acid||!S.base) return 7;
+  const am=S.acid.conc*S.acid.vol, bm=S.base.conc*drops*S.dropML;
+  const tv=S.acid.vol+drops*S.dropML;
+  const weak=S.acid.formula==='CH₃COOH', Ka=1.8e-5;
+  if(drops===0) return weak?-Math.log10(Math.sqrt(Ka*S.acid.conc)):-Math.log10(S.acid.conc);
+  if(Math.abs(am-bm)<am*0.001) return weak?8.7:7.0;
+  if(bm<am){
+    const r=(am-bm)/tv;
+    return weak?-Math.log10(Ka)+Math.log10(bm/(am-bm)):Math.max(0,-Math.log10(r));
+  }
+  return Math.min(14,14+Math.log10((bm-am)/tv));
+}
+function neutralDrops(){
+  if(!S.acid||!S.base) return 999;
+  return Math.round((S.acid.conc*S.acid.vol)/(S.base.conc*S.dropML));
+}
+
+// ── UI 업데이트 ──
+function updateAll(){
+  const ph=S.ph; if(ph===null) return;
+  const added=S.drops*S.dropML;
+  const total=S.acid?(S.acid.vol+added):added;
+
+  // 플라스크 색
+  document.getElementById('flaskLiq').style.fill=getLiqColor(ph);
+  // 파도
+  const wy=getWaveY();
+  document.getElementById('flaskWave').setAttribute('d',`M130,${wy} Q160,${wy-3} 190,${wy} Q220,${wy+3} 250,${wy}`);
+  // mL 텍스트
+  const vt=document.getElementById('flaskVolText');
+  vt.textContent=total.toFixed(1); vt.style.fill='rgba(255,255,255,0.7)';
+  vt.setAttribute('y',Math.min(wy-8,345));
+  document.getElementById('flaskMlLabel').style.fill='rgba(255,255,255,0.4)';
+  document.getElementById('flaskMlLabel').setAttribute('y',Math.min(wy+7,360));
+
+  // pH
+  const pc=getPhColor(ph);
+  document.getElementById('phNum').textContent=ph.toFixed(2);
+  document.getElementById('phNum').style.color=pc;
+  document.getElementById('phNeedle').style.left=(ph/14*100)+'%';
+  const st=ph<6.9?'산성 🔴':ph>7.1?'염기성 🔵':'중성 🟢';
+  document.getElementById('phStatusTxt').textContent=st;
+  document.getElementById('phStatusTxt').style.color=pc;
+  document.getElementById('phDropTxt').textContent=S.drops+' drops';
+
+  // 지시약
+  const [il,ib,ic]=getIndResult(ph);
+  const ib2=document.getElementById('indColorBox');
+  ib2.textContent=il; ib2.style.background=ib; ib2.style.color=ic;
+
+  // 용액 상태
+  document.getElementById('solutionState').innerHTML=
+    `산: <b style="color:var(--acid)">${S.acid.formula} ${S.acid.conc}M</b><br>`+
+    `염기(추가): <b style="color:var(--base)">${added.toFixed(2)}mL</b><br>`+
+    `총 부피: <b style="color:var(--cyan)">${total.toFixed(1)} mL</b>`;
+
+  // 카운터
+  document.getElementById('dropCount').textContent=S.drops;
+  document.getElementById('addedVol').textContent=added.toFixed(2);
+  document.getElementById('totalVol').textContent=total.toFixed(1);
+
+  // SVG pH
+  const svgph=document.getElementById('svgPH');
+  svgph.textContent='pH '+ph.toFixed(2); svgph.style.fill=pc+'cc';
+
+  // 기록
+  document.getElementById('recPH').textContent=ph.toFixed(2);
+  document.getElementById('recPH').style.color=pc;
+  document.getElementById('recDrops').textContent=S.drops;
+  document.getElementById('recVol').textContent=added.toFixed(2)+' mL';
+
+  // 뷰렛 텍스트
+  const bt=document.getElementById('buretteUsedText');
+  bt.textContent=added.toFixed(1)+'mL'; bt.style.opacity=S.drops>0?'0.8':'0';
+}
+
+function updateBuretteLiq(){
+  const nd=neutralDrops(), used=Math.min(S.drops/nd,1);
+  const maxH=178, h=maxH*(1-used*0.85);
+  const l=document.getElementById('buretteLiq');
+  l.setAttribute('height',h); l.setAttribute('y',21+(maxH-h));
+}
+
+// ── 색상 ──
+function getLiqColor(ph){
+  const i=S.indicator;
+  if(i==='BTB') return ph<6?'rgba(255,220,50,0.5)':ph>8?'rgba(30,120,255,0.45)':'rgba(50,200,120,0.45)';
+  if(i==='PP')  return ph>8.2?'rgba(255,100,180,0.5)':'rgba(200,200,200,0.08)';
+  if(i==='MO')  return ph<4?'rgba(255,60,60,0.5)':ph<6.2?'rgba(255,160,30,0.5)':'rgba(255,220,50,0.5)';
+  return ph<7?'rgba(255,71,87,0.22)':ph>7?'rgba(46,213,115,0.22)':'rgba(0,210,255,0.22)';
+}
+function getIndResult(ph){
+  const i=S.indicator;
+  if(i==='BTB'){
+    if(ph<6) return ['BTB: 노란색 🟡','rgba(255,220,50,0.18)','#ffd32a'];
+    if(ph>8) return ['BTB: 파란색 🔵','rgba(30,120,255,0.18)','#70a1ff'];
+    return ['BTB: 초록색 🟢','rgba(50,200,120,0.18)','#2ed573'];
+  }
+  if(i==='PP') return ph>8.2?['PP: 붉은색 🔴','rgba(255,100,180,0.18)','#ff69b4']:['PP: 무색 ⬜','rgba(200,200,200,0.06)','#aaa'];
+  if(i==='MO'){
+    if(ph<4) return ['MO: 빨간색 🔴','rgba(255,60,60,0.18)','#ff4757'];
+    if(ph<6.2) return ['MO: 주황색 🟠','rgba(255,160,30,0.18)','#ffa502'];
+    return ['MO: 노란색 🟡','rgba(255,220,50,0.18)','#ffd32a'];
+  }
+  return ph<7?['산성','rgba(255,71,87,0.1)','#ff4757']:ph>7?['염기성','rgba(46,213,115,0.1)','#2ed573']:['중성','rgba(0,210,255,0.1)','#00d2ff'];
+}
+function getPhColor(ph){
+  if(ph<3) return '#ff0000'; if(ph<5) return '#ff4757';
+  if(ph<6.5) return '#ffa502'; if(ph<7.5) return '#2ed573';
+  if(ph<9) return '#70a1ff'; return '#4169e1';
+}
+
+// ── 반응식 ──
+function updateEquation(){
+  if(!S.acid||!S.base) return;
+  const eqs={
+    'HCl+NaOH':'H⁺ + OH⁻ → H₂O',
+    'HCl+Ca(OH)₂':'2H⁺ + Ca(OH)₂ → Ca²⁺ + 2H₂O',
+    'CH₃COOH+NaOH':'CH₃COOH + OH⁻ → CH₃COO⁻ + H₂O',
+    'CH₃COOH+Ca(OH)₂':'2CH₃COOH + Ca(OH)₂ → (CH₃COO)₂Ca + 2H₂O'
+  };
+  const k=S.acid.formula+'+'+S.base.formula;
+  document.getElementById('eqBox').innerHTML=(eqs[k]||`${S.acid.formula} + ${S.base.formula} → 염 + H₂O`).replace('→','<br>→');
+  document.getElementById('eqBox').style.color='var(--text)';
+}
+
+// ── 중화점 ──
+function showNeutralFlash(){
+  const f=document.getElementById('neutralFlash');
+  document.getElementById('nfSub').textContent=
+    `pH ${S.ph.toFixed(2)} · ${S.drops}방울 · ${(S.drops*S.dropML).toFixed(2)}mL 소모`;
+  f.classList.add('show');
+  document.getElementById('recNeutral').textContent=S.drops;
+  setTimeout(()=>f.classList.remove('show'),3200);
+}
+
+// ── 산출물 ──
+function showOutput(){
+  document.getElementById('outputBox').classList.add('show');
+  document.getElementById('outputContent').innerHTML=
+    `<b>산:</b> ${S.acid.formula} ${S.acid.conc}M · ${S.acid.vol}mL<br>`+
+    `<b>염기:</b> ${S.base.formula} ${S.base.conc}M<br>`+
+    `<b>지시약:</b> ${S.indicator}<br>`+
+    `<b style="color:var(--yellow)">중화점: ${S.neutralDrop}방울 (${(S.neutralDrop*S.dropML).toFixed(2)}mL)</b><br>`+
+    `<b style="color:var(--base)">최종 pH: ${S.ph.toFixed(2)}</b>`;
+
+  // 3초 후 서술 입력 모달 자동 오픈
+  setTimeout(openWriteModal, 3000);
+}
+
+// ── 서술 입력 모달 ──────────────────────────────────────────────────
+function openWriteModal(){
+  document.getElementById('writeModal').classList.add('show');
+  // 실험 결과 요약 표시
+  document.getElementById('wm-expSummary').innerHTML =
+    `${S.acid.formula} ${S.acid.conc}M + ${S.base.formula} ${S.base.conc}M · `+
+    `중화점 ${S.neutralDrop}방울 · pH ${S.ph.toFixed(2)}`;
+}
+
+function closeWriteModal(){
+  document.getElementById('writeModal').classList.remove('show');
+}
+
+// ── 텍스트 분석 ──────────────────────────────────────────────────────
+function analyzeText(text){
+  const sciTerms=['H⁺','OH⁻','pH','이온','중화','산성','염기','농도','반투막',
+    '삼투압','전자','산화','환원','촉매','평형','BTB','페놀프탈레인','몰','반응',
+    'NaOH','HCl','중화점','적정','mol','mL','농도','수용액','전해질'];
+  const causalWords=['때문에','따라서','그러므로','그래서','결과적으로','의해','으로 인해','이므로','이기 때문'];
+  const terms = sciTerms.filter(t=>text.includes(t)).length;
+  const causal = causalWords.filter(w=>text.includes(w)).length;
+  const sentences = text.split(/[.!?。\n]/).filter(s=>s.trim().length>3).length;
+  let level = 1;
+  if(terms>=2 && sentences>=2) level=2;
+  if(terms>=3 && causal>=1 && sentences>=3) level=3;
+  if(terms>=4 && causal>=2 && sentences>=4) level=4;
+  const feedbacks={
+    1:'과학 용어를 사용해서 더 구체적으로 설명해보세요. (예: H⁺, OH⁻, pH, 중화점)',
+    2:'인과관계 표현(때문에, 따라서)을 추가하면 더 좋아요!',
+    3:'이온 수준의 설명을 추가하면 Excellent가 될 수 있어요!',
+    4:'완벽해요! 이 원리를 실생활에 적용하는 것도 도전해보세요!'
+  };
+  return {level, terms, causal, sentences, feedback:feedbacks[level]};
+}
+
+// ── Firebase 저장 ─────────────────────────────────────────────────────
+async function submitAnswer(){
+  const answer = document.getElementById('wm-answer').value.trim();
+  if(!answer || answer.length < 10){
+    alert('10자 이상 서술해주세요!'); return;
+  }
+
+  // 학생 정보 확인
+  const studentId   = localStorage.getItem('mf_studentId');
+  const studentName = localStorage.getItem('mf_studentName');
+  const studentClass= localStorage.getItem('mf_studentClass');
+
+  if(!studentId || !studentName){
+    openStudentLogin();
+    return;
+  }
+
+  const btn = document.getElementById('wm-submitBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 저장 중...';
+
+  const analysis = analyzeText(answer);
+
+  try {
+    const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBX-BE14JViw82xAiA3Gts6p-SC6gVBjG8",
+      authDomain: "student-literacy.firebaseapp.com",
+      projectId: "student-literacy",
+      storageBucket: "student-literacy.firebasestorage.app",
+      messagingSenderId: "66926306937",
+      appId: "1:66926306937:web:5204bff44a4cc5d62d16a8"
+    };
+
+    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    await addDoc(collection(db,'sessions'),{
+      studentId, studentName, studentClass: studentClass||'',
+      experimentName: '산염기 적정 실험',
+      experimentDetail: {
+        acid: `${S.acid.formula} ${S.acid.conc}M`,
+        base: `${S.base.formula} ${S.base.conc}M`,
+        indicator: S.indicator,
+        neutralDrop: S.neutralDrop,
+        finalPH: parseFloat(S.ph.toFixed(2))
+      },
+      answer,
+      level: analysis.level,
+      terms: analysis.terms,
+      causal: analysis.causal,
+      sentences: analysis.sentences,
+      feedback: analysis.feedback,
+      createdAt: serverTimestamp()
+    });
+
+    // 성공
+    showNfcToast('✅ META FLOW+에 저장됐어요!', '#2ed573');
+
+    // 결과 표시
+    document.getElementById('wm-result').innerHTML = `
+      <div style="text-align:center;padding:16px;background:rgba(46,213,115,0.05);border:1px solid rgba(46,213,115,0.15);border-radius:10px;margin-bottom:12px;">
+        <div style="font-size:32px;margin-bottom:6px;">${['','😐','🙂','😊','🌟'][analysis.level]}</div>
+        <div style="font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:${['','#ff4757','#ffd32a','#00d2ff','#2ed573'][analysis.level]}margin-bottom:4px;">
+          ${studentName} · ${['','Basic','Proficient','Advanced','Excellent'][analysis.level]}
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:6px;line-height:1.6;">${analysis.feedback}</div>
+        <div style="font-size:10px;color:var(--sub2);margin-top:6px;font-family:'Orbitron',monospace;">
+          📱 META FLOW+ 앱에서 성장 확인!
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="nextStudent()" style="flex:1;padding:12px;background:linear-gradient(135deg,rgba(0,210,255,0.12),rgba(162,155,254,0.12));border:1px solid rgba(0,210,255,0.3);border-radius:10px;color:var(--cyan);cursor:pointer;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:1px;">
+          👤 다음 학생
+        </button>
+        <button onclick="closeWriteModal()" style="flex:1;padding:12px;background:rgba(100,100,100,0.1);border:1px solid var(--border);border-radius:10px;color:var(--sub2);cursor:pointer;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:1px;">
+          ✕ 닫기
+        </button>
+      </div>
+    `;
+    document.getElementById('wm-result').style.display='block';
+    document.getElementById('wm-submitBtn').style.display='none';
+    document.getElementById('wm-answer').style.display='none';
+
+  } catch(e) {
+    console.error(e);
+    alert('저장 실패: '+e.message);
+    btn.disabled=false;
+    btn.textContent='💾 META FLOW+에 저장';
+  }
+}
+
+// ── 학생 로그인 ───────────────────────────────────────────────────────
+function openStudentLogin(){
+  document.getElementById('loginModal').classList.add('show');
+}
+
+function saveStudentInfo(){
+  const id   = document.getElementById('lm-id').value.trim();
+  const name = document.getElementById('lm-name').value.trim();
+  const cls  = document.getElementById('lm-class').value.trim();
+  if(!id||!name){ alert('학번과 이름을 입력해주세요!'); return; }
+  localStorage.setItem('mf_studentId', id);
+  localStorage.setItem('mf_studentName', name);
+  localStorage.setItem('mf_studentClass', cls);
+  document.getElementById('loginModal').classList.remove('show');
+  document.getElementById('studentInfoBar').innerHTML =
+    `👤 ${name} · ${cls} <button onclick="clearStudent()" style="margin-left:8px;padding:2px 8px;border-radius:5px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:var(--sub2);cursor:pointer;font-size:10px;">변경</button>`;
+  // 로그인 후 바로 서술 모달 열기
+  openWriteModal();
+}
+
+function clearStudent(){
+  localStorage.removeItem('mf_studentId');
+  localStorage.removeItem('mf_studentName');
+  localStorage.removeItem('mf_studentClass');
+  document.getElementById('studentInfoBar').innerHTML =
+    `<button onclick="openStudentLogin()" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(0,210,255,0.3);background:rgba(0,210,255,0.08);color:var(--cyan);cursor:pointer;font-size:11px;font-family:'Orbitron',monospace;">👤 학생 정보 입력</button>`;
+}
+
+// ── 다음 학생 ─────────────────────────────────────────────────────────
+function nextStudent(){
+  // 학생 정보 초기화
+  localStorage.removeItem('mf_studentId');
+  localStorage.removeItem('mf_studentName');
+  localStorage.removeItem('mf_studentClass');
+
+  // 모달 초기화
+  document.getElementById('wm-answer').value = '';
+  document.getElementById('wm-answer').style.display = 'block';
+  document.getElementById('wm-result').style.display = 'none';
+  document.getElementById('wm-result').innerHTML = '';
+  document.getElementById('wm-submitBtn').style.display = 'block';
+  document.getElementById('wm-submitBtn').disabled = false;
+  document.getElementById('wm-submitBtn').textContent = '💾 META FLOW+에 저장';
+
+  // 상단 정보 바 초기화
+  document.getElementById('studentInfoBar').innerHTML =
+    `<button onclick="openStudentLogin()" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(0,210,255,0.3);background:rgba(0,210,255,0.08);color:var(--cyan);cursor:pointer;font-size:11px;font-family:'Orbitron',monospace;">👤 학생 정보 입력</button>`;
+
+  // 로그인 모달 바로 열기
+  document.getElementById('lm-id').value = '';
+  document.getElementById('lm-name').value = '';
+  document.getElementById('lm-class').value = '';
+  openStudentLogin();
+}
+
+// ── 그래프 ──
+function drawGraph(){
+  const cv=document.getElementById('phGraph');
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,0.03)'; ctx.lineWidth=1;
+  for(let i=0;i<=14;i++){const y=H-(i/14)*H;ctx.beginPath();ctx.moveTo(26,y);ctx.lineTo(W,y);ctx.stroke();}
+  const y7=H-(7/14)*H;
+  ctx.strokeStyle='rgba(46,213,115,0.22)';ctx.setLineDash([4,4]);ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(26,y7);ctx.lineTo(W,y7);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(100,130,160,0.65)';ctx.font='8px Orbitron,monospace';ctx.textAlign='right';
+  [0,2,4,6,7,8,10,12,14].forEach(v=>ctx.fillText(v,20,H-(v/14)*H+3));
+  if(S.phHistory.length<2){
+    if(S.phHistory.length>0){const p=S.phHistory[0];ctx.fillStyle=getPhColor(p.ph);ctx.beginPath();ctx.arc(26,H-(p.ph/14)*H,3.5,0,Math.PI*2);ctx.fill();}
+    return;
+  }
+  const nd=neutralDrops();
+  const maxD=Math.max(S.phHistory[S.phHistory.length-1].drops,nd*1.5,20);
+  const xs=(W-30)/maxD;
+  // 면
+  const gr=ctx.createLinearGradient(0,0,0,H);
+  gr.addColorStop(0,'rgba(65,105,225,0.07)');gr.addColorStop(0.5,'rgba(46,213,115,0.07)');gr.addColorStop(1,'rgba(255,71,87,0.07)');
+  ctx.fillStyle=gr;
+  ctx.beginPath();
+  S.phHistory.forEach((p,i)=>{const x=26+p.drops*xs,y=H-(p.ph/14)*H;if(i===0)ctx.moveTo(x,H);ctx.lineTo(x,y);});
+  ctx.lineTo(26+S.phHistory[S.phHistory.length-1].drops*xs,H);ctx.closePath();ctx.fill();
+  // 선
+  ctx.beginPath();ctx.lineWidth=2;
+  S.phHistory.forEach((p,i)=>{
+    const x=26+p.drops*xs,y=H-(p.ph/14)*H;
+    if(i===0){ctx.moveTo(x,y);}else{
+      const pv=S.phHistory[i-1];const px=26+pv.drops*xs,py=H-(pv.ph/14)*H;
+      ctx.bezierCurveTo((px+x)/2,py,(px+x)/2,y,x,y);
+    }
+  });
+  const lg=ctx.createLinearGradient(0,H,0,0);
+  lg.addColorStop(0,'#ff4757');lg.addColorStop(0.5,'#2ed573');lg.addColorStop(1,'#70a1ff');
+  ctx.strokeStyle=lg;ctx.stroke();
+  // 현재점
+  const last=S.phHistory[S.phHistory.length-1];
+  const lx=26+last.drops*xs,ly=H-(last.ph/14)*H;
+  ctx.beginPath();ctx.arc(lx,ly,4.5,0,Math.PI*2);ctx.fillStyle=getPhColor(last.ph);ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+  // 중화점
+  if(S.neutralDrop){
+    const nx=26+S.neutralDrop*xs;
+    ctx.strokeStyle='rgba(255,211,42,0.55)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(nx,0);ctx.lineTo(nx,H);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#ffd32a';ctx.font='bold 10px Orbitron,monospace';ctx.textAlign='center';
+    ctx.fillText('⊕',nx,13);
+  }
+  ctx.fillStyle='rgba(100,130,160,0.5)';ctx.font='7px Orbitron,monospace';ctx.textAlign='center';
+  ctx.fillText('방울 수 →',W/2,H-1);
+}
+
+// ── 초기화 ──
+function resetAll(){
+  stopStreamCore(); stopStreamByTap();
+  S.drops=0;S.ph=null;S.neutralized=false;S.neutralDrop=null;S.phHistory=[];
+  if(S.ready&&S.acid){S.ph=calcPH(0);S.phHistory=[{drops:0,ph:S.ph}];updateAll();}
+  drawGraph(); updateBuretteLiq();
+  document.getElementById('outputBox').classList.remove('show');
+  document.getElementById('recNeutral').textContent='—';
+  document.getElementById('flaskVolText').style.fill='rgba(255,255,255,0)';
+  document.getElementById('flaskMlLabel').style.fill='rgba(255,255,255,0)';
+}
+
+// ripple 키프레임 동적 추가
+const style=document.createElement('style');
+style.textContent='@keyframes ripple{0%{opacity:0.7;transform:scale(0.3);}100%{opacity:0;transform:scale(1.6);}}';
+document.head.appendChild(style);
+
+drawGraph();
+
+// ── 실제 Web NFC API 인식 ──────────────────────────────────────────
+const NFC_MAP = {
+  // 산
+  'acid_HCl_1.0':    ()=>{ clickCardByData('acid','HCl','HCl 1.0M','1.0',10); },
+  'acid_HCl_0.1':    ()=>{ clickCardByData('acid','HCl','HCl 0.1M','0.1',10); },
+  'acid_acetic_0.1': ()=>{ clickCardByData('acid','CH₃COOH','CH₃COOH 0.1M','0.1',10); },
+  // 염기
+  'base_NaOH_1.0':   ()=>{ clickCardByData('base','NaOH','NaOH 1.0M','1.0',null); },
+  'base_NaOH_0.1':   ()=>{ clickCardByData('base','NaOH','NaOH 0.1M','0.1',null); },
+  // 지시약
+  'ind_BTB':         ()=>{ clickCardByData('indicator','BTB','BTB',null,null); },
+  'ind_PP':          ()=>{ clickCardByData('indicator','페놀프탈레인','페놀프탈레인',null,null); },
+  'ind_MO':          ()=>{ clickCardByData('indicator','메틸오렌지','메틸오렌지',null,null); },
+  // 기구
+  'equip_stand':     ()=>{ clickEquipByData('stand'); },
+  'equip_clamp':     ()=>{ clickEquipByData('clamp'); },
+  'equip_burette':   ()=>{ clickEquipByData('burette'); },
+  'equip_flask':     ()=>{ clickEquipByData('flask'); },
+  'equip_pipette':   ()=>{ clickEquipByData('pipette'); },
+  'equip_beaker':    ()=>{ clickEquipByData('beaker'); },
+};
+
+// NFC 태그 텍스트로 카드 자동 선택
+function clickCardByData(type, formula, label, conc, vol) {
+  const gc = { acid:'acid-c', base:'base-c', indicator:'ind-c' };
+  // 해당 타입 버튼들에서 formula 매칭
+  const btns = document.querySelectorAll('.nfc-btn.' + (gc[type]||''));
+  let matched = null;
+  btns.forEach(btn => {
+    const nameEl = btn.querySelector('.nb-name');
+    const subEl  = btn.querySelector('.nb-sub');
+    if (nameEl && (nameEl.textContent.includes(formula) || (subEl && subEl.textContent.includes(formula)))) {
+      matched = btn;
+    }
+  });
+  if (matched) {
+    matched.click();
+    showNfcToast('📲 ' + label + ' 태그 인식!', '#00d2ff');
+  } else {
+    // 직접 상태 설정
+    if (type === 'acid') {
+      S.acid = { formula, conc: parseFloat(conc), vol: vol||10 };
+    } else if (type === 'base') {
+      S.base = { formula, conc: parseFloat(conc) };
+    } else {
+      S.indicator = formula;
+    }
+    updateEquation(); checkReady();
+    showNfcToast('📲 ' + label + ' 태그 인식!', '#00d2ff');
+  }
+}
+
+function clickEquipByData(type) {
+  const btn = document.querySelector(`[onclick*="tagEquip('${type}'"]`) ||
+              document.querySelector(`[onclick*='tagEquip("${type}"']`);
+  if (btn && !btn.classList.contains('active')) {
+    btn.click();
+  } else if (btn) {
+    // 이미 활성화된 경우
+  } else {
+    // 버튼 못찾으면 직접 설정
+    S.equip[type] = true;
+    const cl = document.getElementById('cl-' + type);
+    if (cl) cl.className = 'cl-item done';
+    checkReady();
+  }
+  showNfcToast('📲 ' + type + ' 장착!', '#a29bfe');
+}
+
+// NFC 토스트 메시지
+function showNfcToast(msg, color) {
+  let toast = document.getElementById('nfcToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'nfcToast';
+    toast.style.cssText = `
+      position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-60px);
+      background:rgba(10,14,26,0.95);border:1.5px solid;
+      border-radius:30px;padding:10px 22px;
+      font-family:'Orbitron',monospace;font-size:12px;font-weight:700;
+      letter-spacing:1px;z-index:9999;
+      transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow:0 4px 20px rgba(0,0,0,0.5);
+      pointer-events:none;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.color = color || '#00d2ff';
+  toast.style.borderColor = color || '#00d2ff';
+  toast.style.boxShadow = `0 4px 20px ${color||'#00d2ff'}44`;
+  toast.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => {
+    toast.style.transform = 'translateX(-50%) translateY(-60px)';
+  }, 2000);
+}
+
+// Web NFC API 시작
+async function startNFC() {
+  if (!('NDEFReader' in window)) {
+    console.log('Web NFC API 미지원 브라우저');
+    showNfcToast('⚠️ NFC: 안드로이드 크롬만 지원', '#ffd32a');
+    return;
+  }
+  try {
+    const ndef = new NDEFReader();
+    await ndef.scan();
+    showNfcToast('✅ NFC 스캔 시작!', '#2ed573');
+
+    ndef.onreading = (event) => {
+      for (const record of event.message.records) {
+        let text = '';
+        if (record.recordType === 'text') {
+          const decoder = new TextDecoder(record.encoding || 'utf-8');
+          text = decoder.decode(record.data).trim();
+        } else if (record.recordType === 'url') {
+          const decoder = new TextDecoder();
+          text = decoder.decode(record.data).trim();
+        }
+
+        console.log('NFC 읽힘:', text);
+
+        if (NFC_MAP[text]) {
+          NFC_MAP[text]();
+        } else {
+          showNfcToast('📲 ' + text, '#ffd32a');
+        }
+      }
+    };
+
+    ndef.onreadingerror = () => {
+      showNfcToast('❌ NFC 읽기 오류', '#ff4757');
+    };
+
+  } catch(e) {
+    console.error('NFC 오류:', e);
+    if (e.name === 'NotAllowedError') {
+      showNfcToast('⚠️ NFC 권한 필요 (HTTPS)', '#ffd32a');
+    } else {
+      showNfcToast('⚠️ NFC 오류: ' + e.message, '#ffd32a');
+    }
+  }
+}
+
+// 페이지 로드 시 학생 정보 복원
+window.addEventListener('load', () => {
+  const id   = localStorage.getItem('mf_studentId');
+  const name = localStorage.getItem('mf_studentName');
+  const cls  = localStorage.getItem('mf_studentClass');
+  if(id && name){
+    document.getElementById('studentInfoBar').innerHTML =
+      `👤 <span style="font-size:12px;color:var(--cyan);font-family:'Orbitron',monospace;">${name}</span> <span style="font-size:11px;color:var(--sub2)">· ${cls||''}</span> <button onclick="clearStudent()" style="margin-left:8px;padding:2px 8px;border-radius:5px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:var(--sub2);cursor:pointer;font-size:10px;">변경</button>`;
+  }
+});
+
+// NFC 자동 시작 시도
+window.addEventListener('load', () => {
+  // 안드로이드 크롬이면 자동 시작
+  if ('NDEFReader' in window) {
+    // 버튼 클릭 후 시작 (권한 정책상 사용자 인터랙션 필요)
+    const nfcStartBtn = document.getElementById('nfcTapBtn');
+    if (nfcStartBtn) {
+      nfcStartBtn.addEventListener('click', () => {
+        if (!window._nfcStarted) {
+          window._nfcStarted = true;
+          startNFC();
+        }
+      }, { once: true });
+    }
+  }
+});
+</script>
+</body>
+</html>
