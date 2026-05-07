@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기체 분자 운동 시뮬레이터</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a2744 0%, #0d1117 100%);
+    border-bottom: 1px solid #21262d;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-logo {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 900; color: white;
+  }
+  .header-title { font-size: 16px; font-weight: 700; color: #e6edf3; }
+  .header-sub { font-size: 12px; color: #7d8590; margin-top: 1px; }
+  .header-badge {
+    margin-left: auto;
+    background: #1f3a6e;
+    border: 1px solid #2563eb;
+    color: #7eb3ff;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    background: #161b22;
+    border-bottom: 1px solid #21262d;
+    padding: 0 24px;
+    gap: 0;
+  }
+  .tab {
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #7d8590;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .tab:hover { color: #e6edf3; }
+  .tab.active {
+    color: #58a6ff;
+    border-bottom-color: #58a6ff;
+  }
+  .tab-icon { margin-right: 6px; font-size: 14px; }
+
+  /* Main layout */
+  .main { display: flex; height: calc(100vh - 110px); }
+
+  /* Left panel - webcam */
+  .panel-cam {
+    width: 320px;
+    background: #161b22;
+    border-right: 1px solid #21262d;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .cam-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #7d8590;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .cam-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #0d1117;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #21262d;
+  }
+  #webcam-0, #webcam-1 {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: scaleX(-1);
+    display: block;
+  }
+  #cam-canvas-0, #cam-canvas-1 {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    transform: scaleX(-1);
+  }
+  .cam-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #7d8590;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #da3633;
+    transition: background 0.3s;
+  }
+  .status-dot.active { background: #3fb950; box-shadow: 0 0 6px #3fb950; }
+  .status-dot.detecting { background: #f0883e; box-shadow: 0 0 6px #f0883e; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* Gesture guide */
+  .gesture-guide {
+    background: #0d1117;
+    border-radius: 8px;
+    border: 1px solid #21262d;
+    padding: 12px;
+  }
+  .gesture-guide-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #58a6ff;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .gesture-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid #21262d;
+    font-size: 12px;
+    color: #8b949e;
+  }
+  .gesture-item:last-child { border-bottom: none; }
+  .gesture-icon {
+    width: 28px; height: 28px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  /* Sensor values */
+  .sensor-panel {
+    background: #0d1117;
+    border-radius: 8px;
+    border: 1px solid #21262d;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sensor-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sensor-label {
+    font-size: 11px;
+    color: #7d8590;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .sensor-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #58a6ff;
+    font-family: 'SF Mono', 'Courier New', monospace;
+  }
+  .sensor-bar {
+    height: 3px;
+    background: #21262d;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .sensor-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2563eb, #58a6ff);
+    border-radius: 2px;
+    transition: width 0.1s;
+  }
+
+  /* Start button */
+  .btn-start {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-start:hover { transform: translateY(-1px); filter: brightness(1.1); }
+  .btn-start:active { transform: translateY(0); }
+  .btn-start.danger { background: linear-gradient(135deg, #da3633, #b91c1c); }
+
+  /* Center - simulation */
+  .panel-sim {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: hidden;
+  }
+
+  .sim-card {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 12px;
+    overflow: hidden;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .sim-card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #21262d;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #1c2128;
+  }
+  .sim-card-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .sim-card-title { font-size: 13px; font-weight: 600; color: #e6edf3; }
+  .sim-card-sub { font-size: 11px; color: #7d8590; margin-left: auto; }
+
+  #sim-canvas-0, #sim-canvas-1 {
+    flex: 1;
+    display: block;
+    width: 100%;
+    min-height: 300px;
+  }
+
+  /* Right panel - data & description */
+  .panel-data {
+    width: 260px;
+    background: #161b22;
+    border-left: 1px solid #21262d;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    gap: 12px;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  .data-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #7d8590;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  /* Variable cards */
+  .var-card {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .var-card-label { font-size: 10px; color: #7d8590; text-transform: uppercase; letter-spacing: 0.5px; }
+  .var-card-val { font-size: 22px; font-weight: 800; font-family: 'SF Mono', monospace; }
+  .var-card-unit { font-size: 11px; color: #7d8590; }
+  .var-card-change { font-size: 10px; margin-top: 2px; }
+  .up { color: #f0883e; }
+  .down { color: #58a6ff; }
+  .same { color: #3fb950; }
+
+  .var-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* Description box */
+  .desc-box {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-left: 3px solid #58a6ff;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #8b949e;
+    line-height: 1.7;
+    flex: 1;
+  }
+  .desc-box .highlight { color: #e6edf3; font-weight: 600; }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: #21262d;
+  }
+
+  /* Tab content */
+  .tab-content { display: none; }
+  .tab-content.active { display: flex; width: 100%; height: 100%; }
+
+  /* NFC indicator */
+  .nfc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #1f2a1f;
+    border: 1px solid #3fb950;
+    color: #3fb950;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .nfc-dot {
+    width: 5px; height: 5px; border-radius: 50%; background: #3fb950;
+    animation: pulse 1.5s infinite;
+  }
+
+  /* Reset btn */
+  .btn-reset {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #7d8590;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-reset:hover { border-color: #58a6ff; color: #58a6ff; }
+
+  /* Loading overlay */
+  .loading-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(13,17,23,0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    gap: 16px;
+  }
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid #21262d;
+    border-top-color: #58a6ff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: #7d8590; }
+
+  /* Graph */
+  #graph-canvas { width: 100%; height: 120px; }
+
+  /* Tabs hidden logic */
+  .page { display: none; width: 100%; height: 100%; }
+  .page.show { display: flex; }
+</style>
+</head>
+<body>
+
+<div id="loading-overlay" class="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">MediaPipe 로딩 중...</div>
+</div>
+
+<div class="header">
+  <div class="header-logo">M</div>
+  <div>
+    <div class="header-title">META FLOW+ · 기체 분자 운동</div>
+    <div class="header-sub">웹캠 제스처 실험 시뮬레이터</div>
+  </div>
+  <div class="header-badge">중학교</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(0)">
+    <span class="tab-icon">🔵</span>실험 1 — 압력과 부피
+  </div>
+  <div class="tab" onclick="switchTab(1)">
+    <span class="tab-icon">🔴</span>실험 2 — 온도와 부피
+  </div>
+</div>
+
+<!-- PAGE 0: Pressure -->
+<div class="main">
+  <div id="page-0" class="page show">
+
+    <!-- Left cam panel -->
+    <div class="panel-cam">
+      <div class="cam-title">📷 웹캠</div>
+      <div class="cam-wrapper">
+        <video id="webcam-0" autoplay playsinline muted></video>
+        <canvas id="cam-canvas-0"></canvas>
+      </div>
+      <div class="cam-status">
+        <div class="status-dot" id="cam-dot-0"></div>
+        <span id="cam-text-0">카메라 꺼짐</span>
+        <div class="nfc-badge" style="margin-left:auto"><div class="nfc-dot"></div>NFC</div>
+      </div>
+
+      <div class="gesture-guide">
+        <div class="gesture-guide-title">🖐 제스처 가이드</div>
+        <div class="gesture-item">
+          <div class="gesture-icon">👈</div>
+          <div>손바닥을 오른쪽→왼쪽으로 밀기<br><span style="color:#e6edf3;font-size:11px">피스톤이 눌려요</span></div>
+        </div>
+        <div class="gesture-item">
+          <div class="gesture-icon">👉</div>
+          <div>손을 왼쪽→오른쪽으로 빼기<br><span style="color:#e6edf3;font-size:11px">피스톤이 복원돼요</span></div>
+        </div>
+        <div class="gesture-item">
+          <div class="gesture-icon">✊</div>
+          <div>주먹 쥐기<br><span style="color:#e6edf3;font-size:11px">피스톤 고정</span></div>
+        </div>
+      </div>
+
+      <div class="sensor-panel">
+        <div class="sensor-label">손 위치 감지</div>
+        <div class="sensor-row">
+          <span style="font-size:12px;color:#7d8590">X 위치</span>
+          <span class="sensor-value" id="hand-x-0">—</span>
+        </div>
+        <div class="sensor-bar"><div class="sensor-bar-fill" id="hand-bar-0" style="width:50%"></div></div>
+        <div class="sensor-row" style="margin-top:4px">
+          <span style="font-size:12px;color:#7d8590">손 감지</span>
+          <span class="sensor-value" id="hand-detected-0" style="color:#da3633">없음</span>
+        </div>
+      </div>
+
+      <button class="btn-start" id="cam-btn-0" onclick="toggleCam(0)">📷 카메라 시작</button>
+      <button class="btn-reset" onclick="resetSim(0)">↺ 초기화</button>
+    </div>
+
+    <!-- Center sim -->
+    <div class="panel-sim">
+      <div class="sim-card">
+        <div class="sim-card-header">
+          <div class="sim-card-dot" style="background:#58a6ff"></div>
+          <div class="sim-card-title">압력 ↔ 부피 관계 시뮬레이터</div>
+          <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+            <span style="background:rgba(240,136,62,0.15);border:1px solid rgba(240,136,62,0.4);color:#f0883e;font-size:10px;padding:2px 8px;border-radius:12px;font-weight:700;">🌡 온도 일정</span>
+            <span style="background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.4);color:#3fb950;font-size:10px;padding:2px 8px;border-radius:12px;font-weight:700;">⚗ 입자 수 일정</span>
+            <div class="sim-card-sub">입자 크기·속도 일정</div>
+          </div>
+        </div>
+        <canvas id="sim-canvas-0"></canvas>
+      </div>
+    </div>
+
+    <!-- Right data panel -->
+    <div class="panel-data">
+      <div class="data-section-title">📊 실험 변수</div>
+      <div class="var-grid">
+        <div class="var-card">
+          <div class="var-card-label">부피</div>
+          <div class="var-card-val" id="vol-0" style="color:#58a6ff">100</div>
+          <div class="var-card-unit">상대값 (%)</div>
+          <div class="var-card-change" id="vol-change-0"></div>
+        </div>
+        <div class="var-card">
+          <div class="var-card-label">압력</div>
+          <div class="var-card-val" id="pres-0" style="color:#f0883e">1.0</div>
+          <div class="var-card-unit">상대 기압</div>
+          <div class="var-card-change" id="pres-change-0"></div>
+        </div>
+        <div class="var-card" style="grid-column:span 2">
+          <div class="var-card-label">입자 수</div>
+          <div class="var-card-val" id="count-0" style="color:#3fb950">20</div>
+          <div class="var-card-unit">개 (변하지 않음)</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="data-section-title">📈 P-V 그래프</div>
+      <canvas id="graph-canvas-0" style="width:100%;height:110px;"></canvas>
+
+      <div class="divider"></div>
+
+      <div class="data-section-title">💡 관찰 내용</div>
+      <div class="desc-box" id="desc-0">
+        손바닥으로 피스톤을 밀어보세요.<br><br>
+        <span class="highlight">압력이 커지면</span> 어떤 변화가 일어나나요?
+      </div>
+
+      <div class="divider"></div>
+      <button onclick="openLiteracyModal(0)" style="width:100%;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;color:white;font-size:12px;font-weight:700;cursor:pointer;">📝 문해력 진단 시작 (4단계)</button>
+    </div>
+  </div>
+
+  <!-- PAGE 1: Temperature -->
+  <div id="page-1" class="page">
+
+    <!-- Left cam panel -->
+    <div class="panel-cam">
+      <div class="cam-title">📷 웹캠</div>
+      <div class="cam-wrapper">
+        <video id="webcam-1" autoplay playsinline muted></video>
+        <canvas id="cam-canvas-1"></canvas>
+      </div>
+      <div class="cam-status">
+        <div class="status-dot" id="cam-dot-1"></div>
+        <span id="cam-text-1">카메라 꺼짐</span>
+        <div class="nfc-badge" style="margin-left:auto"><div class="nfc-dot"></div>NFC</div>
+      </div>
+
+      <div class="gesture-guide">
+        <div class="gesture-guide-title">🖐 제스처 가이드</div>
+        <div class="gesture-item">
+          <div class="gesture-icon">🌬</div>
+          <div>손을 빠르게 좌우로 흔들기<br><span style="color:#e6edf3;font-size:11px">부채질 → 온도 올라감</span></div>
+        </div>
+        <div class="gesture-item">
+          <div class="gesture-icon">🧊</div>
+          <div>손 가만히 있기<br><span style="color:#e6edf3;font-size:11px">온도 천천히 내려감</span></div>
+        </div>
+      </div>
+
+      <div class="sensor-panel">
+        <div class="sensor-label">흔들기 감지</div>
+        <div class="sensor-row">
+          <span style="font-size:12px;color:#7d8590">흔들기 속도</span>
+          <span class="sensor-value" id="wave-speed-1">—</span>
+        </div>
+        <div class="sensor-bar"><div class="sensor-bar-fill" id="wave-bar-1" style="width:0%;background:linear-gradient(90deg,#f0883e,#fbbf24)"></div></div>
+        <div class="sensor-row" style="margin-top:4px">
+          <span style="font-size:12px;color:#7d8590">부채질</span>
+          <span class="sensor-value" id="wave-detected-1" style="color:#da3633">없음</span>
+        </div>
+      </div>
+
+      <button class="btn-start" id="cam-btn-1" onclick="toggleCam(1)">📷 카메라 시작</button>
+      <button class="btn-reset" onclick="resetSim(1)">↺ 초기화</button>
+    </div>
+
+    <!-- Center sim -->
+    <div class="panel-sim">
+      <div class="sim-card">
+        <div class="sim-card-header">
+          <div class="sim-card-dot" style="background:#f0883e"></div>
+          <div class="sim-card-title">온도 ↔ 부피 관계 시뮬레이터</div>
+          <div class="sim-card-sub">압력 일정 · 입자 수 일정</div>
+        </div>
+        <canvas id="sim-canvas-1"></canvas>
+      </div>
+    </div>
+
+    <!-- Right data panel -->
+    <div class="panel-data">
+      <div class="data-section-title">📊 실험 변수</div>
+      <div class="var-grid">
+        <div class="var-card">
+          <div class="var-card-label">온도</div>
+          <div class="var-card-val" id="temp-1" style="color:#f0883e">25</div>
+          <div class="var-card-unit">°C</div>
+          <div class="var-card-change" id="temp-change-1"></div>
+        </div>
+        <div class="var-card">
+          <div class="var-card-label">부피</div>
+          <div class="var-card-val" id="vol-1" style="color:#58a6ff">100</div>
+          <div class="var-card-unit">상대값 (%)</div>
+          <div class="var-card-change" id="vol-change-1"></div>
+        </div>
+        <div class="var-card" style="grid-column:span 2">
+          <div class="var-card-label">입자 속도</div>
+          <div class="var-card-val" id="speed-1" style="color:#d2a8ff">보통</div>
+          <div class="var-card-unit">온도에 따라 변함</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="data-section-title">📈 T-V 그래프</div>
+      <canvas id="graph-canvas-1" style="width:100%;height:110px;"></canvas>
+
+      <div class="divider"></div>
+
+      <div class="data-section-title">💡 관찰 내용</div>
+      <div class="desc-box" id="desc-1">
+        손을 흔들어 부채질해 보세요.<br><br>
+        <span class="highlight">온도가 올라가면</span> 입자는 어떻게 움직이나요?
+      </div>
+
+      <div class="divider"></div>
+      <button onclick="openLiteracyModal(1)" style="width:100%;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;color:white;font-size:12px;font-weight:700;cursor:pointer;">📝 문해력 진단 시작 (4단계)</button>
+    </div>
+  </div>
+</div>
+
+<!-- MediaPipe + scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+<script>
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+const state = {
+  0: {
+    camActive: false,
+    hands: null,
+    camera: null,
+    pistonX: 0.7, // 0=fully closed, 1=fully open (ratio of container)
+    targetPistonX: 0.7,
+    particles: [],
+    graphData: [],
+    prevHandX: null,
+    handDetected: false,
+    volume: 100,
+    pressure: 1.0,
+  },
+  1: {
+    camActive: false,
+    hands: null,
+    camera: null,
+    temperature: 25,
+    targetTemperature: 25,
+    pistonY: 0.6,
+    targetPistonY: 0.6,
+    particles: [],
+    graphData: [],
+    prevHandX: null,
+    handDetected: false,
+    waveIntensity: 0,
+    lastHandXHistory: [],
+  }
+};
+
+let currentTab = 0;
+let animFrames = {};
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(n) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===n));
+  document.getElementById('page-0').classList.toggle('show', n===0);
+  document.getElementById('page-1').classList.toggle('show', n===1);
+  currentTab = n;
+  setTimeout(() => { resizeCanvas(n); }, 50);
+}
+
+// ============================================================
+// CANVAS RESIZE
+// ============================================================
+function resizeCanvas(tab) {
+  const canvas = document.getElementById('sim-canvas-' + tab);
+  if (!canvas) return;
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+
+// ============================================================
+// PARTICLES INIT
+// ============================================================
+function initParticles(tab) {
+  const s = state[tab];
+  s.particles = [];
+  const count = 20;
+
+  if (tab === 0) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 0.0025 + Math.random() * 0.0015;
+      s.particles.push({
+        x: Math.random() * 0.45 + 0.06,
+        y: Math.random() * 0.55 + 0.22,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        r: 7,
+        hue: 200 + Math.random() * 40,
+      });
+    }
+  } else {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 0.0025 + Math.random() * 0.0015;
+      // containerLeft=W*0.2, containerRight=W*0.8 → x: 0.22~0.78
+      // containerTop=H*0.65, containerBottom=H*0.9 → y: 0.67~0.88
+      s.particles.push({
+        x: Math.random() * 0.52 + 0.24,
+        y: Math.random() * 0.18 + 0.68,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        r: 7,
+        hue: 200,
+        baseSpeed: speed,
+      });
+    }
+  }
+}
+
+// ============================================================
+// CAMERA TOGGLE
+// ============================================================
+async function toggleCam(tab) {
+  const s = state[tab];
+  const btn = document.getElementById('cam-btn-' + tab);
+  const dot = document.getElementById('cam-dot-' + tab);
+  const text = document.getElementById('cam-text-' + tab);
+
+  if (s.camActive) {
+    if (s.camera) s.camera.stop();
+    s.camActive = false;
+    btn.textContent = '📷 카메라 시작';
+    btn.classList.remove('danger');
+    dot.className = 'status-dot';
+    text.textContent = '카메라 꺼짐';
+    return;
+  }
+
+  dot.className = 'status-dot detecting';
+  text.textContent = '카메라 초기화 중...';
+
+  const video = document.getElementById('webcam-' + tab);
+  const camCanvas = document.getElementById('cam-canvas-' + tab);
+  const camCtx = camCanvas.getContext('2d');
+
+  // Init MediaPipe Hands
+  const hands = new Hands({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+  });
+
+  hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.7,
+    minTrackingConfidence: 0.5,
+  });
+
+  hands.onResults((results) => {
+    camCanvas.width = video.videoWidth || 320;
+    camCanvas.height = video.videoHeight || 240;
+    camCtx.clearRect(0, 0, camCanvas.width, camCanvas.height);
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      const landmarks = results.multiHandLandmarks[0];
+      drawConnectors(camCtx, landmarks, HAND_CONNECTIONS, { color:'#58a6ff', lineWidth:2 });
+      drawLandmarks(camCtx, landmarks, { color:'#fff', lineWidth:1, radius:3 });
+
+      // Palm center = average of landmark 0,5,9,13,17
+      const palmX = [0,5,9,13,17].reduce((s,i) => s + landmarks[i].x, 0) / 5;
+
+      if (tab === 0) {
+        handlePressureGesture(palmX, landmarks);
+      } else {
+        handleTemperatureGesture(palmX, landmarks);
+      }
+    } else {
+      if (tab === 0) {
+        state[0].handDetected = false;
+        document.getElementById('hand-detected-0').textContent = '없음';
+        document.getElementById('hand-detected-0').style.color = '#da3633';
+      } else {
+        state[1].handDetected = false;
+        state[1].waveIntensity = Math.max(0, state[1].waveIntensity - 0.03);
+        document.getElementById('wave-detected-1').textContent = '없음';
+        document.getElementById('wave-detected-1').style.color = '#da3633';
+      }
+    }
+  });
+
+  s.hands = hands;
+
+  const camera = new Camera(video, {
+    onFrame: async () => { await hands.send({ image: video }); },
+    width: 320,
+    height: 240,
+  });
+
+  try {
+    await camera.start();
+    s.camera = camera;
+    s.camActive = true;
+    btn.textContent = '⏹ 카메라 중지';
+    btn.classList.add('danger');
+    dot.className = 'status-dot active';
+    text.textContent = '감지 중...';
+  } catch(e) {
+    dot.className = 'status-dot';
+    text.textContent = '카메라 오류: ' + e.message;
+  }
+}
+
+// ============================================================
+// GESTURE HANDLERS
+// ============================================================
+function handlePressureGesture(palmX, landmarks) {
+  const s = state[0];
+  s.handDetected = true;
+  const screenX = 1 - palmX;
+  const screenY = landmarks[9].y; // middle finger base Y
+
+  // Store for overlay
+  s.handOverlayX = screenX;
+  s.handOverlayY = screenY;
+
+  document.getElementById('hand-x-0').textContent = screenX.toFixed(2);
+  document.getElementById('hand-bar-0').style.width = (screenX * 100) + '%';
+  document.getElementById('hand-detected-0').textContent = '감지됨';
+  document.getElementById('hand-detected-0').style.color = '#3fb950';
+
+  const targetPiston = Math.max(0.2, Math.min(0.85, screenX * 0.9 + 0.1));
+  s.targetPistonX = targetPiston;
+}
+
+function handleTemperatureGesture(palmX, landmarks) {
+  const s = state[1];
+  s.handDetected = true;
+  const screenX = 1 - palmX;
+  const screenY = landmarks[9].y;
+
+  s.handOverlayX = screenX;
+  s.handOverlayY = screenY;
+
+  s.lastHandXHistory.push(screenX);
+  if (s.lastHandXHistory.length > 10) s.lastHandXHistory.shift();
+
+  // Calculate shake speed
+  let totalDelta = 0;
+  for (let i = 1; i < s.lastHandXHistory.length; i++) {
+    totalDelta += Math.abs(s.lastHandXHistory[i] - s.lastHandXHistory[i-1]);
+  }
+  const avgDelta = totalDelta / (s.lastHandXHistory.length - 1);
+  s.waveIntensity = Math.min(1, avgDelta * 30);
+
+  const waveSpeedEl = document.getElementById('wave-speed-1');
+  const waveBarEl = document.getElementById('wave-bar-1');
+  const waveDetectedEl = document.getElementById('wave-detected-1');
+
+  waveSpeedEl.textContent = s.waveIntensity.toFixed(2);
+  waveBarEl.style.width = (s.waveIntensity * 100) + '%';
+
+  if (s.waveIntensity > 0.15) {
+    waveDetectedEl.textContent = '부채질 감지!';
+    waveDetectedEl.style.color = '#f0883e';
+  } else {
+    waveDetectedEl.textContent = '감지 중...';
+    waveDetectedEl.style.color = '#7d8590';
+  }
+}
+
+// ============================================================
+// SIMULATION 0 - PRESSURE
+// ============================================================
+function drawSim0() {
+  const canvas = document.getElementById('sim-canvas-0');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  if (!W || !H) { animFrames[0] = requestAnimationFrame(drawSim0); return; }
+
+  const s = state[0];
+
+  // Smooth piston movement
+  s.pistonX += (s.targetPistonX - s.pistonX) * 0.08;
+
+  // Container dimensions
+  const margin = 40;
+  const containerLeft = margin;
+  const containerRight = W - margin;
+  const containerTop = H * 0.15;
+  const containerBottom = H * 0.85;
+  const containerW = containerRight - containerLeft;
+  const containerH = containerBottom - containerTop;
+
+  // Piston position (absolute x)
+  const pistonAbsX = containerLeft + containerW * s.pistonX;
+
+  // Background
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, W, H);
+
+  // Gas area (left of piston) background
+  const gasWidth = pistonAbsX - containerLeft;
+  ctx.fillStyle = 'rgba(37, 99, 235, 0.06)';
+  ctx.fillRect(containerLeft, containerTop, gasWidth, containerH);
+
+  // Container walls
+  ctx.strokeStyle = '#30363d';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([]);
+  // Top wall
+  ctx.beginPath();
+  ctx.moveTo(containerLeft, containerTop);
+  ctx.lineTo(pistonAbsX, containerTop);
+  ctx.stroke();
+  // Bottom wall
+  ctx.beginPath();
+  ctx.moveTo(containerLeft, containerBottom);
+  ctx.lineTo(pistonAbsX, containerBottom);
+  ctx.stroke();
+  // Left wall (closed end)
+  ctx.beginPath();
+  ctx.moveTo(containerLeft, containerTop);
+  ctx.lineTo(containerLeft, containerBottom);
+  ctx.stroke();
+
+  // Right side guide (where piston travels)
+  ctx.strokeStyle = '#21262d';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(pistonAbsX, containerTop);
+  ctx.lineTo(containerRight, containerTop);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(pistonAbsX, containerBottom);
+  ctx.lineTo(containerRight, containerBottom);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Piston
+  const pistonW = 18;
+  ctx.fillStyle = '#58a6ff';
+  ctx.shadowColor = '#58a6ff';
+  ctx.shadowBlur = 12;
+  ctx.fillRect(pistonAbsX - pistonW/2, containerTop, pistonW, containerH);
+  ctx.shadowBlur = 0;
+
+  // Piston handle (rod extending right)
+  ctx.strokeStyle = '#58a6ff';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(pistonAbsX + pistonW/2, containerTop + containerH * 0.5);
+  ctx.lineTo(pistonAbsX + pistonW/2 + 60, containerTop + containerH * 0.5);
+  ctx.stroke();
+
+  // Arrow showing push direction
+  if (s.handDetected && s.targetPistonX < 0.65) {
+    ctx.strokeStyle = '#f0883e';
+    ctx.lineWidth = 2;
+    ctx.fillStyle = '#f0883e';
+    const arrowX = pistonAbsX + pistonW/2 + 70;
+    const arrowY = containerTop + containerH * 0.5;
+    ctx.beginPath();
+    ctx.moveTo(arrowX, arrowY);
+    ctx.lineTo(arrowX - 30, arrowY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(arrowX - 30, arrowY);
+    ctx.lineTo(arrowX - 20, arrowY - 8);
+    ctx.lineTo(arrowX - 20, arrowY + 8);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Particles
+  s.particles.forEach(p => {
+    // Bounce off walls
+    const maxX = (pistonAbsX - containerLeft) / W;
+    const maxY = containerBottom / H;
+    const minY = containerTop / H;
+    const minX = containerLeft / W;
+
+    if (p.x <= minX || p.x >= maxX) {
+      p.vx *= -1;
+      p.x = Math.max(minX + 0.01, Math.min(maxX - 0.01, p.x));
+    }
+    if (p.y <= minY || p.y >= maxY) {
+      p.vy *= -1;
+      p.y = Math.max(minY + 0.01, Math.min(maxY - 0.01, p.y));
+    }
+
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // Draw particle
+    const px = p.x * W;
+    const py = p.y * H;
+
+    ctx.beginPath();
+    ctx.arc(px, py, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${p.hue}, 80%, 70%, 0.9)`;
+    ctx.shadowColor = `hsla(${p.hue}, 80%, 70%, 0.5)`;
+    ctx.shadowBlur = 6;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+
+  // Collision indicators (flash when particle near piston)
+  s.particles.forEach(p => {
+    const px = p.x * W;
+    const pistonDist = Math.abs(px - pistonAbsX);
+    if (pistonDist < 15) {
+      ctx.beginPath();
+      ctx.arc(px, p.y * H, p.r + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 100, 50, 0.8)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  });
+
+  // Labels
+  ctx.fillStyle = '#7d8590';
+  ctx.font = '11px monospace';
+  ctx.fillText('← 닫힌 끝', containerLeft + 4, containerTop - 8);
+  ctx.fillText('피스톤', pistonAbsX - 18, containerTop - 8);
+
+  // Volume indicator
+  const volPct = Math.round((s.pistonX / 0.85) * 100);
+  s.volume = volPct;
+  s.pressure = parseFloat((100 / Math.max(volPct, 1) * 1.0).toFixed(2));
+
+  // Volume bar under container
+  ctx.fillStyle = '#21262d';
+  ctx.fillRect(containerLeft, containerBottom + 12, containerW, 6);
+  ctx.fillStyle = '#58a6ff';
+  ctx.fillRect(containerLeft, containerBottom + 12, containerW * s.pistonX, 6);
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '11px monospace';
+  ctx.fillText('부피: ' + volPct + '%', containerLeft, containerBottom + 30);
+  ctx.fillText('압력: ' + s.pressure.toFixed(1) + ' 상대기압', containerLeft + containerW * 0.4, containerBottom + 30);
+
+  // Update data panel
+  document.getElementById('vol-0').textContent = volPct;
+  document.getElementById('pres-0').textContent = s.pressure.toFixed(1);
+
+  const volChange = document.getElementById('vol-change-0');
+  const presChange = document.getElementById('pres-change-0');
+  if (s.pistonX < 0.55) {
+    volChange.textContent = '▼ 감소';
+    volChange.className = 'var-card-change down';
+    presChange.textContent = '▲ 증가';
+    presChange.className = 'var-card-change up';
+    document.getElementById('desc-0').innerHTML = `
+      <span class="highlight">압력이 커졌어요!</span><br><br>
+      입자 수는 <span class="highlight">그대로</span>이지만,<br>
+      공간이 좁아져서 입자들이<br>
+      벽에 더 <span class="highlight">자주 충돌</span>해요.<br><br>
+      → 부피 ↓ / 압력 ↑
+    `;
+  } else if (s.pistonX > 0.75) {
+    volChange.textContent = '▲ 증가';
+    volChange.className = 'var-card-change up';
+    presChange.textContent = '▼ 감소';
+    presChange.className = 'var-card-change down';
+    document.getElementById('desc-0').innerHTML = `
+      <span class="highlight">압력이 작아졌어요!</span><br><br>
+      공간이 넓어져서 입자들이<br>
+      벽에 더 <span class="highlight">드물게 충돌</span>해요.<br><br>
+      → 부피 ↑ / 압력 ↓
+    `;
+  } else {
+    document.getElementById('desc-0').innerHTML = `
+      손바닥으로 피스톤을 밀어보세요.<br><br>
+      <span class="highlight">압력이 커지면</span> 어떤 변화가 일어나나요?
+    `;
+  }
+
+  // Graph
+  if (s.graphData.length === 0 || Math.abs(s.graphData[s.graphData.length-1].v - volPct) > 1) {
+    s.graphData.push({ v: volPct, p: s.pressure });
+    if (s.graphData.length > 50) s.graphData.shift();
+  }
+  drawGraph0();
+
+  // Hand overlay on sim canvas
+  if (s.handDetected && s.handOverlayX !== undefined) {
+    const hx = s.handOverlayX * W;
+    const hy = s.handOverlayY * H;
+    // Palm circle
+    ctx.beginPath();
+    ctx.arc(hx, hy, 22, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(88, 166, 255, 0.15)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(88, 166, 255, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Push arrow (leftward)
+    ctx.fillStyle = '#f0883e';
+    ctx.strokeStyle = '#f0883e';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(hx - 35, hy);
+    ctx.lineTo(hx - 15, hy);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(hx - 35, hy);
+    ctx.lineTo(hx - 25, hy - 7);
+    ctx.lineTo(hx - 25, hy + 7);
+    ctx.closePath();
+    ctx.fill();
+    // Label
+    ctx.fillStyle = 'rgba(88, 166, 255, 0.9)';
+    ctx.font = '11px monospace';
+    ctx.fillText('손', hx - 8, hy + 36);
+  }
+
+  animFrames[0] = requestAnimationFrame(drawSim0);
+}
+
+function drawGraph0() {
+  const canvas = document.getElementById('graph-canvas-0');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth; const H = 110;
+  canvas.width = W; canvas.height = H;
+
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle = '#21262d';
+  ctx.lineWidth = 0.5;
+  for (let i=0;i<5;i++) {
+    const y = 10 + i*(H-20)/4;
+    ctx.beginPath(); ctx.moveTo(30,y); ctx.lineTo(W-5,y); ctx.stroke();
+  }
+
+  ctx.fillStyle = '#7d8590'; ctx.font = '9px monospace';
+  ctx.fillText('P', 4, 14); ctx.fillText('↑', 4, 22);
+  ctx.fillText('V →', W-24, H-4);
+
+  // Draw hyperbola (P*V=const)
+  ctx.strokeStyle = '#21262d';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let v=20;v<=100;v++) {
+    const p = 100/v;
+    const x = 30 + (v-20)/(100-20)*(W-35);
+    const y = (H-10) - (p-1)/(3-1)*(H-20);
+    if (v===20) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // Current point
+  const s = state[0];
+  if (s.graphData.length > 0) {
+    const last = s.graphData[s.graphData.length-1];
+    const x = 30 + (last.v-20)/(100-20)*(W-35);
+    const y = (H-10) - (last.p-1)/(3-1)*(H-20);
+    ctx.beginPath();
+    ctx.arc(Math.max(30, Math.min(W-5, x)), Math.max(5, Math.min(H-5, y)), 5, 0, Math.PI*2);
+    ctx.fillStyle = '#f0883e';
+    ctx.shadowColor = '#f0883e';
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+// ============================================================
+// SIMULATION 1 - TEMPERATURE
+// ============================================================
+function drawSim1() {
+  const canvas = document.getElementById('sim-canvas-1');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  if (!W || !H) { animFrames[1] = requestAnimationFrame(drawSim1); return; }
+
+  const s = state[1];
+
+  // Update temperature
+  if (s.waveIntensity > 0.15) {
+    s.targetTemperature = Math.min(200, s.targetTemperature + s.waveIntensity * 1.5);
+  } else {
+    s.targetTemperature = Math.max(25, s.targetTemperature - 0.3);
+  }
+  s.temperature += (s.targetTemperature - s.temperature) * 0.05;
+  s.waveIntensity = Math.max(0, s.waveIntensity - 0.01);
+
+  // Piston Y position based on temperature (moves UP = volume increases)
+  const tempRatio = (s.temperature - 25) / (200 - 25);
+  s.targetPistonY = 0.65 - tempRatio * 0.3;
+  s.pistonY += (s.targetPistonY - s.pistonY) * 0.05;
+
+  // Particle speed based on temperature
+  const speedMultiplier = 1 + tempRatio * 3;
+
+  // Container
+  const margin = 40;
+  const containerLeft = W * 0.2;
+  const containerRight = W * 0.8;
+  const containerTop = H * s.pistonY;
+  const containerBottom = H * 0.9;
+  const containerW = containerRight - containerLeft;
+  const containerH = containerBottom - containerTop;
+
+  // Background
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, W, H);
+
+  // Heat glow based on temperature
+  if (tempRatio > 0.1) {
+    const gradient = ctx.createRadialGradient(W/2, containerBottom, 10, W/2, containerBottom, containerH);
+    gradient.addColorStop(0, `rgba(240, 136, 62, ${tempRatio * 0.15})`);
+    gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Gas area background
+  ctx.fillStyle = `rgba(${Math.round(37 + tempRatio*200)}, ${Math.round(99 - tempRatio*50)}, ${Math.round(235 - tempRatio*200)}, 0.06)`;
+  ctx.fillRect(containerLeft, containerTop, containerW, containerH);
+
+  // Container walls (sides + bottom, open top with piston)
+  ctx.strokeStyle = '#30363d';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(containerLeft, containerTop);
+  ctx.lineTo(containerLeft, containerBottom);
+  ctx.lineTo(containerRight, containerBottom);
+  ctx.lineTo(containerRight, containerTop);
+  ctx.stroke();
+
+  // Piston (horizontal, slides up)
+  const pistonH = 14;
+  const pistonColor = `hsl(${200 + tempRatio*-160}, 70%, 65%)`;
+  ctx.fillStyle = pistonColor;
+  ctx.shadowColor = pistonColor;
+  ctx.shadowBlur = 10;
+  ctx.fillRect(containerLeft, containerTop - pistonH/2, containerW, pistonH);
+  ctx.shadowBlur = 0;
+
+  // Piston rod (going up)
+  ctx.strokeStyle = pistonColor;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(W/2, containerTop - pistonH/2);
+  ctx.lineTo(W/2, containerTop - 50);
+  ctx.stroke();
+
+  // Flame / heating indicator at bottom
+  if (tempRatio > 0.05) {
+    for (let f = 0; f < 5; f++) {
+      const fx = containerLeft + containerW * (0.15 + f * 0.18);
+      const flameH = 20 + tempRatio * 20;
+      ctx.strokeStyle = `rgba(240, 136, 62, ${0.4 + tempRatio * 0.6})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(fx, containerBottom + 5);
+      ctx.quadraticCurveTo(fx + 8, containerBottom - flameH/2, fx, containerBottom - flameH + Math.sin(Date.now()/200 + f) * 5);
+      ctx.stroke();
+    }
+  }
+
+  // Update particle speeds and draw
+  s.particles.forEach(p => {
+    const speed = p.baseSpeed * speedMultiplier;
+
+    // Normalize velocity to new speed
+    const curSpeed = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
+    if (curSpeed > 0) {
+      p.vx = (p.vx/curSpeed) * speed;
+      p.vy = (p.vy/curSpeed) * speed;
+    }
+
+    // Bounce - recalc bounds each frame from current piston/container
+    const absMinX = containerLeft / W;
+    const absMaxX = (containerRight - 2) / W;
+    const absMinY = (containerTop + 8) / H;
+    const absMaxY = (containerBottom - 2) / H;
+
+    // Clamp first, then bounce
+    if (p.x < absMinX) { p.x = absMinX + 0.005; p.vx = Math.abs(p.vx); }
+    if (p.x > absMaxX) { p.x = absMaxX - 0.005; p.vx = -Math.abs(p.vx); }
+    if (p.y < absMinY) { p.y = absMinY + 0.005; p.vy = Math.abs(p.vy); }
+    if (p.y > absMaxY) { p.y = absMaxY - 0.005; p.vy = -Math.abs(p.vy); }
+
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // Color by speed
+    const energyHue = Math.round(200 - tempRatio * 160);
+    const px = p.x * W;
+    const py = p.y * H;
+
+    ctx.beginPath();
+    ctx.arc(px, py, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${energyHue}, 80%, 70%, 0.9)`;
+    ctx.shadowColor = `hsla(${energyHue}, 80%, 70%, 0.5)`;
+    ctx.shadowBlur = 6;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Speed trail
+    if (speedMultiplier > 2) {
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px - p.vx*W*8, py - p.vy*H*8);
+      ctx.strokeStyle = `hsla(${energyHue}, 80%, 70%, 0.2)`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  });
+
+  // Wall collision sparks
+  s.particles.forEach(p => {
+    const py = p.y * H;
+    const px = p.x * W;
+    const nearPiston = Math.abs(py - containerTop) < 12;
+    if (nearPiston && speedMultiplier > 1.5) {
+      ctx.beginPath();
+      ctx.arc(px, containerTop, 3, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255, 150, 50, 0.8)';
+      ctx.fill();
+    }
+  });
+
+  // Thermometer
+  const thermX = containerLeft - 30;
+  const thermTop = H * 0.1;
+  const thermBottom = H * 0.9;
+  const thermH = thermBottom - thermTop;
+
+  ctx.strokeStyle = '#30363d';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(thermX - 6, thermTop, 12, thermH - 15, 6);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(thermX, thermBottom - 8, 9, 0, Math.PI*2);
+  ctx.stroke();
+
+  const tempFillH = (s.temperature - 25) / (200 - 25) * (thermH - 25);
+  const tempColor = `hsl(${Math.round(240 - tempRatio*240)}, 80%, 60%)`;
+  ctx.fillStyle = tempColor;
+  ctx.shadowColor = tempColor;
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.arc(thermX, thermBottom - 8, 7, 0, Math.PI*2);
+  ctx.fill();
+  if (tempFillH > 0) {
+    ctx.fillRect(thermX - 3, thermBottom - 8 - tempFillH - 12, 6, tempFillH);
+  }
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '11px monospace';
+  ctx.fillText(Math.round(s.temperature) + '°', thermX - 14, thermBottom + 20);
+
+  // Labels
+  ctx.fillStyle = '#7d8590';
+  ctx.font = '11px monospace';
+  ctx.fillText('피스톤', W/2 - 18, containerTop - 20);
+  ctx.fillText('↑ 부피 팽창', containerRight + 8, (containerTop + containerBottom)/2);
+  ctx.fillText('일정 압력', containerRight + 8, (containerTop + containerBottom)/2 + 14);
+
+  // Update data panel
+  const tempVal = Math.round(s.temperature);
+  const volVal = Math.round(100 + tempRatio * 50);
+  document.getElementById('temp-1').textContent = tempVal;
+  document.getElementById('vol-1').textContent = volVal;
+
+  const speedLabel = tempRatio < 0.2 ? '느림' : tempRatio < 0.5 ? '보통' : tempRatio < 0.8 ? '빠름' : '매우 빠름';
+  document.getElementById('speed-1').textContent = speedLabel;
+
+  const tempChange = document.getElementById('temp-change-1');
+  const volChange = document.getElementById('vol-change-1');
+  if (tempRatio > 0.3) {
+    tempChange.textContent = '▲ 상승';
+    tempChange.className = 'var-card-change up';
+    volChange.textContent = '▲ 팽창';
+    volChange.className = 'var-card-change up';
+    document.getElementById('desc-1').innerHTML = `
+      <span class="highlight">온도가 올라갔어요!</span><br><br>
+      입자들이 더 <span class="highlight">빠르게</span> 움직이면서<br>
+      벽을 더 <span class="highlight">세게 밀어요.</span><br><br>
+      압력이 일정하게 유지되려면<br>
+      부피가 <span class="highlight">커져야 해요!</span><br><br>
+      → 온도 ↑ / 부피 ↑
+    `;
+  } else {
+    tempChange.textContent = '→ 보통';
+    tempChange.className = 'var-card-change same';
+    volChange.textContent = '→ 보통';
+    volChange.className = 'var-card-change same';
+    document.getElementById('desc-1').innerHTML = `
+      손을 흔들어 부채질해 보세요.<br><br>
+      <span class="highlight">온도가 올라가면</span> 입자는 어떻게 움직이나요?
+    `;
+  }
+
+  // Graph
+  if (s.graphData.length === 0 || Math.abs(s.graphData[s.graphData.length-1].t - tempVal) > 2) {
+    s.graphData.push({ t: tempVal, v: volVal });
+    if (s.graphData.length > 50) s.graphData.shift();
+  }
+  drawGraph1();
+
+  // Hand overlay on sim canvas - fan/wave indicator
+  if (s.handDetected && s.handOverlayX !== undefined) {
+    const hx = s.handOverlayX * W;
+    const hy = s.handOverlayY * H;
+    const waving = s.waveIntensity > 0.15;
+    // Palm circle
+    ctx.beginPath();
+    ctx.arc(hx, hy, 22, 0, Math.PI * 2);
+    ctx.fillStyle = waving ? 'rgba(240, 136, 62, 0.2)' : 'rgba(88, 166, 255, 0.1)';
+    ctx.fill();
+    ctx.strokeStyle = waving ? 'rgba(240, 136, 62, 0.9)' : 'rgba(88, 166, 255, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Wave arrows (left and right)
+    if (waving) {
+      ctx.fillStyle = '#f0883e';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText('〈〉', hx - 14, hy + 7);
+      // Glow ring
+      ctx.beginPath();
+      ctx.arc(hx, hy, 28 + s.waveIntensity * 10, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(240, 136, 62, ${s.waveIntensity * 0.5})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.fillStyle = waving ? 'rgba(240,136,62,0.9)' : 'rgba(88,166,255,0.7)';
+    ctx.font = '11px monospace';
+    ctx.fillText(waving ? '🌬부채질!' : '손', hx - 10, hy + 40);
+  }
+
+  animFrames[1] = requestAnimationFrame(drawSim1);
+}
+
+function drawGraph1() {
+  const canvas = document.getElementById('graph-canvas-1');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth; const H = 110;
+  canvas.width = W; canvas.height = H;
+
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle = '#21262d';
+  ctx.lineWidth = 0.5;
+  for (let i=0;i<5;i++) {
+    const y = 10 + i*(H-20)/4;
+    ctx.beginPath(); ctx.moveTo(30,y); ctx.lineTo(W-5,y); ctx.stroke();
+  }
+
+  ctx.fillStyle = '#7d8590'; ctx.font = '9px monospace';
+  ctx.fillText('V', 4, 14); ctx.fillText('↑', 4, 22);
+  ctx.fillText('T →', W-24, H-4);
+
+  // Linear reference line
+  ctx.strokeStyle = '#21262d';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(30, H-10);
+  ctx.lineTo(W-5, 10);
+  ctx.stroke();
+
+  // Data points
+  const s = state[1];
+  if (s.graphData.length > 1) {
+    ctx.beginPath();
+    s.graphData.forEach((d, i) => {
+      const x = 30 + (d.t - 25)/(200-25)*(W-35);
+      const y = (H-10) - (d.v - 100)/(150-100)*(H-20);
+      if (i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = '#f0883e';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Current point
+  if (s.graphData.length > 0) {
+    const last = s.graphData[s.graphData.length-1];
+    const x = 30 + (last.t-25)/(200-25)*(W-35);
+    const y = (H-10) - (last.v-100)/(150-100)*(H-20);
+    ctx.beginPath();
+    ctx.arc(Math.max(30,Math.min(W-5,x)), Math.max(5,Math.min(H-5,y)), 5, 0, Math.PI*2);
+    ctx.fillStyle = '#f0883e';
+    ctx.shadowColor = '#f0883e';
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+// ============================================================
+// RESET
+// ============================================================
+function resetSim(tab) {
+  if (tab === 0) {
+    state[0].pistonX = 0.7;
+    state[0].targetPistonX = 0.7;
+    state[0].graphData = [];
+    initParticles(0);
+  } else {
+    state[1].temperature = 25;
+    state[1].targetTemperature = 25;
+    state[1].pistonY = 0.65;
+    state[1].targetPistonY = 0.65;
+    state[1].graphData = [];
+    state[1].waveIntensity = 0;
+    initParticles(1);
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  document.getElementById('loading-overlay').style.display = 'none';
+
+  initParticles(0);
+  initParticles(1);
+
+  // Force canvas sizes immediately with fixed defaults
+  const c0 = document.getElementById('sim-canvas-0');
+  const c1 = document.getElementById('sim-canvas-1');
+  // page-1 is hidden so offsetWidth=0; set both to same fixed size
+  const W = window.innerWidth - 320 - 260 - 40;
+  const H = window.innerHeight - 110 - 60;
+  c0.width = Math.max(400, W); c0.height = Math.max(300, H);
+  c1.width = Math.max(400, W); c1.height = Math.max(300, H);
+
+  drawSim0();
+  drawSim1();
+});
+
+window.addEventListener('resize', () => {
+  const W = window.innerWidth - 320 - 260 - 40;
+  const H = window.innerHeight - 110 - 60;
+  const c0 = document.getElementById('sim-canvas-0');
+  const c1 = document.getElementById('sim-canvas-1');
+  c0.width = Math.max(400, W); c0.height = Math.max(300, H);
+  c1.width = Math.max(400, W); c1.height = Math.max(300, H);
+});
+</script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+<!-- 4단계 문해력 모달 -->
+<div id="literacy-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:16px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:24px;position:relative;">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:white;flex-shrink:0;">M</div>
+      <div>
+        <div style="font-size:10px;letter-spacing:2px;color:#58a6ff;font-weight:700;">META FLOW+ · 문해력 진단</div>
+        <div style="font-size:14px;font-weight:700;color:#e6edf3;" id="lm-title">실험 결과를 설명해보세요</div>
+      </div>
+      <button onclick="closeLiteracyModal()" style="margin-left:auto;background:none;border:none;color:#7d8590;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+
+    <!-- 단계 진행바 -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;" id="lm-steps">
+      <div class="lm-pill" id="lm-pill-1" style="flex:1;padding:6px;text-align:center;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #30363d;color:#7d8590;cursor:default;">1단계</div>
+      <div class="lm-pill" id="lm-pill-2" style="flex:1;padding:6px;text-align:center;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #30363d;color:#7d8590;cursor:default;">2단계</div>
+      <div class="lm-pill" id="lm-pill-3" style="flex:1;padding:6px;text-align:center;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #30363d;color:#7d8590;cursor:default;">3단계</div>
+      <div class="lm-pill" id="lm-pill-4" style="flex:1;padding:6px;text-align:center;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #30363d;color:#7d8590;cursor:default;">4단계</div>
+    </div>
+
+    <!-- 실험 조건 요약 -->
+    <div style="background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:11px;color:#8b949e;" id="lm-exp-summary"></div>
+
+    <!-- 레벨 뱃지 -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div id="lm-level-badge" style="padding:4px 14px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:1px;background:rgba(255,71,87,0.15);color:#ff4757;border:1px solid rgba(255,71,87,0.3);">● Basic</div>
+      <div id="lm-level-desc" style="font-size:11px;color:#7d8590;">관찰한 현상을 그대로 서술해요</div>
+    </div>
+
+    <!-- 질문 -->
+    <div style="background:#0d1117;border-left:3px solid #58a6ff;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#e6edf3;line-height:1.7;" id="lm-question">질문 로딩 중...</div>
+
+    <!-- 힌트 (처음엔 숨김) -->
+    <div id="lm-hint-box" style="display:none;background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.2);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#3fb950;line-height:1.6;"></div>
+
+    <!-- 입력 -->
+    <textarea id="lm-answer" style="width:100%;min-height:100px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;padding:10px 12px;font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;" placeholder="여기에 답변을 작성하세요..." oninput="this.style.borderColor='#58a6ff'"></textarea>
+
+    <!-- 글자 수 -->
+    <div style="font-size:10px;color:#7d8590;text-align:right;margin-top:4px;" id="lm-charcount">0자</div>
+
+    <!-- 버튼 -->
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button id="lm-hint-btn" onclick="showHint()" style="padding:9px 16px;background:transparent;border:1px solid #30363d;border-radius:8px;color:#7d8590;font-size:12px;cursor:pointer;">💡 힌트</button>
+      <button id="lm-submit-btn" onclick="submitLiteracy()" style="flex:1;padding:9px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;">✍ 제출하기</button>
+      <button onclick="skipLiteracy()" style="padding:9px 16px;background:transparent;border:1px solid #30363d;border-radius:8px;color:#7d8590;font-size:12px;cursor:pointer;">건너뛰기 →</button>
+    </div>
+
+    <!-- AI 채점 결과 -->
+    <div id="lm-feedback" style="display:none;margin-top:14px;background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:12px;font-size:12px;color:#8b949e;line-height:1.7;"></div>
+
+    <!-- 다음 단계 버튼 (처음엔 숨김) -->
+    <button id="lm-next-btn" style="display:none;width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,#3fb950,#2ea043);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;" onclick="nextLiteracyStep()">다음 단계 →</button>
+
+    <!-- 최종 저장 버튼 (4단계 후) -->
+    <button id="lm-save-btn" style="display:none;width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;" onclick="saveLiteracyToFirebase()">🚀 META FLOW+에 저장하기</button>
+  </div>
+</div>
+
+<!-- 학생 ID 입력 모달 -->
+<div id="student-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:16px;width:360px;padding:24px;">
+    <div style="font-size:16px;font-weight:700;color:#e6edf3;margin-bottom:6px;">학생 번호 입력</div>
+    <div style="font-size:12px;color:#7d8590;margin-bottom:16px;">META FLOW+에 기록을 남기려면 학번을 입력해주세요</div>
+    <input id="student-id-input" type="text" placeholder="예: 20301" style="width:100%;padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:12px;">
+    <button onclick="confirmStudentId()" style="width:100%;padding:10px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;">확인</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// FIREBASE INIT
+// ============================================================
+const fbConfig = {
+  apiKey: "AIzaSyDemo-replace-with-real-key",
+  authDomain: "student-literacy.firebaseapp.com",
+  projectId: "student-literacy",
+};
+let db = null;
+try {
+  firebase.initializeApp(fbConfig);
+  db = firebase.firestore();
+} catch(e) { console.warn('Firebase init failed:', e.message); }
+
+// ============================================================
+// LITERACY STATE
+// ============================================================
+const lmState = {
+  tab: 0,          // 0=압력부피, 1=온도부피
+  step: 1,         // 1~4
+  answers: {},     // {1:'...', 2:'...', ...}
+  studentId: localStorage.getItem('metaflow_student_id') || null,
+};
+
+const STEPS = {
+  0: [ // 압력↔부피
+    { level:'Basic',      color:'#ff4757', desc:'관찰한 현상을 그대로 서술해요',
+      q:'피스톤을 눌렀을 때 용기 안 입자들은 어떻게 되었나요? 관찰한 것을 그대로 써보세요.' },
+    { level:'Proficient', color:'#f0883e', desc:'원인과 결과를 연결해요',
+      q:'피스톤을 눌러 부피가 줄어들면 압력이 커지는 이유는 무엇인가요? 입자의 충돌과 연결해서 설명해보세요.' },
+    { level:'Advanced',   color:'#58a6ff', desc:'개념을 과학적으로 설명해요',
+      q:'압력과 부피가 반비례하는 이유를 입자 수, 운동 속도, 충돌 횟수 개념을 모두 사용해서 설명해보세요. (온도가 일정하다는 조건도 포함해서)' },
+    { level:'Excellent',  color:'#3fb950', desc:'실생활과 연결해 사고해요',
+      q:'압력과 부피의 반비례 관계가 실생활에서 활용되는 예를 하나 제시하고, 오늘 실험과 연결해서 설명해보세요.' },
+  ],
+  1: [ // 온도↔부피
+    { level:'Basic',      color:'#ff4757', desc:'관찰한 현상을 그대로 서술해요',
+      q:'손을 흔들어 온도를 높였을 때 피스톤과 입자는 어떻게 변했나요? 눈에 보인 것을 그대로 써보세요.' },
+    { level:'Proficient', color:'#f0883e', desc:'원인과 결과를 연결해요',
+      q:'온도가 올라가면 부피가 커지는 이유는 무엇인가요? 입자의 운동 속도와 벽을 미는 힘을 연결해서 설명해보세요.' },
+    { level:'Advanced',   color:'#58a6ff', desc:'개념을 과학적으로 설명해요',
+      q:'온도와 부피가 비례하는 이유를 입자 운동 에너지, 벽에 가하는 힘, 압력이 일정하게 유지되는 조건을 모두 포함해서 설명해보세요.' },
+    { level:'Excellent',  color:'#3fb950', desc:'실생활과 연결해 사고해요',
+      q:'온도가 오르면 부피가 커지는 성질이 실생활에서 어떻게 활용되나요? 예를 하나 들고 오늘 실험과 연결해 설명해보세요.' },
+  ],
+};
+
+const HINTS = {
+  0: [
+    '💡 입자의 수는 변하지 않았어요. 공간이 좁아지면 입자들이 얼마나 자주 벽에 부딪힐까요?',
+    '💡 충돌 횟수가 많아지면 벽에 가하는 힘(압력)이 어떻게 될까요?',
+    '💡 온도가 일정하다는 건 입자의 운동 속도가 변하지 않는다는 뜻이에요.',
+    '💡 주사기, 자동차 에어백, 잠수함 밸러스트 탱크 등을 생각해보세요.',
+  ],
+  1: [
+    '💡 온도가 오르면 입자들이 더 빠르게 움직여요. 벽에 부딪히는 세기는 어떨까요?',
+    '💡 압력이 일정하게 유지되려면 부피가 어떻게 변해야 할까요?',
+    '💡 온도(절대온도)와 부피는 비례해요. 운동 에너지 관점에서 생각해보세요.',
+    '💡 열기구, 빵이 오븐에서 부풀어 오르는 현상을 생각해보세요.',
+  ],
+};
+
+// ============================================================
+// OPEN LITERACY MODAL
+// ============================================================
+function openLiteracyModal(tab) {
+  lmState.tab = tab;
+  lmState.step = 1;
+  lmState.answers = {};
+
+  const expText = tab === 0
+    ? '실험 조건: 온도 일정 · 입자 수 일정 · 피스톤으로 부피 조절'
+    : '실험 조건: 압력 일정 · 입자 수 일정 · 부채질로 온도 변화';
+  document.getElementById('lm-exp-summary').textContent = expText;
+
+  renderLiteracyStep();
+  document.getElementById('literacy-modal').style.display = 'flex';
+  document.getElementById('lm-answer').value = '';
+  document.getElementById('lm-charcount').textContent = '0자';
+}
+
+function closeLiteracyModal() {
+  document.getElementById('literacy-modal').style.display = 'none';
+}
+
+function renderLiteracyStep() {
+  const step = lmState.step;
+  const info = STEPS[lmState.tab][step - 1];
+
+  // Pills
+  for (let i = 1; i <= 4; i++) {
+    const pill = document.getElementById('lm-pill-' + i);
+    if (i < step) {
+      pill.style.background = 'rgba(63,185,80,0.15)';
+      pill.style.borderColor = 'rgba(63,185,80,0.4)';
+      pill.style.color = '#3fb950';
+    } else if (i === step) {
+      pill.style.background = 'rgba(37,99,235,0.2)';
+      pill.style.borderColor = '#2563eb';
+      pill.style.color = '#58a6ff';
+    } else {
+      pill.style.background = 'transparent';
+      pill.style.borderColor = '#30363d';
+      pill.style.color = '#7d8590';
+    }
+  }
+
+  // Badge
+  const badge = document.getElementById('lm-level-badge');
+  badge.textContent = '● ' + info.level;
+  badge.style.color = info.color;
+  badge.style.borderColor = info.color + '55';
+  badge.style.background = info.color + '22';
+
+  document.getElementById('lm-level-desc').textContent = info.desc;
+  document.getElementById('lm-question').textContent = info.q;
+  document.getElementById('lm-title').textContent = step + '단계 질문';
+
+  // Reset UI
+  document.getElementById('lm-answer').value = lmState.answers[step] || '';
+  document.getElementById('lm-charcount').textContent = (lmState.answers[step] || '').length + '자';
+  document.getElementById('lm-hint-box').style.display = 'none';
+  document.getElementById('lm-feedback').style.display = 'none';
+  document.getElementById('lm-next-btn').style.display = 'none';
+  document.getElementById('lm-save-btn').style.display = 'none';
+  document.getElementById('lm-submit-btn').style.display = 'block';
+  document.getElementById('lm-submit-btn').textContent = '✍ 제출하기';
+  document.getElementById('lm-submit-btn').disabled = false;
+}
+
+// Char counter
+document.getElementById('lm-answer').addEventListener('input', function() {
+  document.getElementById('lm-charcount').textContent = this.value.length + '자';
+});
+
+// ============================================================
+// HINT
+// ============================================================
+function showHint() {
+  const hints = HINTS[lmState.tab];
+  const hint = hints[lmState.step - 1];
+  const box = document.getElementById('lm-hint-box');
+  box.textContent = hint;
+  box.style.display = 'block';
+}
+
+// ============================================================
+// SUBMIT WITH CLAUDE API
+// ============================================================
+async function submitLiteracy() {
+  const answer = document.getElementById('lm-answer').value.trim();
+  if (answer.length < 10) {
+    alert('10자 이상 작성해주세요!');
+    return;
+  }
+  lmState.answers[lmState.step] = answer;
+
+  const btn = document.getElementById('lm-submit-btn');
+  btn.textContent = '⏳ AI 채점 중...';
+  btn.disabled = true;
+
+  const info = STEPS[lmState.tab][lmState.step - 1];
+  const feedbackEl = document.getElementById('lm-feedback');
+  const nextBtn = document.getElementById('lm-next-btn');
+  const saveBtn = document.getElementById('lm-save-btn');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `당신은 중학교 과학 문해력 평가 전문 교사입니다. 
+학생의 답변을 읽고 따뜻하고 격려하는 방식으로 2~3문장 피드백을 제공하세요.
+잘한 점을 먼저 언급하고, 보완하면 좋을 점을 한 가지만 짧게 제안하세요.
+학생 수준(중학교)에 맞는 친근한 말투를 사용하세요.`,
+        messages: [{
+          role: 'user',
+          content: `[${info.level} 단계 질문]\n${info.q}\n\n[학생 답변]\n${answer}\n\n위 답변에 대해 피드백을 주세요.`
+        }]
+      })
+    });
+    const data = await res.json();
+    const feedback = data.content?.[0]?.text || '제출되었습니다! 잘 작성했어요 👍';
+
+    feedbackEl.innerHTML = '🤖 <strong style="color:#58a6ff">AI 피드백</strong><br><br>' + feedback.replace(/\n/g, '<br>');
+    feedbackEl.style.display = 'block';
+  } catch(e) {
+    feedbackEl.innerHTML = '✅ 답변이 저장되었어요! 다음 단계로 넘어가세요.';
+    feedbackEl.style.display = 'block';
+  }
+
+  btn.style.display = 'none';
+
+  if (lmState.step < 4) {
+    nextBtn.textContent = lmState.step + '단계 완료! ' + (lmState.step + 1) + '단계로 →';
+    nextBtn.style.display = 'block';
+  } else {
+    saveBtn.style.display = 'block';
+  }
+}
+
+function nextLiteracyStep() {
+  lmState.step++;
+  renderLiteracyStep();
+}
+
+function skipLiteracy() {
+  if (lmState.step < 4) {
+    lmState.step++;
+    renderLiteracyStep();
+  } else {
+    closeLiteracyModal();
+  }
+}
+
+// ============================================================
+// FIREBASE SAVE
+// ============================================================
+async function saveLiteracyToFirebase() {
+  if (!lmState.studentId) {
+    document.getElementById('student-modal').style.display = 'flex';
+    return;
+  }
+  doSave();
+}
+
+function confirmStudentId() {
+  const id = document.getElementById('student-id-input').value.trim();
+  if (!id) return;
+  lmState.studentId = id;
+  localStorage.setItem('metaflow_student_id', id);
+  document.getElementById('student-modal').style.display = 'none';
+  doSave();
+}
+
+async function doSave() {
+  const btn = document.getElementById('lm-save-btn');
+  btn.textContent = '⏳ 저장 중...';
+  btn.disabled = true;
+
+  const expName = lmState.tab === 0 ? '기체_압력부피' : '기체_온도부피';
+  const data = {
+    studentId: lmState.studentId,
+    experimentName: expName,
+    subject: '기체 분자 운동',
+    tab: lmState.tab,
+    answers: lmState.answers,
+    topStep: Object.keys(lmState.answers).length,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    savedAt: new Date().toISOString(),
+  };
+
+  try {
+    if (db) {
+      await db.collection('student-literacy').add(data);
+      btn.textContent = '✅ META FLOW+에 저장 완료!';
+      btn.style.background = 'linear-gradient(135deg,#3fb950,#2ea043)';
+      setTimeout(() => closeLiteracyModal(), 2000);
+    } else {
+      throw new Error('DB 연결 없음');
+    }
+  } catch(e) {
+    btn.textContent = '⚠ 저장 실패 (오프라인 저장됨)';
+    btn.disabled = false;
+    // Fallback: localStorage
+    const key = 'metaflow_' + Date.now();
+    localStorage.setItem(key, JSON.stringify(data));
+    console.log('Saved to localStorage:', key);
+  }
+}
+</script>
+</body>
+</html>
