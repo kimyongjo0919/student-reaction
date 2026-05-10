@@ -421,6 +421,16 @@ const EXPS = [
     filterFn: (s) => s.subject === '기체 분자 운동' ||
                      (s.experimentName && s.experimentName.includes('기체')),
   },
+  // ── 이온의 이동 (추가) ──
+  {
+    id: 'ion-migration',
+    title: '이온의 이동',
+    icon: '⚡',
+    color: '#9333ea',
+    col: 'sessions',
+    mfType: 'new',
+    filterFn: (s) => s.subject === '이온의 이동',
+  },
 ];
 
 const MF_STEPS = ['1단계·현상관찰', '2단계·원인추론', '3단계·개념연결', '4단계·일반화'];
