@@ -237,6 +237,21 @@ const EXPERIMENTS = [
                                     .where('subject','==','기체 분자 운동')
                                     .orderBy('createdAt','desc').limit(1)
   },
+  // ── 이온의 이동 (추가) ──
+  {
+    id:'ion-migration',
+    title:'이온의 이동',
+    sub:'전기력으로 이온이 이동하는 현상을 관찰하고 이온이 전하를 띠고 있음을 확인해요',
+    icon:'⚡',
+    color:'#9333ea',
+    url:'ion-migration-v2.html',
+    tags:['[9과]','이온','전기력','양이온','음이온'],
+    collection:'sessions',
+    subject: '이온의 이동',
+    recordQuery: (col, stuId) => col.where('studentId','==',stuId)
+                                    .where('subject','==','이온의 이동')
+                                    .orderBy('createdAt','desc').limit(1)
+  },
 ];
 
 // ══════ 상태 ══════
