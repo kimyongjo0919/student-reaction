@@ -209,7 +209,7 @@ const EXPERIMENTS = [
     recordQuery: (col, stuId) => col.where('student.id','==',stuId).orderBy('ts','desc').limit(1)
   },
   {
-    id:'sessions',
+    id:'sessions-acid',
     title:'산염기 적정 실험',
     sub:'산과 염기를 적정하여 중화점을 찾아요',
     icon:'⚗️',
