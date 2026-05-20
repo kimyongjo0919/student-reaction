@@ -2663,57 +2663,175 @@ window.startNFCScan = async function() {
   }
 };
 
-// ── 동적 NFC 태그 파싱 ───────────────────────────────────────────────
+// ── NFC 태그 매핑 테이블 ─────────────────────────────────────────
+// NFC 카드에 입력할 텍스트 → 실제 화학식 매핑
+const NFC_FORMULA_MAP = {
+  // 산 (acid)
+  'HCl':      'HCl',
+  'CH3COOH':  'CH₃COOH',
+  'H2SO4':    'H₂SO₄',
+  'HNO3':     'HNO₃',
+  'H3PO4':    'H₃PO₄',
+ 
+  // 염기 (base)
+  'NaOH':     'NaOH',
+  'KOH':      'KOH',
+  'CaOH2':    'Ca(OH)₂',
+  'NH3':      'NH₃',
+  'BaOH2':    'Ba(OH)₂',
+};
+ 
+// ── 마이크로피펫 매핑 ─────────────────────────────────────────────
+const NFC_PIPETTE_MAP = {
+  'p2':     'P2 (0.2~2μL)',
+  'p20':    'P20 (2~20μL)',
+  'p200':   'P200 (20~200μL)',
+  'p1000':  'P1000 (100~1000μL)',
+  'multi':  '멀티채널',
+};
+ 
+// ── 홀피펫 매핑 ───────────────────────────────────────────────────
+const NFC_HOLPIPETTE_MAP = {
+  '10':   '10mL 홀피펫',
+  '20':   '20mL 홀피펫',
+  '50':   '50mL 홀피펫',
+  'grad': '눈금피펫',
+};
+ 
+// ── 동적 NFC 태그 파싱 (방법 A: 매핑 테이블 방식) ──────────────────
 function parseNFCTag(text) {
-  const parts = text.split('_');
-  if(parts.length < 2) { showNfcToast('📲 ' + text, '#ffd32a'); return; }
-
+  const parts = text.trim().split('_');
+  if (parts.length < 2) {
+    showNfcToast('📲 ' + text, '#ffd32a');
+    return;
+  }
+ 
   const type = parts[0];
-  if(type === 'acid' && parts.length >= 3) {
-    const formula = decodeURIComponent(parts[1]);
-    const conc = parseFloat(parts[2]);
-    const vol = parts[3] ? parseFloat(parts[3]) : 10;
+ 
+  // ── 산 ────────────────────────────────────────────────────────
+  if (type === 'acid' && parts.length >= 3) {
+    const rawFormula = parts[1];
+    const formula    = NFC_FORMULA_MAP[rawFormula] || rawFormula;
+    const conc       = parseFloat(parts[2]);
+    const vol        = parts[3] ? parseFloat(parts[3]) : 10;
+ 
+    if (isNaN(conc) || conc <= 0) {
+      showNfcToast('⚠️ 농도 오류: ' + text, '#ff4757');
+      return;
+    }
+ 
     S.acid = { formula, conc, vol };
-    // acidFormula 셀렉트 동기화
+ 
+    // UI 동기화
     const sel = document.getElementById('acidFormula');
-    if(sel) { for(let o of sel.options) if(o.value===formula) o.selected=true; }
-    document.getElementById('acidConc').value = conc;
-    document.getElementById('acidVol').value = vol;
-    updateEquation(); checkReady(); updateSVGLabels();
+    if (sel) {
+      for (const o of sel.options) o.selected = (o.value === formula);
+    }
+    const concEl = document.getElementById('acidConc');
+    const volEl  = document.getElementById('acidVol');
+    if (concEl) concEl.value = conc;
+    if (volEl)  volEl.value  = vol;
+ 
+    // 부피 버튼 동기화
+    document.querySelectorAll('.vol-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.vol-btn').forEach(b => {
+      if (b.textContent.includes(vol + 'mL')) b.classList.add('active');
+    });
+ 
+    updateEquation();
+    checkReady();
+    updateSVGLabels();
     showNfcToast(`📲 ${formula} ${conc}M · ${vol}mL 인식!`, '#ff4757');
-
-  } else if(type === 'base' && parts.length >= 3) {
-    const formula = decodeURIComponent(parts[1]);
-    const conc = parseFloat(parts[2]);
+ 
+  // ── 염기 ──────────────────────────────────────────────────────
+  } else if (type === 'base' && parts.length >= 3) {
+    const rawFormula = parts[1];
+    const formula    = NFC_FORMULA_MAP[rawFormula] || rawFormula;
+    const conc       = parseFloat(parts[2]);
+ 
+    if (isNaN(conc) || conc <= 0) {
+      showNfcToast('⚠️ 농도 오류: ' + text, '#2ed573');
+      return;
+    }
+ 
     S.base = { formula, conc };
+ 
     const sel = document.getElementById('baseFormula');
-    if(sel) { for(let o of sel.options) if(o.value===formula) o.selected=true; }
-    document.getElementById('baseConc').value = conc;
-    updateEquation(); checkReady();
+    if (sel) {
+      for (const o of sel.options) o.selected = (o.value === formula);
+    }
+    const concEl = document.getElementById('baseConc');
+    if (concEl) concEl.value = conc;
+ 
+    updateEquation();
+    checkReady();
     showNfcToast(`📲 ${formula} ${conc}M 인식!`, '#2ed573');
-
-  } else if(type === 'ind') {
-    const indMap = { BTB:'BTB', PP:'페놀프탈레인', MO:'메틸오렌지', NONE:'없음' };
-    const ind = indMap[parts[1]] || parts[1];
+ 
+  // ── 지시약 ────────────────────────────────────────────────────
+  } else if (type === 'ind') {
+    const indMap = { BTB: 'BTB', PP: '페놀프탈레인', MO: '메틸오렌지', NONE: '없음' };
+    const ind    = indMap[parts[1]] || parts[1];
+ 
     const btn = [...document.querySelectorAll('.nfc-btn.ind-c')]
       .find(b => b.querySelector('.nb-name')?.textContent.includes(ind));
-    if(btn) btn.click();
-    else { S.indicator = ind; checkReady(); showNfcToast(`📲 ${ind} 인식!`, '#ffd32a'); }
-
-  } else if(type === 'equip') {
-    const equipBtn = document.getElementById('eq-' + parts[1]);
-    if(equipBtn) equipBtn.click();
-    else showNfcToast('📲 ' + text, '#a29bfe');
-
-  } else if(type === 'pipette') {
-    const label = parts.slice(1).join(' ');
-    const btn = document.getElementById('eq-pipette-' + parts[1]) ||
-                document.getElementById('eq-micro-' + parts[1]);
-    if(btn) btn.click();
-    showNfcToast('📲 피펫: ' + label + ' 인식!', '#fd79a8');
-
+ 
+    if (btn) {
+      btn.click();
+    } else {
+      S.indicator = ind;
+      checkReady();
+      showNfcToast(`📲 ${ind} 인식!`, '#ffd32a');
+    }
+ 
+  // ── 기구 ──────────────────────────────────────────────────────
+  } else if (type === 'equip') {
+    const equipName = parts[1];
+ 
+    // 홀피펫 (equip_pipette_10, equip_pipette_20, equip_pipette_50, equip_pipette_grad)
+    if (equipName === 'pipette' && parts[2]) {
+      const label = NFC_HOLPIPETTE_MAP[parts[2]] || parts[2];
+      const btnEl = document.getElementById('eq-pipette-' + parts[2]);
+      if (btnEl) {
+        btnEl.click();
+      } else {
+        S.equip.pipette = true;
+        checkReady();
+      }
+      showNfcToast('📲 홀피펫 ' + label + ' 인식!', '#70a1ff');
+ 
+    // 마이크로피펫 (equip_micro_p1000 등)
+    } else if (equipName === 'micro' && parts[2]) {
+      const key   = parts[2];
+      const label = NFC_PIPETTE_MAP[key] || key;
+      const btnEl = document.getElementById('eq-micro-' + key);
+      if (btnEl) {
+        btnEl.click();
+      } else {
+        S.equip.pipette = true;
+        checkReady();
+      }
+      showNfcToast('📲 마이크로피펫 ' + label + ' 인식!', '#fd79a8');
+ 
+    // 일반 기구 (equip_stand, equip_flask 등)
+    } else {
+      const equipBtn = document.getElementById('eq-' + equipName);
+      if (equipBtn) {
+        if (!equipBtn.classList.contains('active')) equipBtn.click();
+        else showNfcToast('📲 ' + equipName + ' 이미 장착됨', '#a29bfe');
+      } else {
+        // 버튼 없으면 직접 상태 세팅
+        S.equip[equipName] = true;
+        const cl = document.getElementById('cl-' + equipName);
+        if (cl) cl.className = 'cl-item done';
+        checkReady();
+        showNfcToast('📲 ' + equipName + ' 장착!', '#a29bfe');
+      }
+    }
+ 
+  // ── 알 수 없는 태그 ───────────────────────────────────────────
   } else {
-    showNfcToast('📲 ' + text, '#ffd32a');
+    showNfcToast('📲 알 수 없는 태그: ' + text, '#ffd32a');
+    console.warn('[NFC] 매핑 없음:', text);
   }
 }
 
@@ -3081,41 +3199,6 @@ window.addEventListener('load', () => {
   }
   if(localStorage.getItem('mf_labTheme') === 'light') document.body.classList.add('light');
 });
-
-
-
-// 동적 NFC 태그 파싱 (형식: type_formula_conc 또는 equip_name)
-function parseNFCTag(text) {
-  const parts = text.split('_');
-  if(parts.length < 2) { showNfcToast('📲 ' + text, '#ffd32a'); return; }
-
-  const type = parts[0];
-  if(type === 'acid' && parts.length >= 3) {
-    const formula = parts[1].replace(/dot/g,'.');
-    const conc = parseFloat(parts[2]);
-    tagReagent('acid', formula, conc, 10,
-      document.querySelector('.nfc-btn.acid-c') || document.createElement('button'));
-    showNfcToast('📲 ' + formula + ' ' + conc + 'M 인식!', '#ff4757');
-  } else if(type === 'base' && parts.length >= 3) {
-    const formula = parts[1].replace(/dot/g,'.');
-    const conc = parseFloat(parts[2]);
-    tagReagent('base', formula, conc, 0,
-      document.querySelector('.nfc-btn.base-c') || document.createElement('button'));
-    showNfcToast('📲 ' + formula + ' ' + conc + 'M 인식!', '#2ed573');
-  } else if(type === 'ind') {
-    const indMap = { BTB:'BTB', PP:'페놀프탈레인', MO:'메틸오렌지' };
-    const ind = indMap[parts[1]] || parts[1];
-    tagReagent('indicator', ind, 0, 0,
-      document.querySelector('.nfc-btn.ind-c') || document.createElement('button'));
-    showNfcToast('📲 ' + ind + ' 인식!', '#ffd32a');
-  } else if(type === 'equip') {
-    clickEquipByData(parts[1]);
-  } else {
-    showNfcToast('📲 ' + text, '#ffd32a');
-  }
-}
-
-
 
 
 
