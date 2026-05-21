@@ -221,6 +221,11 @@ body.light{--bg:#f0f2f8;--bg2:#fff;--bg3:#f1f4fb;--bg4:#e8eaf6;--border:rgba(0,0
     <!-- NFC 카드 패널 -->
     <div class="nfc-panel">
       <div class="nfc-title">NFC 카드<br>또는 클릭</div>
+<button class="btn bp" id="nfc-start-btn" onclick="startNFCScan()" 
+  style="font-size:9px;padding:4px;width:100%;margin-bottom:4px;">
+  📲 NFC 시작
+</button>
+<div id="nfc-status" style="font-size:8px;color:var(--muted);text-align:center;margin-bottom:4px;"></div>
       <div class="nfc-card p-card" onclick="spawnParticle('p')" id="nfc-p">
         <div class="nfc-dot" style="background:var(--P)">p</div>
         <div class="nfc-lbl" style="color:var(--P)">양성자</div>
