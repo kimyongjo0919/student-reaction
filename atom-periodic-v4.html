@@ -492,6 +492,7 @@ function switchTab(n){
   }
   window.scrollTo({top:0,behavior:'smooth'});
   if(n===1)setTimeout(()=>{initPTCanvas();if(S.wcOn)startPTAnim();},60);
+  if(n===2)renderMF(); // ← 이 줄만 추가!
 }
 
 // ══════ TAB0: 원자 모형 ══════
