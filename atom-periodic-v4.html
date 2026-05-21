@@ -469,7 +469,6 @@ function startStu(){
   document.getElementById('stu-lbl').textContent=nm+' ('+id+')';
   initAtomCanvas();buildPTGrid();buildElemCardPanel();renderMF();
   toast(nm+' 학생 시작!');
-  tryStartNFC();
 }
 
 // ══════ 탭 ══════
@@ -1343,11 +1342,16 @@ async function toggleWC(){
   }
 }
 
-// NFC 자동 시작
-function tryStartNFC(){
-  if(!('NDEFReader' in window))return;
-  const reader=new NDEFReader();
+function startNFCScan(){
+  if(!('NDEFReader' in window)){
+    document.getElementById('nfc-status').textContent='❌ NFC 미지원';
+    return;
+  }
+  const reader = new NDEFReader();
   reader.scan().then(()=>{
+    document.getElementById('nfc-start-btn').textContent='✅ NFC 활성';
+    document.getElementById('nfc-start-btn').style.background='var(--green)';
+    document.getElementById('nfc-status').textContent='카드를 갖다 대세요!';
     reader.addEventListener('reading',({message})=>{
       const dec=new TextDecoder();
       for(const rec of message.records){
@@ -1357,8 +1361,9 @@ function tryStartNFC(){
         else if(txt==='electron'||txt==='e'||txt==='전자')spawnParticle('e');
       }
     });
-    toast('📲 NFC 준비됨!');
-  }).catch(()=>{});
+  }).catch(e=>{
+    document.getElementById('nfc-status').textContent='❌ 오류: '+e.message;
+  });
 }
 
 // 웹캠 창 드래그
