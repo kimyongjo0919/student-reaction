@@ -1091,9 +1091,16 @@ async function callScoringAPI(systemPrompt, userContent) {
   const data = await res.json();
   const raw = data.content?.[0]?.text||'{}';
   // JSON 추출 — 코드블록 안에 있어도, 텍스트 중간에 있어도 파싱
-  const match = raw.match(/\{[\s\S]*?\}/);
-  if(!match) throw new Error('JSON not found in response: '+raw.slice(0,200));
-  return JSON.parse(match[0]);
+ // 가장 바깥쪽 { } 전체를 탐욕적으로 추출
+  const match = raw.match(/\{[\s\S]*\}/);
+  if(!match) throw new Error('JSON not found: '+raw.slice(0,200));
+  try {
+    return JSON.parse(match[0]);
+  } catch(e) {
+    // 파싱 실패 시 원문 콘솔에 찍고 재throw
+    console.warn('JSON parse fail, raw:', raw);
+    throw e;
+  }
 }
 
 // 답변 내용으로 기본 점수 추정 (API 오류 대비)
