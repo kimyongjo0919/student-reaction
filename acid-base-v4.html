@@ -1848,7 +1848,12 @@ PISA 2025 과학 문해력 기준으로 4단계 질문을 생성해주세요.
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+  'Content-Type': 'application/json',
+  'x-api-key': localStorage.getItem('mf_api_key')||'',
+  'anthropic-version': '2023-06-01',
+  'anthropic-dangerous-direct-browser-access': 'true'
+},
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
@@ -1888,7 +1893,12 @@ async function generateFeedbackWithClaude(answer, stepIdx, analysis) {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+  'Content-Type': 'application/json',
+  'x-api-key': localStorage.getItem('mf_api_key')||'',
+  'anthropic-version': '2023-06-01',
+  'anthropic-dangerous-direct-browser-access': 'true'
+},
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 400,
