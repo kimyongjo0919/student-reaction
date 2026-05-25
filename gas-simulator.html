@@ -1097,6 +1097,7 @@ async function callScoringAPI(systemPrompt, userContent) {
   const raw = data.content?.[0]?.text||'{}';
   // JSON 추출 — 코드블록 안에 있어도, 텍스트 중간에 있어도 파싱
  // 가장 바깥쪽 { } 전체를 탐욕적으로 추출
+   console.log('API raw response:', raw);
   const match = raw.match(/\{[\s\S]*\}/);
   if(!match) throw new Error('JSON not found: '+raw.slice(0,200));
   try {
