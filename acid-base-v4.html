@@ -2016,8 +2016,7 @@ function loadStep(idx) {
   document.getElementById('wm-btnArea').style.display = 'flex';
   document.getElementById('wm-submitBtn').disabled = false;
   document.getElementById('wm-submitBtn').textContent = '✍️ 제출 & AI 채점';
-  document.getElementById('wm-finalBtn').style.display = 'none';
-  document.getElementById('wm-nextStudentBtn').style.display = 'none';
+document.getElementById('wm-finalBtn').style.display = 'none';
 }
 
 // 각 단계 제출
@@ -2221,8 +2220,10 @@ window.submitFinal = async function() {
     `;
     // 다음학생 + 돌아가기 버튼 표시
     const afterArea = document.getElementById('wm-afterSaveArea');
-    afterArea.style.display = 'flex';
-    afterArea.style.flexDirection = 'column';
+    if(afterArea){
+      afterArea.style.display = 'flex';
+      afterArea.style.flexDirection = 'column';
+    }
     showNfcToast('✅ META FLOW+에 저장됐어요!', '#2ed573');
 
   } catch(e) {
