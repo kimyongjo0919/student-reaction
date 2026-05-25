@@ -1081,10 +1081,12 @@ function pisaKor(level) {
 
 async function callScoringAPI(systemPrompt, userContent) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',  headers:{
-      'Content-Type':'application/json',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
+    method:'POST', headers:{
+  'Content-Type':'application/json',
+  'x-api-key': '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',
+  'anthropic-version': '2023-06-01',
+  'anthropic-dangerous-direct-browser-access': 'true'
+},
     body: JSON.stringify({
       model:'claude-sonnet-4-20250514', max_tokens:600,
       system: systemPrompt,
