@@ -405,5 +405,30 @@ window.addEventListener('load',()=>{
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500);}
 </script>
+  <!-- API 키 입력 팝업 -->
+<div id="apiKeyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:16px;width:380px;padding:28px;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:32px;margin-bottom:8px;">🔑</div>
+      <div style="font-size:16px;font-weight:700;color:#e6edf3;">META FLOW+ API 설정</div>
+      <div style="font-size:12px;color:#7d8590;margin-top:6px;">선생님만 입력하는 화면입니다</div>
+    </div>
+    <input id="apiKeyInput" type="password" placeholder="sk-ant-api03-..." style="width:100%;padding:11px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;outline:none;box-sizing:border-box;margin-bottom:12px;">
+    <button onclick="saveApiKey()" style="width:100%;padding:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:8px;color:white;font-size:14px;font-weight:700;cursor:pointer;">✅ 저장하기</button>
+  </div>
+</div>
+
+<script>
+function saveApiKey(){
+  const key=document.getElementById('apiKeyInput').value.trim();
+  if(!key.startsWith('sk-ant-')){alert('올바른 API 키를 입력해주세요!');return;}
+  localStorage.setItem('mf_api_key',key);
+  document.getElementById('apiKeyModal').style.display='none';
+  toast('✅ API 키 저장 완료!');
+}
+if(!localStorage.getItem('mf_api_key')){
+  document.getElementById('apiKeyModal').style.display='flex';
+}
+</script>
 </body>
 </html>
