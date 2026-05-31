@@ -821,15 +821,12 @@ let etCalibStep=0, etCalibSamples=[], etCalibMatrix=null, etCalibTimer=null, etC
 let etGazeLog=[], etZoneHits={}, etParaData={};
 let etFixations=[], etSaccades=[];
 let etRegressions=0, etParaRegressions=0;
-let etLastCol=-1, etLastPara=-1, etTotalSamples=0;
+let etLastPara=-1, etTotalSamples=0;
 let etStartTime=null, etReadEndTime=null, etTimerInterval=null;
 let etLastFixPos=null, etFixStart=null, etLastGazeTime=null;
 let etSmooth={x:.5,y:.5};
 let etReadAreaRect={left:0,top:44,width:window.innerWidth,height:window.innerHeight-44};
 let etParaRegBuffer=0;
-let etLastGazeX=.5;
-
-const ET_CT=[{x:.05,y:.05},{x:.5,y:.05},{x:.95,y:.05},{x:.05,y:.5},{x:.5,y:.5},{x:.95,y:.5},{x:.05,y:.95},{x:.5,y:.95},{x:.95,y:.95}];
 
 /* ════════════════════════════════════════
    자기인식 문항
@@ -1581,21 +1578,6 @@ function showToast(msg) {
    ④ 정밀도: smoothing α 0.22, 노이즈 임계값 세분화
 ════════════════════════════════════════════════════════════════ */
 
-// 원본의 let etLastGazeX=.5; 바로 아래에 추가
-let etLineHistory = [];
-const ET_LINE_BUF = 30;
-const ET_REG_X_THRESH = 0.10;
-const ET_REG_Y_SAME_THRESH = 0.05;
-let etScanpathPoints = [];
-
-// ── v2 추가: 줄 단위 역행 감지 ──
-let etLineHistory = [];      // {x, y, lineIdx, t} 최근 N개
-const ET_LINE_BUF = 30;      // 버퍼 크기
-const ET_REG_X_THRESH = 0.10; // 역행 판정 X 역방향 임계값 (reading area 비율)
-const ET_REG_Y_SAME_THRESH = 0.05; // "같은 줄"로 볼 Y 차이 최대값
-
-// ── v2: Scanpath 누적 데이터 ──
-let etScanpathPoints = [];   // {x, y, fix, fixR} — reading area 비율
 
 // 캘리브레이션 9포인트 — reading area 내부 기준 (비율, 여백 포함)
 const ET_CT = [
