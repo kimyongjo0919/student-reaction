@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>과학적 문해력 사전 조사 | PISA 2025</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Noto+Serif+KR:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy-900:#07070e; --navy-800:#0f1a2e; --navy-700:#162540;
+  --navy-600:#1e3050; --navy-500:#263c60;
+  --teal:#3ddc84; --teal-dim:rgba(61,220,132,0.10); --teal-d:rgba(61,220,132,0.18);
+  --red:#ff6b6b; --red-dim:rgba(255,107,107,0.10);
+  --amber:#ffb347; --amber-dim:rgba(255,179,71,0.10);
+  --blue:#5b9cf6; --blue-dim:rgba(91,156,246,0.10);
+  --purple:#b07fff; --cyan:#2dd4bf;
+  --t1:#f0f0f8; --t2:#9090b0; --t3:#55556a;
+  --b1:rgba(255,255,255,0.06); --b2:rgba(255,255,255,0.12);
+  --s1:#111119; --s2:#191924; --s3:#22222f; --s4:#2c2c3e;
+  --font-sans:'Noto Sans KR',sans-serif;
+  --font-serif:'Noto Serif KR',serif;
+  --font-mono:'Space Mono',monospace;
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:24px;
+  --th:48px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font-sans);background:var(--navy-800);color:var(--t1);line-height:1.7;-webkit-font-smoothing:antialiased;}
+
+/* ── 로그인 화면 ── */
+#loginScreen{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:var(--navy-900);padding:40px 20px;
+}
+.login-card{
+  background:var(--s1);border:1px solid var(--b2);border-radius:var(--r-xl);
+  padding:40px 32px;width:100%;max-width:420px;
+  box-shadow:0 24px 60px rgba(0,0,0,0.5);
+}
+.login-logo{font-family:var(--font-serif);font-size:22px;font-weight:700;color:var(--t1);margin-bottom:6px;text-align:center;}
+.login-sub{font-size:12px;color:var(--t3);text-align:center;margin-bottom:28px;line-height:1.7;}
+.login-field{margin-bottom:14px;}
+.login-label{font-size:10px;font-weight:700;color:var(--teal);letter-spacing:1px;font-family:var(--font-mono);text-transform:uppercase;display:block;margin-bottom:6px;}
+.login-input{
+  width:100%;padding:12px 14px;background:var(--s2);border:1px solid var(--b2);
+  border-radius:var(--r-sm);color:var(--t1);font-size:14px;
+  font-family:var(--font-sans);outline:none;transition:border-color .2s;
+}
+.login-input:focus{border-color:var(--teal);background:var(--s1);}
+.login-input::placeholder{color:var(--t3);}
+.login-btn{
+  width:100%;padding:14px;margin-top:8px;
+  background:linear-gradient(135deg,var(--teal),var(--cyan));
+  color:var(--navy-900);border:none;border-radius:50px;
+  font-size:14px;font-weight:700;cursor:pointer;
+  font-family:var(--font-sans);transition:all .2s;
+}
+.login-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(61,220,132,0.4);}
+.login-error{color:var(--red);font-size:12px;text-align:center;margin-top:8px;display:none;}
+
+/* ── 공통 컴포넌트 ── */
+.app-badge{
+  display:inline-flex;align-items:center;
+  background:var(--teal-dim);border:1px solid rgba(61,220,132,0.3);
+  color:var(--teal);font-size:11px;font-weight:700;letter-spacing:1.5px;
+  padding:5px 14px;border-radius:20px;text-transform:uppercase;font-family:var(--font-mono);
+}
+.app-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-family:var(--font-sans);font-weight:700;border:none;cursor:pointer;
+  border-radius:50px;transition:all .2s;font-size:14px;padding:13px 32px;
+}
+.app-btn--teal{background:linear-gradient(135deg,var(--teal),var(--cyan));color:var(--navy-900);box-shadow:0 4px 16px rgba(61,220,132,0.3);}
+.app-btn--teal:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(61,220,132,0.4);}
+.app-btn--ghost{background:transparent;border:1px solid var(--b2);color:var(--t2);font-size:12px;padding:8px 20px;}
+.app-btn--ghost:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-dim);}
+
+/* ── 설문 래퍼 ── */
+#surveyWrapper{min-height:100vh;background:var(--navy-900);display:none;}
+#survey-topbar{
+  position:sticky;top:0;z-index:200;height:48px;
+  display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+  background:rgba(7,7,14,0.97);border-bottom:1px solid var(--b2);backdrop-filter:blur(16px);
+}
+.stb-logo{display:flex;align-items:center;gap:10px;}
+.stb-logo-icon{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,var(--teal),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:14px;}
+.stb-logo-text{font-size:13px;font-weight:900;letter-spacing:.1em;color:var(--t1);font-family:var(--font-mono);}
+.stb-logo-sub{font-size:10px;color:var(--t3);}
+.stb-right{display:flex;align-items:center;gap:8px;}
+.stb-step-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid var(--teal);background:var(--teal-dim);color:var(--teal);font-family:var(--font-mono);}
+.stb-student-chip{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-family:var(--font-mono);}
+
+/* ── 진행률 ── */
+.s-progress{
+  background:var(--navy-900);padding:11px 24px;
+  display:flex;align-items:center;gap:14px;
+  border-bottom:1px solid var(--b1);position:sticky;top:48px;z-index:100;backdrop-filter:blur(12px);
+}
+.s-progress-label{font-size:11px;color:var(--t3);font-weight:600;white-space:nowrap;min-width:76px;font-family:var(--font-mono);}
+.s-progress-track{flex:1;height:4px;background:var(--b1);border-radius:4px;overflow:hidden;}
+.s-progress-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--cyan));border-radius:4px;width:0%;transition:width .4s ease;}
+.s-progress-pct{font-size:11px;font-weight:700;color:var(--teal);min-width:36px;text-align:right;font-family:var(--font-mono);}
+
+.s-header{background:linear-gradient(160deg,var(--navy-900) 0%,#0f1e35 50%,#162540 100%);color:var(--t1);padding:52px 24px 44px;text-align:center;position:relative;overflow:hidden;}
+.s-header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 80% 20%,rgba(61,220,132,0.12) 0%,transparent 60%),radial-gradient(ellipse 40% 40% at 20% 80%,rgba(45,212,191,0.06) 0%,transparent 50%);}
+.s-header h1{font-family:var(--font-serif);font-size:24px;font-weight:700;margin-bottom:10px;position:relative;}
+.s-header-sub{font-size:13px;color:var(--t3);margin-bottom:26px;line-height:1.7;position:relative;}
+.s-header-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative;}
+.s-header-tag{background:var(--b1);border:1px solid var(--b2);color:var(--t2);font-size:11px;padding:4px 12px;border-radius:20px;}
+.s-container{max-width:760px;margin:0 auto;padding:28px 20px 80px;}
+.s-intro{background:var(--s1);border-radius:var(--r-md);padding:22px 26px;margin-bottom:24px;border:1px solid var(--b1);border-left:3px solid var(--teal);}
+.s-intro h2{font-size:13px;font-weight:700;color:var(--teal);margin-bottom:7px;font-family:var(--font-mono);text-transform:uppercase;}
+.s-intro p{font-size:13px;color:var(--t2);line-height:1.8;}
+.s-framework-box{background:rgba(61,220,132,0.05);border:1px solid rgba(61,220,132,0.15);border-radius:var(--r-sm);padding:13px 16px;margin-top:13px;}
+.s-framework-box h3{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:9px;}
+.s-framework-list{display:grid;grid-template-columns:1fr 1fr;gap:6px;list-style:none;}
+.s-framework-list li{font-size:12px;color:var(--t2);display:flex;align-items:flex-start;gap:7px;line-height:1.5;}
+.s-framework-list li::before{content:'▸';color:var(--teal);font-size:8px;margin-top:4px;flex-shrink:0;}
+.s-section-block{margin-bottom:32px;}
+.s-section-header{display:flex;align-items:center;gap:13px;padding:14px 20px;border-radius:var(--r-md);color:var(--t1);margin-bottom:14px;border:1px solid var(--b1);}
+.s-sh-1{background:linear-gradient(135deg,#0f1e35,#162540);}
+.s-sh-2{background:linear-gradient(135deg,#0a2e28,#0d5044);}
+.s-sh-3{background:linear-gradient(135deg,#1a1035,#2d1060);}
+.s-sh-4{background:linear-gradient(135deg,#1a0630,#3d1870);}
+.s-section-num{width:36px;height:36px;border-radius:50%;background:var(--b1);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+.s-section-title h2{font-size:14px;font-weight:700;margin-bottom:2px;}
+.s-section-title span{font-size:11px;opacity:.6;}
+.s-card{background:var(--s1);border-radius:var(--r-md);margin-bottom:12px;border:1px solid var(--b1);overflow:hidden;transition:border-color .2s;}
+.s-card:hover{border-color:var(--b2);}
+.s-q-header{padding:13px 18px 11px;border-bottom:1px solid var(--b1);display:flex;align-items:flex-start;gap:9px;}
+.s-q-num{background:var(--s3);color:var(--teal);font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap;margin-top:2px;font-family:var(--font-mono);}
+.s-q-tag{background:var(--teal-dim);color:var(--teal);font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap;margin-top:2px;}
+.s-q-text{font-size:13px;font-weight:500;line-height:1.75;flex:1;color:var(--t1);}
+.s-q-body{padding:14px 18px 18px;}
+.s-likert{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.s-likert-opt input[type="radio"]{display:none;}
+.s-likert-opt label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;height:64px;width:100%;border-radius:var(--r-sm);border:1px solid var(--b2);background:var(--s2);transition:all .15s;text-align:center;padding:0 3px;}
+.s-likert-opt label .lk-num{font-size:17px;font-weight:800;color:var(--t3);font-family:var(--font-mono);line-height:1;}
+.s-likert-opt label .lk-txt{font-size:10px;color:var(--t3);line-height:1.3;word-break:keep-all;}
+.s-likert-opt input:checked+label{border-color:var(--teal);background:var(--teal-dim);}
+.s-likert-opt input:checked+label .lk-num{color:var(--teal);}
+.s-likert-opt input:checked+label .lk-txt{color:var(--teal);font-weight:600;}
+.s-likert-opt label:hover{border-color:rgba(61,220,132,0.4);background:var(--teal-dim);}
+.s-textarea{width:100%;border:1px solid var(--b2);border-radius:var(--r-sm);padding:11px 13px;font-family:var(--font-sans);font-size:13px;color:var(--t1);line-height:1.75;resize:vertical;background:var(--s2);transition:border-color .2s;}
+.s-textarea:focus{outline:none;border-color:var(--teal);background:var(--s1);}
+.s-textarea::placeholder{color:var(--t3);}
+.s-char-count{text-align:right;font-size:10px;color:var(--t3);margin-top:3px;font-family:var(--font-mono);}
+.s-hint{background:rgba(255,179,71,0.08);border:1px solid rgba(255,179,71,0.2);border-radius:var(--r-sm);padding:8px 12px;font-size:12px;color:var(--amber);margin-bottom:11px;line-height:1.7;}
+.s-divider{display:flex;align-items:center;gap:12px;margin:7px 0 14px;font-size:11px;color:var(--t3);}
+.s-divider::before,.s-divider::after{content:'';flex:1;height:1px;background:var(--b1);}
+.s-submit-section{background:var(--s1);border-radius:var(--r-md);padding:26px;text-align:center;margin-top:10px;border:1px solid var(--b1);}
+.s-submit-section h3{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:7px;}
+.s-submit-section p{font-size:13px;color:var(--t2);margin-bottom:18px;line-height:1.7;}
+.s-footnote{text-align:center;font-size:11px;color:var(--t3);margin-top:24px;line-height:1.8;}
+.snb-btn{padding:5px 13px;font-size:11px;font-weight:700;border-radius:7px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);cursor:pointer;font-family:var(--font-sans);transition:all .2s;}
+.snb-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-dim);}
+.snb-btn.primary{border-color:var(--teal);background:var(--teal-dim);color:var(--teal);}
+
+/* ── 완료 팝업 ── */
+.s-overlay{display:none;position:fixed;inset:0;background:rgba(7,7,14,0.8);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.s-overlay-card{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r-xl);padding:42px 34px;text-align:center;max-width:400px;width:90%;box-shadow:0 24px 60px rgba(0,0,0,0.5);animation:ovPop .3s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes ovPop{from{transform:scale(0.88);opacity:0;}to{transform:scale(1);opacity:1;}}
+.s-overlay-icon{font-size:48px;margin-bottom:14px;}
+.s-overlay-card h2{font-family:var(--font-serif);font-size:20px;font-weight:700;color:var(--t1);margin-bottom:9px;}
+.s-overlay-card p{font-size:13px;color:var(--t2);line-height:1.75;margin-bottom:20px;}
+.s-overlay-btns{display:flex;flex-direction:column;gap:8px;}
+
+/* ── 아이트래킹 섹션 ── */
+#eyeTrackSection{display:none;}
+.et-intro-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r-md);padding:22px 26px;margin-bottom:16px;}
+.et-intro-card h3{font-size:14px;font-weight:700;color:var(--teal);margin-bottom:8px;font-family:var(--font-mono);}
+.et-intro-card p{font-size:13px;color:var(--t2);line-height:1.8;}
+.et-passage-box{background:var(--s2);border:1px solid var(--b1);border-left:3px solid var(--teal);border-radius:var(--r-md);padding:20px 22px;margin-bottom:16px;font-size:13.5px;color:var(--t2);line-height:2.0;}
+.et-passage-title{font-size:16px;font-weight:700;color:var(--t1);margin-bottom:14px;font-family:var(--font-serif);}
+.et-passage-category{font-size:10px;font-weight:700;color:var(--teal);letter-spacing:1px;font-family:var(--font-mono);margin-bottom:10px;}
+.et-passage-para{margin-bottom:14px;}
+.et-start-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--teal-dim),rgba(45,212,191,0.08));border:1px solid var(--teal);border-radius:var(--r-md);color:var(--teal);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font-sans);transition:all .2s;margin-bottom:12px;}
+.et-start-btn:hover{background:var(--teal-d);}
+.et-start-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* 아이트래킹 풀스크린 */
+#etFullscreen{display:none;position:fixed;inset:0;z-index:5000;background:var(--navy-900);flex-direction:column;}
+#etFullscreen.active{display:flex;}
+#et-hud{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:rgba(7,7,14,0.96);border-bottom:1px solid var(--b2);flex-shrink:0;}
+.et-hud-stat{font-size:11px;color:var(--t2);display:flex;align-items:center;gap:6px;font-family:var(--font-mono);}
+.et-hud-val{font-weight:700;color:var(--t1);}
+.et-hud-val.g{color:var(--teal);} .et-hud-val.r{color:var(--red);} .et-hud-val.a{color:var(--amber);}
+.et-pdot{width:7px;height:7px;border-radius:50%;background:var(--t3);}
+.et-pdot.on{background:var(--red);animation:etpd 1.2s ease-in-out infinite;}
+.et-pdot.done{background:var(--teal);}
+@keyframes etpd{0%,100%{opacity:1;}50%{opacity:.25;}}
+#et-reading-area{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:12px max(32px,6vw);}
+#et-passage-title-display{font-family:var(--font-serif);font-size:clamp(14px,1.6vw,20px);font-weight:700;color:var(--t1);padding:10px 0 12px;border-bottom:1px solid var(--b2);flex-shrink:0;margin-bottom:8px;}
+#et-paras{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;overflow:hidden;}
+.et-para{display:flex;align-items:flex-start;gap:10px;}
+.et-para-idx{font-size:10px;font-family:var(--font-mono);color:var(--t3);background:var(--s2);border:1px solid var(--b1);padding:2px 5px;border-radius:4px;flex-shrink:0;margin-top:3px;min-width:22px;text-align:center;}
+.et-para-txt{line-height:1.85;color:#d0d0e8;word-break:keep-all;}
+#et-sp-cv{position:absolute;inset:0;pointer-events:none;z-index:10;}
+#et-gaze-cursor{position:fixed;width:16px;height:16px;border-radius:50%;border:2.5px solid rgba(255,107,107,0.9);background:rgba(255,107,107,0.25);pointer-events:none;z-index:20;transform:translate(-50%,-50%);display:none;transition:left .05s,top .05s;}
+#et-cam-float{position:fixed;bottom:16px;right:16px;z-index:300;width:140px;border-radius:10px;overflow:hidden;border:1px solid var(--b2);background:#000;display:none;}
+#et-cam-head{padding:4px 8px;background:var(--s1);font-size:9px;color:var(--t2);display:flex;justify-content:space-between;font-family:var(--font-mono);}
+#et-cam-body{position:relative;aspect-ratio:4/3;}
+#et-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);opacity:.01;}
+#et-face-cv{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);}
+#et-cam-no{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10px;color:var(--t3);}
+#et-calib-screen{display:none;position:fixed;inset:0;z-index:6000;background:#000;}
+#et-calib-screen.show{display:block;}
+#et-calib-cv{width:100%;height:100%;display:block;}
+#et-calib-msg{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-size:13px;color:rgba(255,255,255,0.65);background:rgba(0,0,0,.65);padding:7px 18px;border-radius:8px;pointer-events:none;white-space:nowrap;}
+#et-calib-num{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);font-size:64px;font-weight:900;color:var(--red);font-family:var(--font-mono);pointer-events:none;line-height:1;}
+#et-calib-prog{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:7px;}
+.et-cp-pip{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);transition:all .3s;}
+.et-cp-pip.done{background:var(--teal);border-color:var(--teal);}
+.et-cp-pip.cur{background:var(--red);border-color:var(--red);}
+
+/* 아이트래킹 결과 미니 카드 */
+.et-result-mini{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r-md);padding:16px 20px;margin-bottom:12px;display:none;}
+.et-result-mini h4{font-size:11px;font-weight:700;color:var(--teal);font-family:var(--font-mono);margin-bottom:10px;letter-spacing:.5px;}
+.et-result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.et-result-item{text-align:center;background:var(--s1);border-radius:var(--r-sm);padding:8px 4px;}
+.et-result-val{font-size:18px;font-weight:800;font-family:var(--font-mono);color:var(--teal);display:block;}
+.et-result-lbl{font-size:9px;color:var(--t3);margin-top:2px;}
+
+/* ── 결과 / 채점 기준표 ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.scoring-page{display:none;}
+.scoring-page.visible{display:block;}
+.s-scoring-hd{background:linear-gradient(135deg,#0f1e35,#162540);color:var(--t1);border-radius:var(--r-md);padding:22px 26px;margin-bottom:18px;border:1px solid var(--b1);}
+.s-scoring-hd h2{font-family:var(--font-serif);font-size:18px;font-weight:700;margin-bottom:4px;}
+.s-scoring-hd p{font-size:12px;color:var(--t2);}
+.s-rubric-card{background:var(--s1);border-radius:var(--r-md);margin-bottom:14px;border:1px solid var(--b1);overflow:hidden;}
+.s-rubric-hd{padding:13px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:9px;}
+.s-rubric-qnum{background:var(--teal);color:var(--navy-900);font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;white-space:nowrap;font-family:var(--font-mono);}
+.s-rubric-pisa{background:var(--teal-dim);color:var(--teal);font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;white-space:nowrap;}
+.s-rubric-title{font-size:13px;font-weight:600;color:var(--t1);flex:1;}
+.s-rubric-table{width:100%;border-collapse:collapse;}
+.s-rubric-table th{background:var(--s2);font-size:11px;font-weight:700;color:var(--t2);padding:8px 13px;text-align:left;border-bottom:1px solid var(--b1);}
+.s-rubric-table th.score-col{text-align:center;width:60px;}
+.s-rubric-table td{padding:10px 13px;font-size:12px;border-bottom:1px solid var(--b1);vertical-align:top;line-height:1.65;color:var(--t2);}
+.s-rubric-table td.score-cell{text-align:center;font-weight:800;font-size:13px;font-family:var(--font-mono);}
+.s-rubric-table tr:last-child td{border-bottom:none;}
+.s-rubric-table tr:hover td{background:var(--s2);}
+.score-2{color:var(--teal);} .score-1{color:var(--amber);} .score-0{color:var(--red);}
+.s-keyword-box{background:rgba(91,156,246,0.07);border:1px solid rgba(91,156,246,0.2);border-radius:var(--r-sm);padding:10px 14px;margin:9px 13px 13px;}
+.s-keyword-box h4{font-size:10px;font-weight:700;color:var(--blue);margin-bottom:7px;font-family:var(--font-mono);text-transform:uppercase;}
+.s-keyword-list{display:flex;flex-wrap:wrap;gap:5px;}
+.s-keyword-chip{background:var(--s2);border:1px solid rgba(91,156,246,0.3);color:var(--blue);font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;}
+.s-total-rubric{background:rgba(61,220,132,0.05);border:1px solid rgba(61,220,132,0.15);border-radius:var(--r-md);padding:16px 20px;margin-bottom:16px;}
+.s-total-rubric h3{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:11px;}
+.s-level-table{width:100%;border-collapse:collapse;font-size:12px;}
+.s-level-table th{background:var(--s2);color:var(--t1);padding:7px 11px;text-align:center;font-weight:600;border:1px solid var(--b1);}
+.s-level-table td{border:1px solid var(--b1);padding:7px 11px;text-align:center;color:var(--t2);}
+.s-level-table tr:nth-child(even) td{background:var(--s2);}
+.s-note-box{background:rgba(255,179,71,0.07);border:1px solid rgba(255,179,71,0.2);border-radius:var(--r-md);padding:13px 16px;margin-bottom:16px;}
+.s-note-box h4{font-size:12px;font-weight:700;color:var(--amber);margin-bottom:6px;}
+.s-note-box p{font-size:12px;color:var(--t2);line-height:1.8;}
+.s-loading-bar{height:5px;background:var(--b1);border-radius:3px;overflow:hidden;max-width:280px;margin:0 auto;}
+.s-loading-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--cyan));border-radius:3px;width:0%;transition:width .5s ease;}
+.s-result-hero{background:linear-gradient(135deg,var(--navy-900),#162540);color:var(--t1);border-radius:var(--r-md);padding:26px 22px;text-align:center;margin-bottom:16px;border:1px solid var(--b1);animation:fadeUp .4s ease;}
+.s-result-hero h2{font-family:var(--font-serif);font-size:18px;font-weight:700;margin-bottom:5px;}
+.s-lv-hero{border-radius:var(--r-md);padding:18px 22px;text-align:center;margin-bottom:16px;animation:fadeUp .45s ease;}
+.s-lv-hero.lv-high{background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.3);}
+.s-lv-hero.lv-mid{background:rgba(255,179,71,0.1);border:1px solid rgba(255,179,71,0.3);}
+.s-lv-hero.lv-low{background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);}
+.s-lv-hero .lv-emoji{font-size:36px;margin-bottom:7px;}
+.s-lv-hero .lv-title{font-size:18px;font-weight:700;margin-bottom:5px;color:var(--t1);}
+.s-lv-hero .lv-desc{font-size:13px;line-height:1.7;color:var(--t2);}
+.s-score-card{background:var(--s1);border-radius:var(--r-md);padding:18px 22px;margin-bottom:12px;border:1px solid var(--b1);animation:fadeUp .5s ease;}
+.s-score-title{font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.8px;margin-bottom:12px;text-transform:uppercase;font-family:var(--font-mono);}
+.s-self-big{font-size:36px;font-weight:800;color:var(--t1);font-family:var(--font-mono);}
+.s-self-bar{height:5px;background:var(--b1);border-radius:3px;overflow:hidden;margin:7px 0;}
+.s-self-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--cyan));border-radius:3px;width:0%;transition:width .8s ease;}
+.s-comp-row{display:flex;align-items:center;gap:11px;margin-bottom:12px;}
+.s-comp-label{font-size:12px;font-weight:600;color:var(--t1);min-width:128px;line-height:1.4;}
+.s-comp-label small{font-weight:400;color:var(--t3);display:block;font-size:10px;}
+.s-comp-track{flex:1;height:7px;background:var(--b1);border-radius:4px;overflow:hidden;}
+.s-comp-fill{height:100%;border-radius:4px;width:0%;transition:width .7s ease;}
+.s-comp-score{font-size:12px;font-weight:800;color:var(--t1);font-family:var(--font-mono);min-width:38px;text-align:right;}
+.s-total-score{display:flex;align-items:baseline;gap:4px;padding-top:11px;border-top:1px solid var(--b1);}
+.s-total-num{font-size:28px;font-weight:800;color:var(--t1);font-family:var(--font-mono);}
+.s-fb-card{border-radius:var(--r-sm);padding:13px 15px;margin-bottom:9px;border-left:3px solid;}
+.s-fb-card.fb-hi{background:rgba(61,220,132,0.07);border-color:var(--teal);}
+.s-fb-card.fb-md{background:rgba(255,179,71,0.07);border-color:var(--amber);}
+.s-fb-card.fb-lo{background:rgba(255,107,107,0.07);border-color:var(--red);}
+.s-fb-card .fb-q{font-size:10px;font-weight:700;color:var(--t3);margin-bottom:3px;font-family:var(--font-mono);}
+.s-fb-card .fb-sc{font-size:13px;font-weight:700;margin-bottom:4px;}
+.s-fb-card .fb-tx{font-size:12px;color:var(--t2);line-height:1.7;}
+.s-page-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 0 20px;border-bottom:1px solid var(--b1);margin-bottom:24px;}
+.s-page-nav-title{font-size:12px;color:var(--t3);font-family:var(--font-mono);}
+.s-page-nav-btns{display:flex;gap:8px;}
+
+/* Firebase 저장 인디케이터 */
+.fb-save-toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(61,220,132,0.9);color:var(--navy-900);
+  padding:10px 20px;border-radius:20px;font-size:12px;font-weight:700;
+  opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:9999;
+}
+.fb-save-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@media(max-width:560px){
+  .s-framework-list{grid-template-columns:1fr;}
+  .s-header h1{font-size:20px;}
+  .et-result-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════
+     Firebase 토스트
+═══════════════════════════════════ -->
+<div class="fb-save-toast" id="fbToast"></div>
+
+<!-- ═══════════════════════════════════
+     1. 로그인 화면
+═══════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div style="text-align:center;margin-bottom:6px;font-size:32px;">📖</div>
+    <div class="login-logo">LITERACY LAB</div>
+    <div class="login-sub">과학적 문해력 사전 진단<br>학번과 이름을 입력해 시작하세요</div>
+    <div class="login-field">
+      <label class="login-label">학번</label>
+      <input class="login-input" id="loginId" type="text" placeholder="예) 20301" maxlength="10">
+    </div>
+    <div class="login-field">
+      <label class="login-label">이름</label>
+      <input class="login-input" id="loginName" type="text" placeholder="이름 입력">
+    </div>
+    <div class="login-field">
+      <label class="login-label">학년·반</label>
+      <input class="login-input" id="loginClass" type="text" placeholder="예) 2학년 3반">
+    </div>
+    <button class="login-btn" onclick="doLogin()">설문 시작하기 →</button>
+    <div class="login-error" id="loginError">학번과 이름을 모두 입력해 주세요.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     2. 설문 래퍼
+═══════════════════════════════════ -->
+<div id="surveyWrapper">
+
+  <!-- 상단 로고바 -->
+  <div id="survey-topbar">
+    <div class="stb-logo">
+      <div class="stb-logo-icon">📖</div>
+      <div>
+        <div class="stb-logo-text">LITERACY LAB</div>
+        <div class="stb-logo-sub">문해력 분석 통합 플랫폼</div>
+      </div>
+    </div>
+    <div class="stb-right">
+      <span class="stb-student-chip" id="topStudentChip">—</span>
+      <span class="stb-step-badge" id="stb-step-label">1단계 · 진단 설문</span>
+    </div>
+  </div>
+
+  <!-- 완료 팝업 -->
+  <div class="s-overlay" id="completionOverlay">
+    <div class="s-overlay-card">
+      <div class="s-overlay-icon">🎉</div>
+      <h2>설문 제출 완료!</h2>
+      <p>응답이 Firebase에 저장되었습니다.<br>AI 채점 결과를 확인하거나<br><strong>META FLOW+</strong>에서 결과를 볼 수 있어요.</p>
+      <div class="s-overlay-btns">
+        <button class="app-btn app-btn--teal" style="width:100%;" onclick="startAIScoring()">🤖 AI 채점 결과 보기</button>
+        <button class="app-btn app-btn--ghost" onclick="showRubric()">📋 채점 기준표 보기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 헤더 -->
+  <div class="s-header">
+    <div style="margin-bottom:18px;position:relative;"><span class="app-badge">PISA 2025 · 사전 진단 설문</span></div>
+    <h1>학생 과학적 문해력 진단 설문</h1>
+    <p class="s-header-sub">Scientific Literacy Diagnostic Survey · 과학 기사 아이트래킹 포함</p>
+    <div class="s-header-tags">
+      <span class="s-header-tag">현상의 과학적 설명</span>
+      <span class="s-header-tag">탐구 설계 및 자료 해석</span>
+      <span class="s-header-tag">과학 정보 탐색·평가·활용</span>
+    </div>
+  </div>
+
+  <!-- 진행률 -->
+  <div class="s-progress">
+    <span class="s-progress-label" id="progressLabel">0 / 0 문항</span>
+    <div class="s-progress-track"><div class="s-progress-fill" id="progressFill"></div></div>
+    <span class="s-progress-pct" id="progressPct">0%</span>
+  </div>
+
+  <!-- ══ 설문 페이지 ══ -->
+  <div id="surveyPage">
+  <div class="s-container">
+
+    <div class="s-intro">
+      <h2>📋 설문 안내</h2>
+      <p>이 설문은 여러분의 과학적 문해력을 파악하기 위한 것입니다. 평가 성적과는 전혀 무관하며, 솔직하게 응답해 주세요.</p>
+      <div class="s-framework-box">
+        <h3>📌 PISA 2025 과학 프레임워크 기반</h3>
+        <ul class="s-framework-list">
+          <li>현상을 과학적으로 설명하는 능력</li>
+          <li>탐구를 설계하고 자료를 해석하는 능력</li>
+          <li>과학 정보를 탐색·평가·활용하는 능력</li>
+          <li>내용·절차·인식론적 과학 지식</li>
+          <li>과학적 근거에 기반한 판단 능력</li>
+          <li>생활 속 과학 현상 이해 및 적용</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ══ Ⅰ. 과학적 문해력 인식 ══ -->
+    <div class="s-section-block">
+      <div class="s-section-header s-sh-1">
+        <div class="s-section-num">Ⅰ</div>
+        <div class="s-section-title"><h2>과학적 문해력 인식</h2><span>PISA 2025 — 과학 역량의 이해</span></div>
+      </div>
+      <div class="s-card">
+        <div class="s-q-header"><span class="s-q-num">Q 1</span>
+          <p class="s-q-text">'과학적 문해력'이 무엇이라고 생각하나요? 자신의 말로 자유롭게 적어 주세요.</p></div>
+        <div class="s-q-body">
+          <textarea class="s-textarea" id="q1_open" placeholder="예) 과학적 문해력이란 …" oninput="countChars(this,'cnt_q1');updateProgress();" style="min-height:100px;"></textarea>
+          <div class="s-char-count" id="cnt_q1">0자</div>
+        </div>
+      </div>
+      <div class="s-card">
+        <div class="s-q-header"><span class="s-q-num">Q 2</span>
+          <p class="s-q-text">과학 수업에서 글, 표, 그래프, 실험 안내문을 이해하는 능력이 중요하다고 생각한다.</p></div>
+        <div class="s-q-body">
+          <div class="s-likert">
+            <div class="s-likert-opt"><input type="radio" name="q2" id="q2_1" value="1" onchange="updateProgress()"><label for="q2_1"><span class="lk-num">1</span><span class="lk-txt">전혀<br>아니다</span></label></div>
+            <div class="s-likert-opt"><input type="radio" name="q2" id="q2_2" value="2" onchange="updateProgress()"><label for="q2_2"><span class="lk-num">2</span><span class="lk-txt">아니다</span></label></div>
+            <div class="s-likert-opt"><input type="radio" name="q2" id="q2_3" value="3" onchange="updateProgress()"><label for="q2_3"><span class="lk-num">3</span><span class="lk-txt">보통<br>이다</span></label></div>
+            <div class="s-likert-opt"><input type="radio" name="q2" id="q2_4" value="4" onchange="updateProgress()"><label for="q2_4"><span class="lk-num">4</span><span class="lk-txt">그렇다</span></label></div>
+            <div class="s-likert-opt"><input type="radio" name="q2" id="q2_5" value="5" onchange="updateProgress()"><label for="q2_5"><span class="lk-num">5</span><span class="lk-txt">매우<br>그렇다</span></label></div>
+          </div>
+        </div>
+      </div>
+      <div class="s-card">
+        <div class="s-q-header"><span class="s-q-num">Q 3</span>
+          <p class="s-q-text">과학적 문해력은 나의 과학 학습에 영향을 준다고 생각한다.</p></div>
+        <div class="s-q-body">
+          <div class="s-likert">
+            <div class="s-likert-opt"><input type="radio" name="q_add2" id="qa2_1" value="1" onchange="updateProgress()"><label for="qa2_1"><span class="lk-num">1</span><span class="lk-txt">전혀<br>아니다</span></label></div>
+            <div class="s-likert-opt"><input type="radio" name="q_add2" id="qa2_2" value="2" onchange="updateProgress()"><label for="qa2_2"><span class="lk-num">2</span><span class="lk-txt">아니다</span></label></div>
+            <div class="s-likert-opt"><input type="radio" name="q_add2" id="qa2_3" value="3" onchange="updateProgress()"><label for="qa2_3"><span class="lk-num">3</span><span class="lk-txt">보통<br>이다</span></label></div>
+            <div class="s-likert-opt"><input type="radio" name="q_add2" id="qa2_4" value="4" onchange="updateProgress()"><label for="qa2_4"><span class="lk-num">4</span><span class="lk-txt">그렇다</span></label></div>
+            <div class="s-likert-opt"><input type="radio" name="q_add2" id="qa2_5" value="5" onchange="updateProgress()"><label for="qa2_5"><span class="lk-num">5</span><span class="lk-txt">매우<br>그렇다</span></label></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Ⅱ. 자기 인식 ══ -->
+    <div class="s-section-block">
+      <div class="s-section-header s-sh-2">
+        <div class="s-section-num">Ⅱ</div>
+        <div class="s-section-title"><h2>자기 인식 — 과학 역량 자가 평가</h2><span>PISA 2025 — 과학 문해력 역량 자가 진단</span></div>
+      </div>
+      <div class="s-divider">① 전혀 아니다 &nbsp;&nbsp;② 아니다&nbsp;&nbsp;③ 보통이다 &nbsp;&nbsp;④ 그렇다 &nbsp;&nbsp;⑤ 매우 그렇다</div>
+      <div id="selfItems"></div>
+    </div>
+
+    <!-- ══ Ⅲ. 과학 지문 읽기 + 아이트래킹 ══ -->
+    <div class="s-section-block">
+      <div class="s-section-header s-sh-3">
+        <div class="s-section-num">Ⅲ</div>
+        <div class="s-section-title"><h2>과학 지문 읽기 + 문해력 진단</h2><span>아이트래킹 · PISA 2025 3대 핵심 역량 · 서술형</span></div>
+      </div>
+
+      <!-- 아이트래킹 인트로 -->
+      <div id="eyeTrackSection">
+        <div class="et-intro-card">
+          <h3>📌 읽기 전 안내</h3>
+          <p>아래 과학 기사를 읽는 동안 <strong>시선 추적(아이트래킹)</strong>이 진행됩니다.<br>
+          카메라 권한을 허용하고, 캘리브레이션 후 기사를 자연스럽게 읽어 주세요.<br>
+          읽기가 완료되면 기사 내용에 관한 서술형 문항 4개에 답해 주세요.</p>
+        </div>
+
+        <!-- 지문 미리보기 (랜덤 배정된 것) -->
+        <div class="et-passage-box" id="passagePreviewBox">
+          <div class="et-passage-category" id="passageCategory">—</div>
+          <div class="et-passage-title" id="passageTitle">—</div>
+          <div id="passageContent"></div>
+        </div>
+
+        <!-- 아이트래킹 시작 버튼 -->
+        <button class="et-start-btn" id="etStartBtn" onclick="startEyeTracking()">
+          👁 아이트래킹 시작 (카메라 켜기)
+        </button>
+        <p style="font-size:11px;color:var(--t3);text-align:center;margin-bottom:16px;">
+          카메라가 없거나 사용하기 어려운 경우 → <button onclick="skipEyeTracking()" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:11px;text-decoration:underline;">아이트래킹 건너뛰기</button>
+        </p>
+
+        <!-- 아이트래킹 결과 미니 카드 (완료 후 표시) -->
+        <div class="et-result-mini" id="etResultMini">
+          <h4>👁 읽기 패턴 요약</h4>
+          <div class="et-result-grid">
+            <div class="et-result-item"><span class="et-result-val" id="etResTime">—</span><div class="et-result-lbl">읽기 시간</div></div>
+            <div class="et-result-item"><span class="et-result-val" id="etResReg">—</span><div class="et-result-lbl">줄 역행</div></div>
+            <div class="et-result-item"><span class="et-result-val" id="etResParaReg">—</span><div class="et-result-lbl">문단 역행</div></div>
+            <div class="et-result-item"><span class="et-result-val" id="etResFix">—</span><div class="et-result-lbl">고정점</div></div>
+          </div>
+        </div>
+
+        <!-- 서술형 문항 (아이트래킹 후 또는 건너뛰기 후 표시) -->
+        <div id="passageQuestionsArea" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- ══ Ⅳ. 경험 및 서술형 ══ -->
+    <div class="s-section-block">
+      <div class="s-section-header s-sh-4">
+        <div class="s-section-num">Ⅳ</div>
+        <div class="s-section-title"><h2>경험 및 서술형</h2><span>자유롭게 자신의 경험과 생각을 적어 주세요</span></div>
+      </div>
+      <div class="s-card">
+        <div class="s-q-header"><span class="s-q-num">서-1</span>
+          <p class="s-q-text">과학 문제를 틀렸을 때, 개념을 몰라서가 아니라 문제의 뜻을 잘못 이해해서 틀린 경험이 있다면 구체적으로 써 주세요.</p></div>
+        <div class="s-q-body">
+          <div class="s-hint"><strong>💡 Tip:</strong> 어떤 과목·단원에서, 어떤 부분을 잘못 이해했는지 떠올려 보세요.</div>
+          <textarea class="s-textarea" id="essay_exp" placeholder="예) 과학 시험에서 '~를 설명하시오'라는 문제를 읽고 …" oninput="countChars(this,'cnt_exp');updateProgress();" style="min-height:100px;"></textarea>
+          <div class="s-char-count" id="cnt_exp">0자</div>
+        </div>
+      </div>
+      <div class="s-card">
+        <div class="s-q-header"><span class="s-q-num">서-2</span>
+          <p class="s-q-text">과학 문제나 자료를 읽을 때 가장 어렵게 느껴지는 것은 무엇인가요?</p></div>
+        <div class="s-q-body">
+          <div class="s-hint"><strong>예시:</strong> 과학 용어 / 긴 지문 / 표·그래프 읽기 / 실험 과정 이해 / 문제에서 요구하는 것 파악 등</div>
+          <textarea class="s-textarea" id="essay1" placeholder="가장 어렵게 느끼는 것을 자유롭게 적어 주세요." oninput="countChars(this,'cnt_e1');updateProgress();" style="min-height:88px;"></textarea>
+          <div class="s-char-count" id="cnt_e1">0자</div>
+        </div>
+      </div>
+      <div class="s-card">
+        <div class="s-q-header"><span class="s-q-num">서-3</span>
+          <p class="s-q-text">과학 관련 뉴스, 광고, 유튜브 영상을 볼 때 믿을 수 있는 정보인지 판단하기 위해 어떻게 하나요?</p></div>
+        <div class="s-q-body">
+          <textarea class="s-textarea" id="essay2" placeholder="평소 어떻게 판단하는지 솔직하게 적어 주세요." oninput="countChars(this,'cnt_e2');updateProgress();" style="min-height:88px;"></textarea>
+          <div class="s-char-count" id="cnt_e2">0자</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="s-submit-section">
+      <h3>🎯 설문 응답이 완료되었나요?</h3>
+      <p>모든 문항에 응답했는지 확인하고 제출해 주세요.<br>제출 후 META FLOW+에서 결과를 확인할 수 있습니다.</p>
+      <button class="app-btn app-btn--teal" onclick="submitSurvey()">설문 제출하기 →</button>
+    </div>
+
+    <div class="s-footnote">
+      본 설문은 PISA 2025 Science Framework (OECD, 2023)를 기반으로 설계된 과학적 문해력 진단 도구입니다.<br>
+      경기도현장교육연구대회 — 광남고등학교
+    </div>
+  </div>
+  </div><!-- /surveyPage -->
+
+  <!-- ══ AI 결과 화면 ══ -->
+  <div id="resultPage" style="display:none;">
+  <div class="s-container">
+    <div class="s-page-nav" id="resultPageNav" style="display:none;">
+      <span class="s-page-nav-title">🤖 AI 채점 결과</span>
+      <div class="s-page-nav-btns">
+        <button class="snb-btn" onclick="backToSurvey()">← 설문으로</button>
+        <button class="snb-btn" onclick="showRubric()">📋 채점 기준표</button>
+      </div>
+    </div>
+    <div id="loadingSection" style="text-align:center;padding:60px 20px;">
+      <div style="font-size:52px;margin-bottom:20px;animation:spin 2s linear infinite;display:inline-block;">🔬</div>
+      <h2 style="font-family:'Noto Serif KR',serif;color:var(--t1);font-size:20px;margin-bottom:12px;">AI가 과학적 문해력을 분석 중입니다</h2>
+      <p style="color:var(--t2);font-size:13.5px;margin-bottom:28px;">PISA 2025 채점 기준에 따라 역량별로 분석하고 있어요.</p>
+      <div class="s-loading-bar"><div class="s-loading-fill" id="loadingBar"></div></div>
+      <p style="color:var(--teal);font-size:12px;margin-top:12px;" id="loadingMsg">서술형 응답 분석 중...</p>
+    </div>
+    <div id="resultSection" style="display:none;">
+      <div class="s-result-hero"><div>📊</div><h2>나의 과학적 문해력 진단 결과</h2><p>PISA 2025 기반 · 룰베이스 채점</p></div>
+      <div class="s-lv-hero" id="levelHero"></div>
+      <div class="s-score-card" id="sec1Card"></div>
+      <div class="s-score-card">
+        <div class="s-score-title">Ⅱ 자기 인식 점수</div>
+        <div><span class="s-self-big" id="selfScoreDisplay">—</span><span style="font-size:14px;color:var(--t3);"> / 40점</span></div>
+        <div class="s-self-bar"><div class="s-self-fill" id="selfBarFill"></div></div>
+        <p style="font-size:11px;color:var(--t3);">※ 역방향 문항은 점수가 반전 적용됩니다.</p>
+      </div>
+      <div class="s-score-card">
+        <div class="s-score-title">Ⅲ 실제 문해력 진단 — 역량별 점수</div>
+        <div id="competencyBars"></div>
+        <div class="s-total-score"><span>총점</span><span class="s-total-num" id="totalScoreNum">—</span><span> / 8점</span></div>
+      </div>
+      <!-- 아이트래킹 결과 카드 -->
+      <div class="s-score-card" id="etScoreCard" style="display:none;">
+        <div class="s-score-title">👁 읽기 패턴 분석 (아이트래킹)</div>
+        <div id="etScoreBody"></div>
+      </div>
+      <div class="s-score-card">
+        <div class="s-score-title">💬 역량별 AI 피드백</div>
+        <div id="aiFeedbackArea"></div>
+      </div>
+      <div class="s-score-card" id="sec4Card"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--b1);">
+        <button class="snb-btn" style="flex:1;padding:11px;font-size:12px;" onclick="backToSurvey()">← 설문으로</button>
+        <button class="snb-btn" style="flex:1;padding:11px;font-size:12px;" onclick="showRubric()">📋 채점 기준표</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ══ 채점 기준표 ══ -->
+  <div id="scoringPage" class="scoring-page">
+  <div class="s-container">
+    <div class="s-page-nav">
+      <span class="s-page-nav-title">📋 전체 채점 기준표</span>
+      <div class="s-page-nav-btns">
+        <button class="snb-btn" onclick="backToSurvey()">← 설문으로</button>
+      </div>
+    </div>
+    <div class="s-scoring-hd">
+      <h2>📋 섹션 Ⅰ ~ Ⅳ 전체 채점 기준표</h2>
+      <p>모든 문항 채점 기준 · 교사용 · 사전-사후 비교 분석 활용 · PISA 2025 기반</p>
+    </div>
+    <div id="rubricBody"><!-- JS로 현재 지문 기준표 렌더 --></div>
+    <div class="s-footnote" style="margin-top:24px;">
+      본 채점 기준표는 PISA 2025 Science Framework (OECD, 2023)를 기반으로 설계되었습니다.<br>
+      경기도현장교육연구대회 — 광남고등학교
+    </div>
+    <div style="display:flex;gap:10px;margin-top:28px;padding-top:20px;border-top:1px solid var(--b1);">
+      <button class="snb-btn" style="flex:1;padding:11px;" onclick="backToSurvey()">← 설문으로</button>
+    </div>
+  </div>
+  </div>
+
+</div><!-- /surveyWrapper -->
+
+<!-- ═══════════════════════════════════
+     아이트래킹 풀스크린
+═══════════════════════════════════ -->
+<div id="etFullscreen">
+  <div id="et-hud">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="et-hud-stat"><div class="et-pdot" id="etPdot"></div><span id="etStatusTxt">대기 중</span></div>
+      <div class="et-hud-stat">시간 <span class="et-hud-val g" id="etTimer">00:00</span></div>
+      <div class="et-hud-stat">역행 <span class="et-hud-val r" id="etReg">0</span></div>
+      <div class="et-hud-stat">문단역행 <span class="et-hud-val r" id="etParaReg">0</span></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button id="etBtnCalib" onclick="etHandleStart()" style="padding:6px 14px;font-size:11px;font-weight:700;border-radius:7px;border:1px solid var(--teal);background:var(--teal-dim);color:var(--teal);cursor:pointer;font-family:var(--font-sans);">▶ 캘리브레이션 시작</button>
+      <button id="etBtnStop" onclick="etStopReading()" style="display:none;padding:6px 14px;font-size:11px;font-weight:700;border-radius:7px;border:1px solid var(--red);background:var(--red-dim);color:var(--red);cursor:pointer;font-family:var(--font-sans);">⏹ 읽기 완료</button>
+    </div>
+  </div>
+  <div id="et-reading-area" style="position:relative;">
+    <div id="et-passage-title-display"></div>
+    <div id="et-paras"></div>
+    <canvas id="et-sp-cv" style="position:absolute;inset:0;pointer-events:none;z-index:10;"></canvas>
+  </div>
+  <div id="et-gaze-cursor"></div>
+  <div id="et-cam-float">
+    <div id="et-cam-head"><span>FACE</span><span id="etFpsTxt" style="color:var(--teal);">—</span></div>
+    <div id="et-cam-body">
+      <video id="et-video" playsinline muted autoplay></video>
+      <canvas id="et-face-cv"></canvas>
+      <div id="et-cam-no"><span style="font-size:18px">📷</span><span>미연결</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 캘리브레이션 -->
+<div id="et-calib-screen">
+  <canvas id="et-calib-cv"></canvas>
+  <div id="et-calib-msg">빨간 원을 응시하세요</div>
+  <div id="et-calib-num">4</div>
+  <div id="et-calib-prog"></div>
+</div>
+
+<!-- MediaPipe -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBX-BE14JViw82xAiA3Gts6p-SC6gVBjG8",
+  authDomain: "student-literacy.firebaseapp.com",
+  projectId: "student-literacy",
+  storageBucket: "student-literacy.firebasestorage.app",
+  messagingSenderId: "66926306937",
+  appId: "1:66926306937:web:5204bff44a4cc5d62d16a8"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// 전역 노출
+window._db = db;
+window._doc = doc;
+window._setDoc = setDoc;
+window._getDoc = getDoc;
+window._serverTimestamp = serverTimestamp;
+window._dbReady = true;
+</script>
+
+<!-- ═══════════════════════════════════
+     메인 스크립트
+═══════════════════════════════════ -->
+<script>
+/* ════════════════════════════════════════
+   지문 풀 (5종)
+════════════════════════════════════════ */
+const PASSAGE_POOL = [
+  {
+    id:'bpa', title:'페트병 속 화학 물질, 우리가 마시고 있다?', category:'환경·화학',
+    article:[
+      '최근 국내 연구팀이 시중에 유통되는 생수 제품 20종을 분석한 결과, 전 제품에서 미세플라스틱이 검출되었다. 연구팀에 따르면 페트(PET) 소재 생수병에 담긴 물을 햇빛이 드는 곳에 보관하면, 병 소재가 자외선과 열에 의해 분해되면서 비스페놀 A(BPA)와 같은 화학 물질이 물속으로 용출될 수 있다고 설명했다.',
+      '연구팀은 25℃ 조건과 50℃ 조건에서 각각 72시간 동안 페트병 생수를 보관한 후 BPA 농도를 측정하였다. 그 결과 50℃ 조건에서 검출된 BPA 농도는 25℃ 조건보다 평균 4.7배 높게 나타났다. 연구팀은 "BPA는 내분비계 교란 물질로, 장기간 노출 시 호르몬 균형에 영향을 줄 수 있다"고 밝혔다. 단, 이번 연구는 실험실 조건에서 수행된 것으로, 실제 유통 환경과는 차이가 있을 수 있다.',
+    ],
+    questions:[
+      {num:'Ⅲ-1',tag:'역량① 현상 설명',text:'위 기사의 핵심 내용을 2~3문장으로 요약해 주세요.',hint:'기사에서 가장 중요한 사실 2~3가지를 골라 자신의 말로 써 보세요.',placeholder:'페트병 생수에서 …'},
+      {num:'Ⅲ-2',tag:'역량① 현상 설명',text:'페트병에서 BPA가 물속으로 용출되는 과정을 기사 내용을 바탕으로 설명해 주세요.',hint:"'페트 소재 → 자외선·열 → 분해 → BPA 용출'의 흐름을 생각하며 써 보세요.",placeholder:'페트 소재가 …'},
+      {num:'Ⅲ-3',tag:'역량② 탐구·자료 해석',text:'기사에 나온 온도별 BPA 농도 실험 결과를 해석하고, 이 실험의 한계점을 한 가지 써 주세요.',hint:"'결과 해석'과 '한계점'을 구분해서 써 보세요.",placeholder:'결과 해석: 온도가 높을수록 …\n\n한계점: 이 실험은 …'},
+      {num:'Ⅲ-4',tag:'역량③ 정보 평가·활용',text:'SNS에서 "페트병 생수는 무조건 위험해. 절대 마시면 안 돼. 과학적으로 증명됐어"라는 글을 보았습니다. 이 주장이 신뢰할 수 있는지, 기사 내용을 근거로 써 주세요.',hint:'신뢰할 수 있다/없다를 먼저 밝히고, 기사의 어떤 내용이 근거인지 쓰세요.',placeholder:'이 주장은 신뢰하기 어렵다. 왜냐하면 기사에서 …'},
+    ],
+    scoring:{
+      d1:{hi:['bpa','비스페놀','화학물질','용출','검출','페트','pet'],tp:['온도','4.7','열','50','25','높','차이','실험'],sc:['실험실','한계','일반화','조건','실제'],fb_hi:'BPA 용출 사실과 온도 조건에 따른 실험 결과를 모두 포함하여 핵심을 잘 요약했습니다.',fb_mi:'핵심 내용 중 일부만 포함되었습니다. BPA 용출 사실과 온도별 농도 차이(4.7배)를 함께 포함해 보세요.',fb_lo:'BPA, 온도 조건 등 기사의 핵심 내용이 포함되지 않았습니다.'},
+      d2:{ca:['자외선','햇빛','열','온도'],pr:['분해','녹','화학','반응'],rs:['용출','나온','섞','혼입','물속'],fb_hi:'자외선·열에 의한 페트 소재 분해와 BPA 용출 과정을 원인과 과정 모두 포함하여 잘 설명했습니다.',fb_mi:'원인(자외선·열) 또는 과정(분해·용출) 중 일부만 서술되었습니다.',fb_lo:'페트병에서 BPA가 나오는 과학적 원인과 과정이 포함되지 않았습니다.'},
+      d3:{it:['4.7','높','증가','온도','50','25','농도','배'],li:['한계','실험실','일반화','조건','실제','유통','단기'],fb_hi:'온도에 따른 BPA 농도 차이(4.7배)를 정확히 해석하고 실험실 조건의 한계점도 지적했습니다.',fb_mi_i:'결과는 잘 해석했으나, 실험실 단기 조건이라 실제 환경에 일반화하기 어렵다는 한계점도 써 보세요.',fb_mi_l:'한계점은 잘 지적했으나, 50℃가 25℃보다 BPA 농도가 4.7배 높다는 결과를 구체적으로 해석해 보세요.',fb_lo:'결과 해석과 한계점 모두 포함되지 않았습니다.'},
+      d4:{ju:['신뢰.*어렵','믿기.*어렵','과장','과도','무조건.*아니','신중','적절하지'],ag:['맞다','신뢰.*된다','위험하다','위험해','마시면.*안'],ev:['실험실','일반화','조건','단기','근거','한계','실제'],fb_hi:'신뢰하기 어렵다는 판단과 기사의 구체적 내용(실험실 조건, 일반화 한계)을 근거로 잘 지적했습니다.',fb_mi:'판단은 적절합니다. 기사의 어떤 내용이 근거인지(실험실 조건, 단기 실험) 구체적으로 써 보세요.',fb_lo:'신뢰 여부 판단이 명확하지 않거나 근거가 없습니다.',fb_ag:'기사에서 이 연구가 실험실 단기 실험임을 명시했습니다. "절대 마시면 안 된다"는 주장은 과도한 일반화입니다.'},
+    },
+  },
+  {
+    id:'dust', title:'미세먼지, 눈에 보이지 않는 위협', category:'환경·보건',
+    article:[
+      '미세먼지(PM2.5)는 지름이 2.5마이크로미터(μm) 이하인 초미세 입자로, 자동차 배기가스, 화력발전소, 공장 매연 등에서 주로 발생한다. 크기가 매우 작아 코털이나 기관지 점막으로 걸러지지 않고 폐포까지 직접 침투할 수 있어 일반 먼지보다 건강에 더 큰 영향을 미친다.',
+      '국내 한 연구팀이 성인 1,200명을 대상으로 미세먼지 농도와 호흡기 질환 발생률의 관계를 5년간 추적 조사한 결과, PM2.5 농도가 10μg/m³ 증가할 때마다 호흡기 질환 발생률이 평균 8.3% 증가하는 것으로 나타났다. 연구팀은 "특히 어린이, 노인, 기저질환자는 일반 성인보다 2~3배 더 민감하게 반응한다"고 밝혔다. 다만 이 연구는 도심 지역 거주자만을 대상으로 하여 농촌 지역에 동일하게 적용하기 어려울 수 있다.',
+    ],
+    questions:[
+      {num:'Ⅲ-1',tag:'역량① 현상 설명',text:'위 기사의 핵심 내용을 2~3문장으로 요약해 주세요.',hint:'미세먼지의 특성과 건강 영향에 대한 핵심 사실 2~3가지를 자신의 말로 써 보세요.',placeholder:'미세먼지(PM2.5)는 …'},
+      {num:'Ⅲ-2',tag:'역량① 현상 설명',text:'미세먼지가 일반 먼지보다 건강에 더 해로운 이유를 기사 내용을 바탕으로 설명해 주세요.',hint:"'크기 → 필터링 불가 → 폐포 침투'의 흐름을 생각하며 써 보세요.",placeholder:'미세먼지는 크기가 …'},
+      {num:'Ⅲ-3',tag:'역량② 탐구·자료 해석',text:'기사에 나온 미세먼지 농도와 호흡기 질환 발생률의 관계를 해석하고, 이 연구의 한계점을 한 가지 써 주세요.',hint:"'결과 해석'과 '한계점'을 구분해서 써 보세요.",placeholder:'결과 해석: PM2.5 농도가 높을수록 …\n\n한계점: 이 연구는 …'},
+      {num:'Ⅲ-4',tag:'역량③ 정보 평가·활용',text:'"미세먼지는 어른보다 아이한테 훨씬 더 위험해. 아이들은 절대 밖에 나가면 안 돼"라는 SNS 주장이 과학적으로 적절한지 기사 내용을 근거로 판단해 주세요.',hint:'적절하다/과장되었다를 먼저 밝히고, 기사의 어떤 내용이 근거인지 쓰세요.',placeholder:'이 주장은 일부 사실에 근거하지만 …'},
+    ],
+    scoring:{
+      d1:{hi:['pm2.5','미세먼지','2.5','폐포','호흡기','질환'],tp:['8.3','증가','농도','발생률'],sc:['도심','농촌','지역','한계','일반화'],fb_hi:'미세먼지의 특성과 건강 영향에 대한 핵심 내용을 잘 요약했습니다.',fb_mi:'미세먼지 특성 또는 건강 영향 중 한 가지만 포함되었습니다.',fb_lo:'미세먼지의 크기 특성과 건강 영향이 포함되지 않았습니다.'},
+      d2:{ca:['작','2.5','마이크로','크기','pm2.5'],pr:['코털','기관지','걸러','점막','필터','통과'],rs:['폐포','침투','들어','흡입'],fb_hi:'미세먼지의 크기 특성과 폐포까지 직접 침투하는 과정을 원인과 결과 모두 포함하여 잘 설명했습니다.',fb_mi:'크기 특성 또는 침투 과정 중 일부만 서술되었습니다.',fb_lo:'미세먼지가 해로운 과학적 이유(크기→필터링 불가→폐포 침투)가 포함되지 않았습니다.'},
+      d3:{it:['8.3','증가','비례','농도','발생률','10','높','민감'],li:['도심','농촌','지역','한계','일반화','성인','조건'],fb_hi:'농도 증가에 따른 발생률 변화(8.3%)를 정확히 해석하고 도심 지역 한정이라는 한계점도 잘 지적했습니다.',fb_mi_i:'결과는 잘 해석했으나, 도심 지역 거주자만 대상이라는 한계점도 써 보세요.',fb_mi_l:'한계점은 잘 지적했으나, PM2.5가 10μg/m³ 증가할 때마다 발생률 8.3% 증가라는 결과를 구체적으로 해석해 보세요.',fb_lo:'결과 해석과 한계점 모두 포함되지 않았습니다.'},
+      d4:{ju:['과장','일부.*사실','완전히.*맞지','무조건.*아니','적절하지'],ag:['맞다','위험해','나가면.*안','절대','동의'],ev:['2~3배','민감','어린이','도심','한계','일반화','조건'],fb_hi:'일부 근거는 있지만 "절대 나가면 안 된다"는 표현이 과도하다는 판단과 기사 근거를 잘 제시했습니다.',fb_mi:'판단은 적절합니다. 어린이가 2~3배 민감하다고 했지만, "절대 금지"는 기사에 없다는 점을 근거로 구체적으로 써 보세요.',fb_lo:'신뢰 여부 판단이 명확하지 않거나 근거가 없습니다.',fb_ag:'기사에서 어린이가 더 민감하다고 했지만, "절대 나가면 안 된다"는 표현은 기사 내용보다 과도한 주장입니다.'},
+    },
+  },
+  {
+    id:'vaccine', title:'백신은 어떻게 우리 몸을 지킬까?', category:'생명과학·보건',
+    article:[
+      '백신은 병원체(바이러스·세균)의 항원을 약화시키거나 일부 성분만 추출하여 체내에 주입하는 방식으로 면역 반응을 유도한다. 항원이 체내에 들어오면 면역 세포인 B림프구가 항체를 생성하고, 일부는 기억 세포로 남아 같은 항원이 다시 침입할 때 빠르게 대응할 수 있게 된다.',
+      '세계보건기구(WHO)가 발표한 2023년 보고서에 따르면, 홍역 백신의 경우 2회 접종 시 예방 효과가 97%에 달하는 반면, 1회 접종만으로는 93%에 그쳤다. 또한 백신 접종률이 95% 이상일 때 집단 면역이 형성되어 백신을 맞지 못한 영·유아나 면역 결핍 환자도 간접적으로 보호받을 수 있다. 단, 이 수치는 홍역에 해당하는 것으로, 다른 감염병에는 다른 접종 기준이 적용된다.',
+    ],
+    questions:[
+      {num:'Ⅲ-1',tag:'역량① 현상 설명',text:'위 기사의 핵심 내용을 2~3문장으로 요약해 주세요.',hint:'백신의 작동 원리와 효과에 대한 핵심 사실 2~3가지를 자신의 말로 써 보세요.',placeholder:'백신은 …'},
+      {num:'Ⅲ-2',tag:'역량① 현상 설명',text:'백신 접종 후 우리 몸이 질병으로부터 보호받게 되는 과정을 기사 내용을 바탕으로 설명해 주세요.',hint:"'항원 주입 → 면역 반응 → 항체 생성 → 기억 세포'의 흐름을 생각하며 써 보세요.",placeholder:'백신을 맞으면 항원이 …'},
+      {num:'Ⅲ-3',tag:'역량② 탐구·자료 해석',text:'기사에 나온 홍역 백신 접종 횟수별 예방 효과 차이를 해석하고, 이 자료의 한계점을 한 가지 써 주세요.',hint:"'결과 해석'과 '한계점'을 구분해서 써 보세요.",placeholder:'결과 해석: 2회 접종 시 …\n\n한계점: 이 자료는 …'},
+      {num:'Ⅲ-4',tag:'역량③ 정보 평가·활용',text:'"백신만 맞으면 어떤 감염병이든 100% 예방할 수 있어. 백신이 있으면 걱정 없어"라는 주장이 과학적으로 적절한지 기사 내용을 근거로 판단해 주세요.',hint:'적절하다/과장되었다를 먼저 밝히고, 기사의 어떤 내용이 근거인지 쓰세요.',placeholder:'이 주장은 과장되었다. 왜냐하면 기사에서 …'},
+    ],
+    scoring:{
+      d1:{hi:['백신','항원','항체','면역','b림프구','기억세포'],tp:['97','93','95','예방','효과','집단면역'],sc:['홍역','감염병','기준','다른','한계'],fb_hi:'백신의 작동 원리와 집단 면역 효과를 모두 포함하여 핵심을 잘 요약했습니다.',fb_mi:'백신 원리 또는 효과 수치 중 한 가지만 포함되었습니다.',fb_lo:'백신의 면역 유도 원리와 예방 효과 수치가 포함되지 않았습니다.'},
+      d2:{ca:['항원','주입','약화','성분','접종'],pr:['b림프구','면역세포','항체','생성','반응'],rs:['기억세포','기억 세포','남아','빠르게','대응','보호'],fb_hi:'항원 주입 → 면역 반응 → 항체 생성 → 기억 세포의 흐름을 원인과 과정 모두 포함하여 잘 설명했습니다.',fb_mi:'항원 주입 또는 기억 세포 중 일부만 서술되었습니다.',fb_lo:'백신 접종 후 면역이 형성되는 과학적 과정이 포함되지 않았습니다.'},
+      d3:{it:['97','93','2회','1회','차이','높','효과','비교'],li:['홍역','다른','감염병','기준','한계','일반화','적용'],fb_hi:'1회와 2회 접종의 예방 효과 차이(93% vs 97%)를 정확히 해석하고 홍역에만 해당한다는 한계점도 잘 지적했습니다.',fb_mi_i:'결과는 잘 해석했으나, 이 수치가 홍역에만 해당한다는 한계점도 써 보세요.',fb_mi_l:'한계점은 잘 지적했으나, 2회 접종(97%)이 1회(93%)보다 효과가 높다는 결과를 구체적으로 해석해 보세요.',fb_lo:'결과 해석과 한계점 모두 포함되지 않았습니다.'},
+      d4:{ju:['과장','100%.*아니','모든.*감염병','신중','적절하지','다르'],ag:['맞다','100%','어떤.*감염병','걱정.*없','동의'],ev:['97','93','홍역','다른','기준','한계','감염병'],fb_hi:'"100% 예방"과 "어떤 감염병이든"이라는 표현이 과도하다는 판단과 기사 근거를 잘 제시했습니다.',fb_mi:'판단은 적절합니다. 홍역도 97%이지 100%가 아니며, 감염병마다 기준이 다르다는 점을 근거로 써 보세요.',fb_lo:'신뢰 여부 판단이 명확하지 않거나 근거가 없습니다.',fb_ag:'기사에서 홍역 백신도 97%로 100%가 아니며, 다른 감염병에는 다른 기준이 있다고 했습니다.'},
+    },
+  },
+  {
+    id:'carbon', title:'탄소중립, 왜 2050년이 기준인가?', category:'환경·지구과학',
+    article:[
+      '탄소중립이란 이산화탄소(CO₂) 등 온실가스의 배출량과 흡수량을 같게 만들어 실질적인 배출량을 \'0\'으로 만드는 것을 의미한다. 산업혁명 이후 화석 연료 사용이 급증하면서 대기 중 CO₂ 농도는 280ppm에서 현재 420ppm 이상으로 증가했으며, 이로 인해 지구 평균 기온은 약 1.1℃ 상승하였다.',
+      '기후과학자들은 지구 평균 기온 상승을 1.5℃ 이내로 제한하려면 2050년까지 탄소중립을 달성해야 한다고 주장한다. 국제에너지기구(IEA)의 분석에 따르면, 탄소중립을 달성하는 시나리오에서 2050년 전 세계 전력의 90%는 재생에너지로 공급되어야 한다. 다만 이 목표는 선진국 중심으로 설정된 것으로, 에너지 전환 비용을 감당하기 어려운 개발도상국에는 다른 기준이 적용될 수 있다.',
+    ],
+    questions:[
+      {num:'Ⅲ-1',tag:'역량① 현상 설명',text:'위 기사의 핵심 내용을 2~3문장으로 요약해 주세요.',hint:'탄소중립의 의미와 필요성에 대한 핵심 사실 2~3가지를 자신의 말로 써 보세요.',placeholder:'탄소중립이란 …'},
+      {num:'Ⅲ-2',tag:'역량① 현상 설명',text:'화석 연료 사용이 지구 기온 상승으로 이어지는 과정을 기사 내용을 바탕으로 설명해 주세요.',hint:"'화석연료 사용 → CO₂ 증가 → 온실 효과 → 기온 상승'의 흐름을 생각하며 써 보세요.",placeholder:'화석 연료를 사용하면 …'},
+      {num:'Ⅲ-3',tag:'역량② 탐구·자료 해석',text:'기사에 나온 CO₂ 농도 변화와 기온 상승 데이터를 해석하고, 탄소중립 목표의 한계점을 한 가지 써 주세요.',hint:"'결과 해석'과 '한계점'을 구분해서 써 보세요.",placeholder:'결과 해석: 산업혁명 이후 CO₂ 농도가 …\n\n한계점: 이 목표는 …'},
+      {num:'Ⅲ-4',tag:'역량③ 정보 평가·활용',text:'"2050년 탄소중립은 불가능해. 과학자들이 겁주려고 만든 목표야"라는 SNS 주장이 과학적으로 적절한지 기사 내용을 근거로 판단해 주세요.',hint:'적절하다/과장되었다를 먼저 밝히고, 기사의 어떤 내용이 근거인지 쓰세요.',placeholder:'이 주장은 신뢰하기 어렵다. 왜냐하면 …'},
+    ],
+    scoring:{
+      d1:{hi:['탄소중립','이산화탄소','co2','온실가스','배출','흡수'],tp:['280','420','1.1','1.5','2050','기온','상승','농도'],sc:['선진국','개발도상국','기준','한계','비용'],fb_hi:'탄소중립의 정의와 기후변화 수치(CO₂ 농도, 기온 상승)를 모두 포함하여 핵심을 잘 요약했습니다.',fb_mi:'탄소중립 정의 또는 기후변화 수치 중 한 가지만 포함되었습니다.',fb_lo:'탄소중립의 의미와 CO₂ 농도·기온 상승 수치가 포함되지 않았습니다.'},
+      d2:{ca:['화석연료','화석 연료','석탄','석유','연소','사용'],pr:['co2','이산화탄소','온실가스','배출','증가','농도','온실효과'],rs:['기온','상승','온난화','1.1','따뜻','뜨거'],fb_hi:'화석 연료 사용 → CO₂ 증가 → 온실 효과 → 기온 상승의 흐름을 원인과 과정 모두 포함하여 잘 설명했습니다.',fb_mi:'원인(화석 연료) 또는 결과(기온 상승) 중 일부만 서술되었습니다.',fb_lo:'화석 연료 사용이 기온 상승으로 이어지는 과학적 과정이 포함되지 않았습니다.'},
+      d3:{it:['280','420','1.1','증가','상승','산업혁명','ppm'],li:['선진국','개발도상국','비용','한계','기준','불균형'],fb_hi:'CO₂ 농도 변화(280→420ppm)와 기온 상승(1.1℃)을 정확히 해석하고 개발도상국 적용의 한계점도 잘 지적했습니다.',fb_mi_i:'결과는 잘 해석했으나, 선진국 중심 목표라 개발도상국에 적용하기 어렵다는 한계점도 써 보세요.',fb_mi_l:'한계점은 잘 지적했으나, CO₂ 농도가 280에서 420ppm으로 증가하고 기온이 1.1℃ 상승했다는 결과를 구체적으로 해석해 보세요.',fb_lo:'결과 해석과 한계점 모두 포함되지 않았습니다.'},
+      d4:{ju:['신뢰.*어렵','근거.*없','겁주','불가능.*아니','신중'],ag:['맞다','불가능','음모','겁주','동의'],ev:['iea','국제에너지','1.5','2050','재생에너지','90%','과학자'],fb_hi:'국제기구(IEA)와 기후 과학자들의 분석에 근거한 목표임을 지적하며 SNS 주장의 한계를 잘 평가했습니다.',fb_mi:'판단은 적절합니다. IEA와 기후과학자들의 구체적 분석(90% 재생에너지 등)을 근거로 제시해 보세요.',fb_lo:'신뢰 여부 판단이 명확하지 않거나 근거가 없습니다.',fb_ag:'기사에서 IEA와 기후과학자들이 구체적인 데이터를 바탕으로 2050년 탄소중립 목표를 제시했습니다.'},
+    },
+  },
+  {
+    id:'antibiotic', title:'항생제를 남용하면 어떻게 될까?', category:'생명과학·의학',
+    article:[
+      '항생제는 세균 감염을 치료하는 데 사용되는 약물로, 세균의 세포벽 합성을 방해하거나 단백질 합성을 억제하는 방식으로 작용한다. 그러나 항생제를 필요 이상으로 사용하거나 처방 없이 복용하면 항생제 내성균이 출현할 수 있다. 내성균은 항생제가 작용하는 표적 부위를 변형시키거나 항생제를 분해하는 효소를 만들어 살아남는다.',
+      '세계보건기구(WHO)는 2023년 보고서에서 항생제 내성을 \'21세기 가장 심각한 공중보건 위협 중 하나\'로 규정하였다. 국내 연구에 따르면 우리나라 국민의 항생제 처방률은 OECD 평균보다 약 1.4배 높으며, 이로 인해 국내 다제내성균 감염 환자 수가 최근 5년간 연평균 12% 증가하고 있다. 단, 이 통계는 병원 내 감염 사례를 중심으로 집계된 것으로, 지역 사회 감염은 별도 분석이 필요하다.',
+    ],
+    questions:[
+      {num:'Ⅲ-1',tag:'역량① 현상 설명',text:'위 기사의 핵심 내용을 2~3문장으로 요약해 주세요.',hint:'항생제 내성의 원인과 현황에 대한 핵심 사실 2~3가지를 자신의 말로 써 보세요.',placeholder:'항생제를 남용하면 …'},
+      {num:'Ⅲ-2',tag:'역량① 현상 설명',text:'항생제 내성균이 생겨나는 과정을 기사 내용을 바탕으로 설명해 주세요.',hint:"'항생제 남용 → 내성균 출현 → 표적 변형 또는 효소 생성 → 생존'의 흐름을 생각하며 써 보세요.",placeholder:'항생제를 과도하게 사용하면 …'},
+      {num:'Ⅲ-3',tag:'역량② 탐구·자료 해석',text:'기사에 나온 우리나라 항생제 처방률과 내성균 감염 증가 추세를 해석하고, 이 통계의 한계점을 한 가지 써 주세요.',hint:"'결과 해석'과 '한계점'을 구분해서 써 보세요.",placeholder:'결과 해석: 우리나라 항생제 처방률이 …\n\n한계점: 이 통계는 …'},
+      {num:'Ⅲ-4',tag:'역량③ 정보 평가·활용',text:'"항생제는 세균이든 바이러스든 다 죽이니까, 감기 걸리면 항생제 먹는 게 제일 좋아"라는 주장이 과학적으로 적절한지 기사 내용을 근거로 판단해 주세요.',hint:'적절하다/틀렸다를 먼저 밝히고, 기사의 어떤 내용이 근거인지 쓰세요.',placeholder:'이 주장은 틀렸다. 왜냐하면 기사에서 …'},
+    ],
+    scoring:{
+      d1:{hi:['항생제','내성','세균','내성균','남용','처방'],tp:['1.4','12%','oecd','증가','처방률','다제내성'],sc:['병원','지역사회','지역 사회','한계','별도','통계'],fb_hi:'항생제 내성의 원인과 국내 현황 수치를 모두 포함하여 핵심을 잘 요약했습니다.',fb_mi:'항생제 내성 원인 또는 국내 현황 수치 중 한 가지만 포함되었습니다.',fb_lo:'항생제 남용과 내성균 출현, 처방률 수치가 포함되지 않았습니다.'},
+      d2:{ca:['남용','과도','필요이상','처방없이','무분별'],pr:['표적','변형','효소','분해','세포벽','단백질','억제'],rs:['내성균','살아남','생존','출현','내성'],fb_hi:'항생제 남용 → 내성균 출현 → 표적 변형 또는 효소 생성 → 생존의 흐름을 원인과 과정 모두 포함하여 잘 설명했습니다.',fb_mi:'남용 원인 또는 내성균 생존 기전 중 일부만 서술되었습니다.',fb_lo:'항생제 내성균이 생겨나는 과학적 과정이 포함되지 않았습니다.'},
+      d3:{it:['1.4','12%','oecd','증가','높','처방률','비교','연평균'],li:['병원','지역사회','지역 사회','별도','한계','통계','분석'],fb_hi:'처방률(OECD 1.4배)과 내성균 증가(연평균 12%)를 정확히 해석하고 병원 내 감염 중심이라는 한계점도 잘 지적했습니다.',fb_mi_i:'결과는 잘 해석했으나, 병원 내 감염 중심 통계라 지역사회 감염은 별도 분석이 필요하다는 한계점도 써 보세요.',fb_mi_l:'한계점은 잘 지적했으나, OECD 평균보다 1.4배 높은 처방률과 연평균 12% 증가라는 결과를 구체적으로 해석해 보세요.',fb_lo:'결과 해석과 한계점 모두 포함되지 않았습니다.'},
+      d4:{ju:['틀렸','잘못','바이러스.*아니','세균.*만','적절하지','오해'],ag:['맞다','좋아','먹어야','바이러스도','동의'],ev:['세균','세포벽','단백질','바이러스','내성','남용','처방'],fb_hi:'항생제는 세균에만 작용하고 바이러스에는 효과 없다는 과학적 근거와 내성 위험까지 잘 지적했습니다.',fb_mi:'판단은 적절합니다. 기사에서 항생제는 세균의 세포벽·단백질에 작용한다고 했으므로 바이러스 감염인 감기에는 효과 없다는 점을 근거로 써 보세요.',fb_lo:'신뢰 여부 판단이 명확하지 않거나 근거가 없습니다.',fb_ag:'기사에서 항생제는 세균 감염 치료제라고 했습니다. 감기는 대부분 바이러스 감염으로, 항생제는 효과가 없으며 내성균만 키울 수 있습니다.'},
+    },
+  },
+];
+
+/* ════════════════════════════════════════
+   전역 상태
+════════════════════════════════════════ */
+let currentStudent = null;      // { id, name, cls }
+let currentPassage = null;      // 랜덤 선택된 지문
+let etDone = false;             // 아이트래킹 완료 여부
+let etSkipped = false;          // 아이트래킹 건너뛰기
+let etData = {};                // 아이트래킹 결과
+
+// ET 변수
+let etAppState='idle', etMediaStream=null, etFaceMesh=null, etMpCam=null;
+let etCalibStep=0, etCalibSamples=[], etCalibMatrix=null, etCalibTimer=null, etCalibAnimId=null, etCalibStepStart=null;
+let etGazeLog=[], etZoneHits={}, etParaData={};
+let etFixations=[], etSaccades=[];
+let etRegressions=0, etParaRegressions=0;
+let etLastCol=-1, etLastPara=-1, etTotalSamples=0;
+let etStartTime=null, etReadEndTime=null, etTimerInterval=null;
+let etLastFixPos=null, etFixStart=null, etLastGazeTime=null;
+let etSmooth={x:.5,y:.5};
+let etReadAreaRect={left:0,top:44,width:window.innerWidth,height:window.innerHeight-44};
+let etParaRegBuffer=0;
+let etLastGazeX=.5;
+
+const ET_CT=[{x:.05,y:.05},{x:.5,y:.05},{x:.95,y:.05},{x:.05,y:.5},{x:.5,y:.5},{x:.95,y:.5},{x:.05,y:.95},{x:.5,y:.95},{x:.95,y:.95}];
+
+/* ════════════════════════════════════════
+   자기인식 문항
+════════════════════════════════════════ */
+const selfItems=[
+  {id:'qs1',text:'과학 글을 읽고 핵심 내용을 파악할 수 있다.',tag:'핵심 파악'},
+  {id:'qs2',text:'과학 용어가 나오면 앞뒤 문장을 보고 뜻을 추론할 수 있다.',tag:'어휘 추론'},
+  {id:'qs3',text:'표나 그래프를 보고 의미를 설명할 수 있다.',tag:'자료 해석'},
+  {id:'qs4',text:'자료를 보고 주장과 근거를 구분할 수 있다.',tag:'논증 분석'},
+  {id:'qs5',text:'과학 뉴스나 광고를 볼 때 근거가 있는 내용인지 생각해 본다.',tag:'정보 평가'},
+  {id:'qs6',text:'긴 과학 지문을 읽으면 중요한 내용을 놓치는 편이다.',reverse:true,tag:'자기 인식'},
+  {id:'qs7',text:'과학 글, 표, 그래프 등 자료를 읽을 때 어려움을 느낀다.',reverse:true,tag:'자기 인식'},
+  {id:'qs8',text:'과학적 근거가 부족해도 그럴듯하면 믿는 편이다.',reverse:true,tag:'자기 인식'},
+];
+const LABELS=['전혀<br>아니다','아니다','보통<br>이다','그렇다','매우<br>그렇다'];
+
+const RADIO_REQUIRED=[
+  {name:'q2',label:'섹션 Ⅰ · Q2'},
+  {name:'q_add2',label:'섹션 Ⅰ · Q3'},
+  {name:'qs1',label:'섹션 Ⅱ · Q1'},
+  {name:'qs2',label:'섹션 Ⅱ · Q2'},
+  {name:'qs3',label:'섹션 Ⅱ · Q3'},
+  {name:'qs4',label:'섹션 Ⅱ · Q4'},
+  {name:'qs5',label:'섹션 Ⅱ · Q5'},
+  {name:'qs6',label:'섹션 Ⅱ · Q6'},
+  {name:'qs7',label:'섹션 Ⅱ · Q7'},
+  {name:'qs8',label:'섹션 Ⅱ · Q8'},
+];
+const TEXT_REQUIRED=[
+  ['q1_open',10,'Q1. 과학적 문해력이란?'],
+  ['d1',10,'Ⅲ-1. 기사 핵심 요약'],
+  ['d2',10,'Ⅲ-2. 현상 과학적 설명'],
+  ['d3',10,'Ⅲ-3. 실험 결과 해석 및 한계점'],
+  ['d4',10,'Ⅲ-4. 과학 정보 신뢰성 판단'],
+  ['essay1',10,'서-2. 어렵게 느끼는 것'],
+  ['essay2',10,'서-3. 정보 판단 방법'],
+];
+
+/* ════════════════════════════════════════
+   로그인
+════════════════════════════════════════ */
+window.doLogin = function() {
+  const id   = document.getElementById('loginId').value.trim();
+  const name = document.getElementById('loginName').value.trim();
+  const cls  = document.getElementById('loginClass').value.trim();
+  if(!id || !name) { document.getElementById('loginError').style.display='block'; return; }
+  currentStudent = {id, name, cls};
+
+  // 랜덤 지문 선택
+  currentPassage = PASSAGE_POOL[Math.floor(Math.random() * PASSAGE_POOL.length)];
+
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('surveyWrapper').style.display = 'block';
+  document.getElementById('topStudentChip').textContent = id + ' · ' + name;
+
+  renderSelfItems();
+  renderPassagePreview();
+  renderPassageQuestions();
+  updateProgress();
+};
+
+/* ════════════════════════════════════════
+   자기인식 렌더
+════════════════════════════════════════ */
+function renderSelfItems() {
+  const container = document.getElementById('selfItems');
+  selfItems.forEach(function(item, idx) {
+    const card = document.createElement('div');
+    card.className = 's-card';
+    const radios = [1,2,3,4,5].map(function(v) {
+      return '<div class="s-likert-opt">' +
+        '<input type="radio" name="'+item.id+'" id="'+item.id+'_'+v+'" value="'+v+'" onchange="updateProgress()">' +
+        '<label for="'+item.id+'_'+v+'"><span class="lk-num">'+v+'</span><span class="lk-txt">'+LABELS[v-1]+'</span></label>' +
+      '</div>';
+    }).join('');
+    card.innerHTML =
+      '<div class="s-q-header"><span class="s-q-num">Q '+(idx+1)+'</span><span class="s-q-tag">'+item.tag+'</span><p class="s-q-text">'+item.text+'</p></div>' +
+      '<div class="s-q-body"><div class="s-likert">'+radios+'</div></div>';
+    container.appendChild(card);
+  });
+}
+
+/* ════════════════════════════════════════
+   지문 미리보기 렌더
+════════════════════════════════════════ */
+function renderPassagePreview() {
+  const p = currentPassage;
+  document.getElementById('passageCategory').textContent = '📰 ' + p.category;
+  document.getElementById('passageTitle').textContent = p.title;
+  const contentEl = document.getElementById('passageContent');
+  contentEl.innerHTML = p.article.map(function(para) {
+    return '<div class="et-passage-para">' + para + '</div>';
+  }).join('');
+  document.getElementById('eyeTrackSection').style.display = 'block';
+}
+
+/* ════════════════════════════════════════
+   지문 서술형 문항 렌더 (아이트래킹 완료 후 또는 건너뛰기 후)
+════════════════════════════════════════ */
+function renderPassageQuestions() {
+  const area = document.getElementById('passageQuestionsArea');
+  area.innerHTML = currentPassage.questions.map(function(q, i) {
+    const ids = ['d1','d2','d3','d4'];
+    const cntIds = ['cnt_d1','cnt_d2','cnt_d3','cnt_d4'];
+    return '<div class="s-card">' +
+      '<div class="s-q-header"><span class="s-q-num">'+q.num+'</span><span class="s-q-tag">'+q.tag+'</span><p class="s-q-text">'+q.text+'</p></div>' +
+      '<div class="s-q-body">' +
+        '<div class="s-hint"><strong>💡 Tip:</strong> '+q.hint+'</div>' +
+        '<textarea class="s-textarea" id="'+ids[i]+'" placeholder="'+q.placeholder+'" oninput="countChars(this,\''+cntIds[i]+'\');updateProgress();" style="min-height:110px;"></textarea>' +
+        '<div class="s-char-count" id="'+cntIds[i]+'">0자</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+/* ════════════════════════════════════════
+   아이트래킹 시작
+════════════════════════════════════════ */
+window.startEyeTracking = async function() {
+  const btn = document.getElementById('etStartBtn');
+  btn.disabled = true;
+  btn.textContent = '카메라 연결 중...';
+
+  // 풀스크린 지문 설정
+  document.getElementById('et-passage-title-display').textContent = currentPassage.title;
+  const parasEl = document.getElementById('et-paras');
+  parasEl.innerHTML = '';
+  const nums = ['①','②','③','④','⑤','⑥','⑦'];
+  currentPassage.article.forEach(function(para, i) {
+    const wrap = document.createElement('div');
+    wrap.className = 'et-para';
+    wrap.dataset.para = i;
+    wrap.innerHTML = '<span class="et-para-idx">'+nums[i]+'</span><div class="et-para-txt">'+para+'</div>';
+    parasEl.appendChild(wrap);
+  });
+
+  // 아이트래킹 상태 초기화
+  etGazeLog=[]; etZoneHits={}; etParaData={}; etFixations=[]; etSaccades=[];
+  etRegressions=0; etParaRegressions=0; etLastCol=-1; etLastPara=-1; etTotalSamples=0;
+  etLastFixPos=null; etFixStart=null; etLastGazeTime=null;
+  etSmooth={x:.5,y:.5}; etParaRegBuffer=0; etLastGazeX=.5;
+  for(let i=0;i<currentPassage.article.length;i++) etParaData[i]={hits:{},regressions:0,dwellMs:0,interRegs:0};
+
+  try {
+    etMediaStream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
+    document.getElementById('et-video').srcObject = etMediaStream;
+    document.getElementById('et-cam-no').style.display = 'none';
+    document.getElementById('et-cam-float').style.display = 'block';
+
+    etFaceMesh = new FaceMesh({locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`});
+    etFaceMesh.setOptions({maxNumFaces:1,refineLandmarks:true,minDetectionConfidence:0.5,minTrackingConfidence:0.5});
+    etFaceMesh.onResults(onEtFaceResults);
+
+    etMpCam = new Camera(document.getElementById('et-video'),{
+      onFrame: async()=>{ if(etFaceMesh) await etFaceMesh.send({image:document.getElementById('et-video')}); },
+      width:640, height:480
+    });
+    await etMpCam.start();
+
+    // 풀스크린 표시
+    document.getElementById('etFullscreen').classList.add('active');
+    etAppState = 'calibrating';
+    document.getElementById('etBtnCalib').textContent = '캘리브레이션 중...';
+    document.getElementById('etBtnCalib').disabled = true;
+    etFitText();
+    etUpdateReadAreaRect();
+    etStartCalib();
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '👁 아이트래킹 시작 (카메라 켜기)';
+    alert('카메라 권한이 필요합니다.\n브라우저 주소창 옆 자물쇠 → 카메라 허용\n\n또는 "아이트래킹 건너뛰기"를 선택하세요.');
+  }
+};
+
+window.skipEyeTracking = function() {
+  etSkipped = true;
+  etDone = true;
+  document.getElementById('passageQuestionsArea').style.display = 'block';
+  document.getElementById('etStartBtn').style.display = 'none';
+  document.querySelector('#eyeTrackSection > p').style.display = 'none';
+  showToast('📖 아이트래킹을 건너뛰었습니다. 기사를 읽고 아래 문항에 답해 주세요.');
+  setTimeout(function() {
+    document.getElementById('passageQuestionsArea').scrollIntoView({behavior:'smooth', block:'start'});
+  }, 400);
+};
+
+/* ════════════════════════════════════════
+   아이트래킹 완료 후 처리
+════════════════════════════════════════ */
+function etFinishReading() {
+  etDone = true;
+  const elapsed = Math.floor(((etReadEndTime||Date.now()) - etStartTime) / 1000);
+  const m = Math.floor(elapsed/60), s = elapsed%60;
+  const avgFix = etFixations.length > 0
+    ? Math.round(etFixations.reduce((a,f)=>a+f.dur,0)/etFixations.length) : 0;
+
+  etData = {
+    passageId: currentPassage.id,
+    readingTimeSec: elapsed,
+    regressions: etRegressions,
+    paraRegressions: etParaRegressions,
+    fixationCount: etFixations.length,
+    avgFixDurationMs: avgFix,
+    totalSamples: etTotalSamples,
+    skipped: false,
+  };
+
+  // 미니 결과 카드 표시
+  document.getElementById('etResTime').textContent = m+'m'+String(s).padStart(2,'0')+'s';
+  document.getElementById('etResReg').textContent = etRegressions;
+  document.getElementById('etResParaReg').textContent = etParaRegressions;
+  document.getElementById('etResFix').textContent = etFixations.length;
+  document.getElementById('etResultMini').style.display = 'block';
+
+  // 서술형 문항 표시
+  document.getElementById('passageQuestionsArea').style.display = 'block';
+  document.getElementById('etStartBtn').style.display = 'none';
+  document.querySelector('#eyeTrackSection > p') && (document.querySelector('#eyeTrackSection > p').style.display = 'none');
+
+  showToast('✅ 읽기 완료! 아래 문항에 답해 주세요.');
+  setTimeout(function() {
+    document.getElementById('passageQuestionsArea').scrollIntoView({behavior:'smooth', block:'start'});
+  }, 600);
+}
+
+/* ════════════════════════════════════════
+   진행률
+════════════════════════════════════════ */
+function updateProgress() {
+  const missing = getMissingItems();
+  const total = RADIO_REQUIRED.length + TEXT_REQUIRED.length;
+  const done = total - missing.length;
+  const pct = Math.min(Math.round(done/total*100), 100);
+  const fill = document.getElementById('progressFill');
+  const pctEl = document.getElementById('progressPct');
+  const lblEl = document.getElementById('progressLabel');
+  if(fill) fill.style.width = pct+'%';
+  if(pctEl) pctEl.textContent = pct+'%';
+  if(lblEl) lblEl.textContent = done+' / '+total+' 문항';
+}
+window.updateProgress = updateProgress;
+
+function countChars(el, cntId) {
+  const cnt = document.getElementById(cntId);
+  if(!cnt) { updateProgress(); return; }
+  const len = el.value.trim().length;
+  if(len===0) { cnt.textContent='0자'; cnt.style.color='var(--t3)'; }
+  else if(len<10) { cnt.textContent=len+'자 (10자 이상)'; cnt.style.color='var(--amber)'; }
+  else { cnt.textContent=len+'자 ✓'; cnt.style.color='var(--teal)'; }
+  updateProgress();
+}
+window.countChars = countChars;
+
+function getMissingItems() {
+  const missing = [];
+  RADIO_REQUIRED.forEach(function(item) {
+    if(!document.querySelector('input[name="'+item.name+'"]:checked')) missing.push(item.label);
+  });
+  TEXT_REQUIRED.forEach(function(item) {
+    const el = document.getElementById(item[0]);
+    if(!el || el.value.trim().length < item[1]) missing.push(item[2]);
+  });
+  return missing;
+}
+
+function checkCompletion(action) {
+  const missing = getMissingItems();
+  if(missing.length === 0) return true;
+  showValidationWarning(missing, action);
+  return false;
+}
+
+function showValidationWarning(missing, action) {
+  const old = document.getElementById('validationWarning');
+  if(old) old.remove();
+  const total = RADIO_REQUIRED.length + TEXT_REQUIRED.length;
+  const done = total - missing.length;
+  const pct = Math.round(done/total*100);
+  const shown = missing.slice(0,4);
+  const more = missing.length > 4 ? missing.length - 4 : 0;
+  const overlay = document.createElement('div');
+  overlay.id = 'validationWarning';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(7,7,14,0.88);z-index:9998;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+  const listHTML = shown.map(function(m,i) {
+    return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;'+(i<shown.length-1?'border-bottom:1px solid var(--b1);':'')+'">' +
+      '<span style="color:var(--teal);font-size:12px;flex-shrink:0;margin-top:2px;">●</span>' +
+      '<span style="font-size:12.5px;color:var(--t1);line-height:1.55;">'+m+'</span></div>';
+  }).join('') + (more>0?'<div style="padding:8px 14px;font-size:12px;color:var(--t3);">+ '+more+'개 항목 더 미완료</div>':'');
+  overlay.innerHTML =
+    '<div style="background:var(--s1);border:1px solid var(--b2);border-radius:20px;padding:30px 26px;max-width:420px;width:92%;animation:ovPop .3s cubic-bezier(0.34,1.56,0.64,1);">' +
+      '<div style="text-align:center;margin-bottom:18px;"><div style="font-size:40px;margin-bottom:10px;">📋</div>' +
+        '<h2 style="font-family:var(--font-serif);font-size:17px;color:var(--t1);margin-bottom:8px;">미완료 항목이 있어요</h2>' +
+        '<p style="font-size:12.5px;color:var(--t2);line-height:1.7;">'+(action?'<strong style="color:var(--teal)">'+action+'</strong> 전에 ':'')+'아래 항목들을 모두 응답해 주세요.</p></div>' +
+      '<div style="margin-bottom:14px;">' +
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t3);margin-bottom:6px;font-family:var(--font-mono);"><span>진행률</span><span>'+done+' / '+total+' ('+pct+'%)</span></div>' +
+        '<div style="height:5px;background:var(--b1);border-radius:3px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--teal),var(--cyan));border-radius:3px;"></div></div>' +
+      '</div>' +
+      '<div style="background:var(--s2);border:1px solid var(--b1);border-radius:10px;margin-bottom:16px;overflow:hidden;">'+listHTML+'</div>' +
+      '<button onclick="document.getElementById(\'validationWarning\').remove();" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--teal),var(--cyan));color:var(--navy-900);border:none;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font-sans);">✏ 확인하고 작성하기</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+/* ════════════════════════════════════════
+   설문 제출 + Firebase 저장
+════════════════════════════════════════ */
+window.submitSurvey = async function() {
+  if(!checkCompletion('설문 제출')) return;
+
+  // 아이트래킹 미완료 경고 (건너뛰기 안 했을 때)
+  if(!etDone && !etSkipped) {
+    if(!confirm('아이트래킹을 아직 완료하지 않았습니다.\n"건너뛰기"를 선택하지 않고 제출하면 읽기 패턴 데이터가 저장되지 않습니다.\n그대로 제출하시겠습니까?')) return;
+    etSkipped = true;
+    etData = { passageId: currentPassage.id, skipped: true };
+  }
+
+  // 자기인식 합산
+  let selfTotal = 0;
+  selfItems.forEach(function(item) {
+    const v = parseInt((document.querySelector('input[name="'+item.id+'"]:checked')||{}).value||'0');
+    selfTotal += item.reverse ? (6-v) : v;
+  });
+
+  // 룰베이스 채점
+  const scoringResult = ruleBasedScoring();
+
+  // Firebase 저장 데이터
+  const payload = {
+    studentId:   currentStudent.id,
+    studentName: currentStudent.name,
+    studentClass: currentStudent.cls || '',
+    phase: '사전',
+    passageId: currentPassage.id,
+    passageTitle: currentPassage.title,
+    // 섹션 Ⅰ
+    q1_open: (document.getElementById('q1_open')||{}).value || '',
+    q2:      (document.querySelector('input[name="q2"]:checked')||{}).value || '',
+    q_add2:  (document.querySelector('input[name="q_add2"]:checked')||{}).value || '',
+    // 섹션 Ⅱ
+    selfScores: Object.fromEntries(selfItems.map(function(i) {
+      return [i.id, (document.querySelector('input[name="'+i.id+'"]:checked')||{}).value||''];
+    })),
+    selfTotal: selfTotal,
+    // 섹션 Ⅲ 서술형
+    d1: (document.getElementById('d1')||{}).value || '',
+    d2: (document.getElementById('d2')||{}).value || '',
+    d3: (document.getElementById('d3')||{}).value || '',
+    d4: (document.getElementById('d4')||{}).value || '',
+    // 섹션 Ⅳ
+    essay_exp: (document.getElementById('essay_exp')||{}).value || '',
+    essay1:    (document.getElementById('essay1')||{}).value || '',
+    essay2:    (document.getElementById('essay2')||{}).value || '',
+    // AI 채점
+    aiScore: {
+      d1: scoringResult.scores.d1,
+      d2: scoringResult.scores.d2,
+      d3: scoringResult.scores.d3,
+      d4: scoringResult.scores.d4,
+      total: scoringResult.scores.d1 + scoringResult.scores.d2 + scoringResult.scores.d3 + scoringResult.scores.d4,
+      composite: scoringResult.composite,
+      level: scoringResult.level,
+    },
+    // 아이트래킹
+    eyeTracking: etSkipped ? { skipped: true, passageId: currentPassage.id } : etData,
+    submittedAt: window._serverTimestamp ? window._serverTimestamp() : new Date().toISOString(),
+  };
+
+  // Firebase 저장
+  if(window._dbReady) {
+    try {
+      await window._setDoc(
+        window._doc(window._db, 'pre-test-results', currentStudent.id),
+        payload
+      );
+      showToast('✅ Firebase에 저장 완료!');
+    } catch(e) {
+      console.warn('Firebase 저장 실패:', e);
+      showToast('⚠ 저장 실패: ' + e.message);
+    }
+  }
+
+  // 완료 팝업
+  document.getElementById('completionOverlay').style.display = 'flex';
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+
+/* ════════════════════════════════════════
+   룰베이스 채점 (지문별 키워드 분기)
+════════════════════════════════════════ */
+function ruleBasedScoring() {
+  const get = function(id) { const el=document.getElementById(id); return el?el.value.trim():''; };
+  const d1=get('d1'), d2=get('d2'), d3=get('d3'), d4=get('d4');
+  const sc = currentPassage.scoring;
+
+  function hasAny(text, arr) {
+    return arr.some(function(k) { return new RegExp(k,'i').test(text); });
+  }
+
+  // ── Ⅲ-1 핵심 요약 ──
+  function scoreD1(text) {
+    if(text.length < 15) return {score:0, fb:'응답이 너무 짧습니다. 기사의 핵심 내용 2가지 이상을 자신의 말로 요약해 보세요.'};
+    const hasHi = hasAny(text, sc.d1.hi);
+    const hasTp = hasAny(text, sc.d1.tp);
+    const hasSc = hasAny(text, sc.d1.sc);
+    const score = (hasHi && (hasTp||hasSc)) ? 2 : (hasHi||hasTp) ? 1 : 0;
+    return {score, fb: score===2?sc.d1.fb_hi:score===1?sc.d1.fb_mi:sc.d1.fb_lo};
+  }
+
+  // ── Ⅲ-2 현상 설명 ──
+  function scoreD2(text) {
+    if(text.length < 15) return {score:0, fb:'응답이 너무 짧습니다. 원인과 과정을 과학적으로 설명해 보세요.'};
+    const hasCa = hasAny(text, sc.d2.ca);
+    const hasPr = hasAny(text, sc.d2.pr);
+    const hasRs = hasAny(text, sc.d2.rs);
+    const score = (hasCa && (hasPr||hasRs)) ? 2 : (hasCa||hasPr||hasRs) ? 1 : 0;
+    return {score, fb: score===2?sc.d2.fb_hi:score===1?sc.d2.fb_mi:sc.d2.fb_lo};
+  }
+
+  // ── Ⅲ-3 자료 해석 + 한계 ──
+  function scoreD3(text) {
+    if(text.length < 20) return {score:0, fb:'응답이 너무 짧습니다. 결과 해석과 한계점을 구분해서 서술해 보세요.'};
+    const hasIt = hasAny(text, sc.d3.it);
+    const hasLi = hasAny(text, sc.d3.li);
+    const score = (hasIt && hasLi) ? 2 : (hasIt||hasLi) ? 1 : 0;
+    const fb = score===2 ? sc.d3.fb_hi
+             : score===1 ? (hasIt ? sc.d3.fb_mi_i : sc.d3.fb_mi_l)
+             : sc.d3.fb_lo;
+    return {score, fb};
+  }
+
+  // ── Ⅲ-4 정보 평가 ──
+  function scoreD4(text) {
+    if(text.length < 15) return {score:0, fb:'응답이 너무 짧습니다. 신뢰 여부를 판단하고 기사 내용을 근거로 서술해 보세요.'};
+    const hasJu = hasAny(text, sc.d4.ju);
+    const hasAg = hasAny(text, sc.d4.ag);
+    const hasEv = hasAny(text, sc.d4.ev);
+    if(hasAg && !hasJu) return {score:0, fb: sc.d4.fb_ag};
+    const score = (hasJu && hasEv) ? 2 : hasJu ? 1 : 0;
+    return {score, fb: score===2?sc.d4.fb_hi:score===1?sc.d4.fb_mi:sc.d4.fb_lo};
+  }
+
+  const r1=scoreD1(d1), r2=scoreD2(d2), r3=scoreD3(d3), r4=scoreD4(d4);
+  const sec3Raw = r1.score + r2.score + r3.score + r4.score;
+
+  // 자기인식 합산
+  let sec2Raw=0;
+  selfItems.forEach(function(item) {
+    const v=parseInt((document.querySelector('input[name="'+item.id+'"]:checked')||{}).value||'0');
+    if(v>0) sec2Raw += item.reverse?(6-v):v;
+  });
+
+  // 섹션Ⅰ
+  const q1t=get('q1_open');
+  let q1raw=0;
+  if(/해석|비판|평가|판단|근거|탐구|활용|설명|분석|신뢰|검증/i.test(q1t)) q1raw=2;
+  else if(/읽|이해|공부|알|학습|지식|개념|능력/i.test(q1t)&&q1t.length>=5) q1raw=1;
+  const q2r=Math.max(0,parseInt((document.querySelector('input[name="q2"]:checked')||{}).value||'1')-1);
+  const q3r=Math.max(0,parseInt((document.querySelector('input[name="q_add2"]:checked')||{}).value||'1')-1);
+  const sec1Raw=q1raw+q2r+q3r;
+
+  // 섹션Ⅳ
+  const es1=get('essay_exp'), es2=get('essay1'), es3=get('essay2');
+  let sv1=0,sv2=0,sv3=0;
+  if(/단원|과목|시험|문제|틀|오해|이해|잘못|착각|읽|뜻|의미|몰랐|헷갈/i.test(es1)&&es1.length>20) sv1=2;
+  else if(es1.length>=10) sv1=1;
+  if(es2.length>=10){if(/용어|단어|표|그래프|긴|지문|실험|과정|뭘|무엇|요구|파악/i.test(es2))sv2=2;else sv2=1;}
+  if(/출처|근거|데이터|기관|전문|비교|검증|확인|연구|공식|논문/i.test(es3))sv3=2;
+  else if(/검색|찾아|다시|읽|생각|물어|알아/i.test(es3)&&es3.length>=10)sv3=1;
+  const sec4Raw=sv1+sv2+sv3;
+
+  // 종합 (Ⅲ 80% + Ⅱ 10% + Ⅰ 5% + Ⅳ 5%)
+  const sIII=(sec3Raw/8)*80, sII=(sec2Raw/40)*10, sI=(sec1Raw/10)*5, sIV=(sec4Raw/6)*5;
+  const composite=Math.round(sIII+sII+sI+sIV);
+  const level=composite>=75?'high':composite>=45?'mid':'low';
+
+  // 섹션Ⅰ 분석
+  const q2val=parseInt((document.querySelector('input[name="q2"]:checked')||{}).value||'0');
+  const q3val=parseInt((document.querySelector('input[name="q_add2"]:checked')||{}).value||'0');
+  let q1level,q1fb;
+  const hasExp=/해석|비판|평가|판단|근거|탐구|활용|설명|분석|신뢰|검증/i.test(q1t);
+  const hasBasic=/읽|이해|공부|알|학습|지식|개념|능력|잘|공부/i.test(q1t);
+  if(q1t.length<5){q1level='미응답';q1fb='과학적 문해력에 대한 자신의 생각을 자유롭게 표현해 보세요.';}
+  else if(hasExp){q1level='확장 (◎)';q1fb='과학 정보를 비판적으로 해석하고 평가하는 능력까지 포함하여 개념을 잘 표현했습니다.';}
+  else if(hasBasic){q1level='부분 (△)';q1fb='과학을 읽고 이해하는 능력을 언급했습니다. 수업을 통해 "자료 해석", "정보 평가"까지 개념이 확장되는지 확인해 봅시다.';}
+  else{q1level='단순 (✗)';q1fb='과학적 문해력의 의미가 아직 명확하지 않습니다. 수업 후 더 구체적인 표현으로 발전할 수 있도록 함께 알아봅시다.';}
+  function lkLv(v){return v>=4?'높음':v===3?'보통':v>0?'낮음':'미응답';}
+  const q2fb=q2val>=4?'과학 수업에서 자료 이해 능력이 중요하다고 잘 인식하고 있습니다.':q2val===3?'중요성에 대한 인식이 보통 수준입니다.':q2val>0?'현재 중요성 인식이 낮습니다.':'응답이 없습니다.';
+  const q3fb=q3val>=4?'문해력이 과학 학습에 영향을 준다고 잘 인식하고 있습니다.':q3val===3?'문해력과 학습의 연관성 인식이 보통 수준입니다.':q3val>0?'현재 연관성 인식이 낮습니다.':'응답이 없습니다.';
+
+  // 섹션Ⅳ 분석
+  let exp_level,exp_fb,hard_type,hard_fb,info_level,info_fb;
+  const hasConcreteExp=/단원|과목|시험|문제|틀|오해|이해|잘못|착각|읽|뜻|의미|몰랐|헷갈/i.test(es1);
+  if(es1.length<5){exp_level='미응답';exp_fb='경험을 자유롭게 적어 주세요.';}
+  else if(hasConcreteExp&&es1.length>20){exp_level='구체적 (◎)';exp_fb='문제 이해 오류 경험을 구체적으로 서술했습니다. 이러한 메타인지적 자각이 문해력 향상의 출발점입니다.';}
+  else if(es1.length>=10){exp_level='단순 (△)';exp_fb='경험이 있음을 언급했으나 더 구체적인 상황을 써주면 좋겠습니다.';}
+  else{exp_level='해당 없음';exp_fb='아직 이런 경험을 인식하지 못하고 있습니다.';}
+  if(es2.length<5){hard_type='미응답';hard_fb='어렵게 느끼는 것을 자유롭게 적어 주세요.';}
+  else if(/용어|단어|말|뜻|어휘|낯선|모르는/i.test(es2)){hard_type='어휘·용어형';hard_fb='수업에서 문맥으로 의미를 추론하는 전략을 함께 연습해 봅시다.';}
+  else if(/긴|지문|글|읽기|독해|길어/i.test(es2)){hard_type='긴 지문 독해형';hard_fb='단락별 핵심 파악 훈련이 도움이 됩니다.';}
+  else if(/표|그래프|그림|시각|데이터|숫자/i.test(es2)){hard_type='시각 자료 해석형';hard_fb='데이터 읽기 훈련을 통해 자신감을 키워봅시다.';}
+  else if(/실험|과정|순서|방법|절차/i.test(es2)){hard_type='실험 과정 이해형';hard_fb='과학 텍스트의 구조를 익히는 것이 도움이 됩니다.';}
+  else if(/뭘|무엇|요구|파악|무슨|물어|의도|모르겠/i.test(es2)){hard_type='문제 요구 파악형';hard_fb='이는 고차적 문해력과 관련된 핵심 영역입니다. 수업에서 집중적으로 다뤄봅시다.';}
+  else{hard_type='기타';hard_fb='어려움을 인식하고 있습니다. 수업을 통해 구체적으로 파악해 봅시다.';}
+  if(es3.length<5){info_level='미응답';info_fb='정보를 판단하는 방법을 자유롭게 적어 주세요.';}
+  else if(/출처|근거|데이터|기관|전문|비교|검증|확인|연구|공식|논문|신뢰|증거/i.test(es3)){info_level='비판적 (◎)';info_fb='출처나 근거를 확인하는 비판적 사고 전략을 이미 갖추고 있습니다.';}
+  else if(/검색|찾아|다시|읽|생각|물어|알아/i.test(es3)){info_level='단순 확인 (△)';info_fb='수업을 통해 "출처 확인", "근거 검토"와 같은 구체적 전략을 익혀봅시다.';}
+  else{info_level='무비판 (✗)';info_fb='과학 정보를 비판적으로 평가하는 습관이 아직 형성되지 않았습니다.';}
+
+  let weakSecs=[], strongSecs=[];
+  if(sec3Raw>=6)strongSecs.push('Ⅲ 실제 문해력');else if(sec3Raw<=3)weakSecs.push('Ⅲ 실제 문해력');
+  if(sec2Raw>=30)strongSecs.push('Ⅱ 자기 인식');else if(sec2Raw<=16)weakSecs.push('Ⅱ 자기 인식');
+  let overall;
+  if(level==='high') overall='전반적으로 과학적 문해력이 우수합니다(종합 '+composite+'점/100점). '+(strongSecs.length?strongSecs.join(', ')+' 역량이 잘 발휘되었습니다. ':'')+'이 역량을 바탕으로 다양한 과학 정보를 비판적으로 탐구해 보세요.';
+  else if(level==='mid') overall='과학적 문해력의 기본 역량을 갖추고 있습니다(종합 '+composite+'점/100점). '+(weakSecs.length?weakSecs.join(', ')+' 영역에서 보완이 필요합니다. ':'')+'꾸준한 과학 글 읽기로 역량을 더욱 키울 수 있습니다.';
+  else overall='과학적 문해력 기초 역량을 형성하는 단계입니다(종합 '+composite+'점/100점). '+(weakSecs.length?weakSecs.join(', ')+' 영역에 집중적인 연습이 필요합니다. ':'')+'이번 수업 활동을 통해 과학적 사고력을 함께 키워나갑시다.';
+
+  return {
+    scores:{d1:r1.score,d2:r2.score,d3:r3.score,d4:r4.score},
+    feedbacks:{d1:r1.fb,d2:r2.fb,d3:r3.fb,d4:r4.fb},
+    overall, composite, level,
+    breakdown:{sIII:Math.round(sIII*10)/10,sII:Math.round(sII*10)/10,sI:Math.round(sI*10)/10,sIV:Math.round(sIV*10)/10},
+    sec1:{q1t,q1level,q1fb,q2val,q2level:lkLv(q2val),q2fb,q3val,q3level:lkLv(q3val),q3fb},
+    sec4:{essay_exp:es1,exp_level,exp_fb,essay1:es2,hard_type,hard_fb,essay2:es3,info_level,info_fb},
+  };
+}
+
+/* ════════════════════════════════════════
+   AI 채점 결과 렌더
+════════════════════════════════════════ */
+window.startAIScoring = function() {
+  document.getElementById('completionOverlay').style.display = 'none';
+  document.getElementById('surveyPage').style.display = 'none';
+  document.getElementById('scoringPage').classList.remove('visible');
+  document.getElementById('resultPage').style.display = 'block';
+  document.getElementById('resultPageNav').style.display = 'none';
+  window.scrollTo({top:0,behavior:'smooth'});
+
+  let selfTotal=0, selfAnswered=0;
+  selfItems.forEach(function(item) {
+    const v=parseInt((document.querySelector('input[name="'+item.id+'"]:checked')||{}).value||'0');
+    if(v>0){selfAnswered++;selfTotal+=item.reverse?(6-v):v;}
+  });
+
+  const loadSec=document.getElementById('loadingSection');
+  const resSec=document.getElementById('resultSection');
+  loadSec.style.display='block'; resSec.style.display='none';
+  document.getElementById('loadingBar').style.width='0%';
+
+  const msgs=['응답 내용을 분석하고 있어요...','채점 기준을 적용하는 중...','역량별 점수를 산출하고 있어요...','피드백을 작성하는 중...'];
+  let prog=0,mi=0;
+  const iv=setInterval(function(){
+    prog=Math.min(prog+3,92);
+    document.getElementById('loadingBar').style.width=prog+'%';
+    if(prog>(mi+1)*23&&mi<msgs.length-1){mi++;document.getElementById('loadingMsg').textContent=msgs[mi];}
+  },60);
+
+  setTimeout(function(){
+    try{
+      const result=ruleBasedScoring();
+      clearInterval(iv);
+      document.getElementById('loadingBar').style.width='100%';
+      setTimeout(function(){
+        loadSec.style.display='none';
+        renderResult(result,selfTotal,selfAnswered);
+        resSec.style.display='block';
+        document.getElementById('resultPageNav').style.display='flex';
+        window.scrollTo({top:0,behavior:'smooth'});
+      },300);
+    }catch(err){
+      clearInterval(iv);
+      document.getElementById('loadingMsg').textContent='채점 오류: '+err.message;
+      document.getElementById('loadingMsg').style.color='var(--red)';
+    }
+  },800);
+};
+
+function renderResult(result, selfTotal, selfAnswered) {
+  const s=result.scores;
+  const scoreA=s.d1+s.d2, scoreB=s.d3, scoreC=s.d4, total=scoreA+scoreB+scoreC;
+  const lvHero=document.getElementById('levelHero');
+  const lvl=result.level||'low';
+  let lvClass,lvEmoji,lvTitle;
+  if(lvl==='high'){lvClass='s-lv-hero lv-high';lvEmoji='🌟';lvTitle='상위 수준';}
+  else if(lvl==='mid'){lvClass='s-lv-hero lv-mid';lvEmoji='📘';lvTitle='중간 수준';}
+  else{lvClass='s-lv-hero lv-low';lvEmoji='📗';lvTitle='기초 수준';}
+  lvHero.className=lvClass;
+  const bd=result.breakdown||{};
+  lvHero.innerHTML=
+    '<div class="lv-emoji">'+lvEmoji+'</div>' +
+    '<div class="lv-title">'+lvTitle+' <span style="font-size:18px;font-family:var(--font-mono);">('+result.composite+'/100점)</span></div>' +
+    '<div class="lv-desc">'+result.overall+'</div>' +
+    '<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:14px;">' +
+      ['Ⅲ×80%','Ⅱ×10%','Ⅰ×5%','Ⅳ×5%'].map(function(lbl,i){
+        const vals=[bd.sIII||0,bd.sII||0,bd.sI||0,bd.sIV||0];
+        return '<div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:6px 12px;text-align:center;"><div style="font-size:10px;opacity:.65;font-family:var(--font-mono);">'+lbl+'</div><div style="font-size:16px;font-weight:800;font-family:var(--font-mono);">'+vals[i]+'<span style="font-size:11px;opacity:.7">점</span></div></div>';
+      }).join('') +
+    '</div>';
+
+  const selfDisp=document.getElementById('selfScoreDisplay');
+  if(selfAnswered>0){
+    if(selfDisp)selfDisp.textContent=selfTotal;
+    setTimeout(function(){const f=document.getElementById('selfBarFill');if(f)f.style.width=(selfTotal/40*100)+'%';},350);
+  }else{if(selfDisp)selfDisp.textContent='—';}
+
+  const bars=[
+    {label:'역량①',sub:'현상의 과학적 설명 (Ⅲ-1+Ⅲ-2)',score:scoreA,max:4,color:'var(--teal)'},
+    {label:'역량②',sub:'탐구 설계·자료 해석 (Ⅲ-3)',score:scoreB,max:2,color:'var(--cyan)'},
+    {label:'역량③',sub:'과학 정보 평가·활용 (Ⅲ-4)',score:scoreC,max:2,color:'#b07fff'},
+  ];
+  const barsEl=document.getElementById('competencyBars');
+  if(barsEl){
+    barsEl.innerHTML=bars.map(function(b,i){
+      return '<div class="s-comp-row"><div class="s-comp-label">'+b.label+'<small>'+b.sub+'</small></div>' +
+        '<div style="display:flex;align-items:center;gap:10px;flex:1;">' +
+          '<div class="s-comp-track"><div class="s-comp-fill" id="cbar'+i+'" style="background:'+b.color+';width:0%"></div></div>' +
+          '<div class="s-comp-score">'+b.score+' / '+b.max+'</div>' +
+        '</div></div>';
+    }).join('');
+    setTimeout(function(){bars.forEach(function(b,i){const el=document.getElementById('cbar'+i);if(el)el.style.width=(b.score/b.max*100)+'%';});},350);
+  }
+  const tn=document.getElementById('totalScoreNum');if(tn)tn.textContent=total;
+
+  // 아이트래킹 결과 카드
+  if(!etSkipped && etDone && etData.readingTimeSec) {
+    const etCard=document.getElementById('etScoreCard');
+    etCard.style.display='block';
+    const m=Math.floor(etData.readingTimeSec/60), s2=etData.readingTimeSec%60;
+    document.getElementById('etScoreBody').innerHTML =
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">' +
+      [['읽기 시간',m+'m'+String(s2).padStart(2,'0')+'s','var(--teal)'],
+       ['줄 역행',etData.regressions+'회','var(--red)'],
+       ['문단 역행',etData.paraRegressions+'회','var(--amber)'],
+       ['고정점',etData.fixationCount+'개','var(--blue)']].map(function(item){
+        return '<div style="text-align:center;background:var(--s2);border-radius:8px;padding:10px 4px;">' +
+          '<div style="font-size:18px;font-weight:800;font-family:var(--font-mono);color:'+item[2]+';">'+item[1]+'</div>' +
+          '<div style="font-size:9px;color:var(--t3);margin-top:3px;">'+item[0]+'</div></div>';
+      }).join('') + '</div>' +
+      '<div style="margin-top:10px;font-size:11px;color:var(--t3);">※ 아이트래킹 기반 읽기 패턴 데이터입니다.</div>';
+  }
+
+  // 피드백
+  const fbItems=[
+    {key:'d1',label:currentPassage.questions[0].num+' · '+currentPassage.questions[0].tag,score:s.d1},
+    {key:'d2',label:currentPassage.questions[1].num+' · '+currentPassage.questions[1].tag,score:s.d2},
+    {key:'d3',label:currentPassage.questions[2].num+' · '+currentPassage.questions[2].tag,score:s.d3},
+    {key:'d4',label:currentPassage.questions[3].num+' · '+currentPassage.questions[3].tag,score:s.d4},
+  ];
+  const fbArea=document.getElementById('aiFeedbackArea');
+  if(fbArea){
+    fbArea.innerHTML=fbItems.map(function(item){
+      const cls=item.score===2?'fb-hi':item.score===1?'fb-md':'fb-lo';
+      const lbl=item.score===2?'✓ 우수 (2점)':item.score===1?'△ 보통 (1점)':'✗ 미흡 (0점)';
+      const col=item.score===2?'var(--teal)':item.score===1?'var(--amber)':'var(--red)';
+      return '<div class="s-fb-card '+cls+'"><div class="fb-q">'+item.label+'</div><div class="fb-sc" style="color:'+col+'">'+lbl+'</div><div class="fb-tx">'+result.feedbacks[item.key]+'</div></div>';
+    }).join('');
+  }
+
+  // 섹션Ⅰ
+  const sec1=result.sec1;
+  const sec1Card=document.getElementById('sec1Card');
+  if(sec1Card&&sec1){
+    function lvC(l){return l.indexOf('◎')>=0?'var(--teal)':l.indexOf('△')>=0?'var(--amber)':l.indexOf('✗')>=0?'var(--red)':'var(--t2)';}
+    function dotC(v){return v>=4?'var(--teal)':v===3?'var(--amber)':v>0?'var(--red)':'var(--t3)';}
+    function bw(v){return v>0?(v/5*100)+'%':'0%';}
+    sec1Card.innerHTML='<div class="s-score-title">섹션 Ⅰ · 과학적 문해력 인식</div>' +
+      '<div style="margin-bottom:16px;"><div style="font-size:11px;color:var(--t3);font-family:var(--font-mono);margin-bottom:6px;">Ⅰ-Q1 · 과학적 문해력이란?</div>' +
+        '<div style="background:var(--s2);border-radius:var(--r-sm);padding:10px 13px;font-size:12.5px;color:var(--t2);line-height:1.6;margin-bottom:8px;">'+(sec1.q1t.length>0?'"'+sec1.q1t.slice(0,80)+(sec1.q1t.length>80?'…':'\'')+'\'':'(미응답)')+'</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:700;color:'+lvC(sec1.q1level)+';">'+sec1.q1level+'</span><span style="font-size:12px;color:var(--t2);">— '+sec1.q1fb+'</span></div></div>' +
+      ['Ⅰ-Q2 · 자료 이해 능력의 중요성','Ⅰ-Q3 · 문해력이 학습에 영향을 준다'].map(function(lbl,i){
+        const v=i===0?sec1.q2val:sec1.q3val;
+        const lvl=i===0?sec1.q2level:sec1.q3level;
+        const fb=i===0?sec1.q2fb:sec1.q3fb;
+        return '<div style="margin-bottom:'+(i===0?'12px':'0px')+';">' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:11px;color:var(--t3);font-family:var(--font-mono);">'+lbl+'</span><span style="font-size:12px;font-weight:700;font-family:var(--font-mono);color:'+dotC(v)+';">'+v+'점 · '+lvl+'</span></div>' +
+          '<div style="height:5px;background:var(--b1);border-radius:3px;overflow:hidden;margin-bottom:5px;"><div style="height:100%;width:'+bw(v)+';background:'+dotC(v)+';border-radius:3px;"></div></div>' +
+          '<div style="font-size:12px;color:var(--t2);">'+fb+'</div></div>';
+      }).join('');
+  }
+
+  // 섹션Ⅳ
+  const sec4=result.sec4;
+  const sec4Card=document.getElementById('sec4Card');
+  if(sec4Card&&sec4){
+    function tC(l){return l.indexOf('◎')>=0?'var(--teal)':l.indexOf('△')>=0?'var(--amber)':l.indexOf('✗')>=0?'var(--red)':l==='미응답'?'var(--t3)':'var(--blue)';}
+    function s4item(qn,qt,ans,lv,fb2){
+      return '<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--b1);">' +
+        '<div style="font-size:11px;color:var(--t3);font-family:var(--font-mono);margin-bottom:5px;">'+qn+' · '+qt+'</div>' +
+        '<div style="background:var(--s2);border-radius:var(--r-sm);padding:8px 12px;font-size:12.5px;color:var(--t2);margin-bottom:7px;line-height:1.6;">'+(ans.length>0?'"'+ans.slice(0,80)+(ans.length>80?'…':'\'')+'\'':'(미응답)')+'</div>' +
+        '<div style="display:flex;align-items:flex-start;gap:8px;"><span style="font-size:11.5px;font-weight:700;color:'+tC(lv)+';white-space:nowrap;">'+lv+'</span><span style="font-size:12px;color:var(--t2);line-height:1.6;">'+fb2+'</span></div></div>';
+    }
+    sec4Card.innerHTML='<div class="s-score-title">섹션 Ⅳ · 경험 및 서술형 분석</div>' +
+      s4item('서-1','문제 이해 오류 경험',sec4.essay_exp,sec4.exp_level,sec4.exp_fb) +
+      s4item('서-2','가장 어렵게 느끼는 것',sec4.essay1,sec4.hard_type,sec4.hard_fb) +
+      '<div><div style="font-size:11px;color:var(--t3);font-family:var(--font-mono);margin-bottom:5px;">서-3 · 과학 정보 신뢰성 판단</div>' +
+        '<div style="background:var(--s2);border-radius:var(--r-sm);padding:8px 12px;font-size:12.5px;color:var(--t2);margin-bottom:7px;line-height:1.6;">'+(sec4.essay2.length>0?'"'+sec4.essay2.slice(0,80)+(sec4.essay2.length>80?'…':'\'')+'\'':'(미응답)')+'</div>' +
+        '<div style="display:flex;align-items:flex-start;gap:8px;"><span style="font-size:11.5px;font-weight:700;color:'+tC(sec4.info_level)+';white-space:nowrap;">'+sec4.info_level+'</span><span style="font-size:12px;color:var(--t2);line-height:1.6;">'+sec4.info_fb+'</span></div></div>';
+  }
+}
+
+window.showRubric = function() {
+  document.getElementById('completionOverlay').style.display='none';
+  document.getElementById('surveyPage').style.display='none';
+  document.getElementById('resultPage').style.display='none';
+  document.getElementById('scoringPage').classList.add('visible');
+  renderRubric();
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+
+function renderRubric() {
+  // 간단 채점 기준표 (현재 지문 기준)
+  const p = currentPassage;
+  document.getElementById('rubricBody').innerHTML =
+    '<div style="background:rgba(61,220,132,0.05);border:1px solid rgba(61,220,132,0.15);border-radius:var(--r-md);padding:14px 18px;margin-bottom:18px;">' +
+      '<div style="font-size:11px;color:var(--teal);font-family:var(--font-mono);margin-bottom:6px;">📰 배정된 지문</div>' +
+      '<div style="font-size:15px;font-weight:700;color:var(--t1);">'+p.title+'</div>' +
+      '<div style="font-size:11px;color:var(--t3);margin-top:3px;">'+p.category+'</div>' +
+    '</div>' +
+    p.questions.map(function(q, i) {
+      const ids=['d1','d2','d3','d4'];
+      const sc=p.scoring[ids[i]];
+      return '<div class="s-rubric-card">' +
+        '<div class="s-rubric-hd"><span class="s-rubric-qnum">'+q.num+'</span><span class="s-rubric-pisa">'+q.tag+'</span><span class="s-rubric-title">'+q.text.slice(0,40)+'…</span></div>' +
+        '<table class="s-rubric-table"><thead><tr><th>수준</th><th class="score-col">점수</th><th>피드백</th></tr></thead><tbody>' +
+          '<tr><td><strong>우수</strong></td><td class="score-cell score-2">2</td><td>'+sc.fb_hi+'</td></tr>' +
+          '<tr><td><strong>보통</strong></td><td class="score-cell score-1">1</td><td>'+sc.fb_mi+'</td></tr>' +
+          '<tr><td><strong>미흡</strong></td><td class="score-cell score-0">0</td><td>'+sc.fb_lo+'</td></tr>' +
+        '</tbody></table></div>';
+    }).join('');
+}
+
+window.backToSurvey = function() {
+  document.getElementById('scoringPage').classList.remove('visible');
+  document.getElementById('resultPage').style.display='none';
+  document.getElementById('completionOverlay').style.display='none';
+  document.getElementById('surveyPage').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+
+function showToast(msg) {
+  const t=document.getElementById('fbToast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},3000);
+}
+
+/* ════════════════════════════════════════
+   아이트래킹 엔진
+════════════════════════════════════════ */
+function etUpdateReadAreaRect() {
+  const el=document.getElementById('et-reading-area');
+  if(el){const r=el.getBoundingClientRect();etReadAreaRect={left:r.left,top:r.top,width:r.width,height:r.height};}
+}
+
+function etFitText() {
+  const txts=document.querySelectorAll('.et-para-txt');
+  if(!txts.length)return;
+  const areaH=window.innerHeight-44;
+  const titleH=(document.getElementById('et-passage-title-display')||{}).offsetHeight||30;
+  const nParas=currentPassage.article.length||2;
+  const perPara=(areaH-titleH-20)/nParas;
+  let lo=9,hi=22;
+  for(let k=0;k<16;k++){
+    const mid=(lo+hi)/2;
+    txts.forEach(function(t){t.style.fontSize=mid+'px';});
+    let maxH=0;
+    document.querySelectorAll('.et-para').forEach(function(pw){maxH=Math.max(maxH,pw.offsetHeight);});
+    if(maxH<perPara-4)lo=mid;else hi=mid;
+  }
+  txts.forEach(function(t){t.style.fontSize=Math.floor(lo*10)/10+'px';});
+}
+
+let etFpsCnt=0, etFpsLast=Date.now();
+function onEtFaceResults(res) {
+  etFpsCnt++;
+  if(Date.now()-etFpsLast>1000){document.getElementById('etFpsTxt').textContent=etFpsCnt+'fps';etFpsCnt=0;etFpsLast=Date.now();}
+  const fc=document.getElementById('et-face-cv');
+  fc.width=fc.offsetWidth;fc.height=fc.offsetHeight;
+  const ctx=fc.getContext('2d');ctx.clearRect(0,0,fc.width,fc.height);
+  if(!res.multiFaceLandmarks||!res.multiFaceLandmarks[0])return;
+  const lm=res.multiFaceLandmarks[0];
+  if(lm[468]&&lm[473]){[468,473].forEach(function(idx){const p=lm[idx];ctx.beginPath();ctx.arc((1-p.x)*fc.width,p.y*fc.height,4,0,Math.PI*2);ctx.fillStyle='rgba(255,107,107,0.9)';ctx.fill();});}
+  const raw=etEstimateGaze(lm);if(!raw)return;
+  const alpha=etAppState==='calibrating'?0.10:0.18;
+  etSmooth.x=alpha*raw.x+(1-alpha)*etSmooth.x;
+  etSmooth.y=alpha*raw.y+(1-alpha)*etSmooth.y;
+  if(etAppState==='calibrating'&&etCalibStep<9){
+    const elapsed=(Date.now()-etCalibStepStart)/1000;
+    if(elapsed>1.5){
+      const arr=etCalibSamples[etCalibStep];
+      if(arr.length<3){arr.push({x:etSmooth.x,y:etSmooth.y});}
+      else{
+        const mx=arr.reduce(function(s,p){return s+p.x;},0)/arr.length;
+        const my=arr.reduce(function(s,p){return s+p.y;},0)/arr.length;
+        const sx=Math.sqrt(arr.reduce(function(s,p){return s+(p.x-mx)**2;},0)/arr.length)||0.1;
+        const sy=Math.sqrt(arr.reduce(function(s,p){return s+(p.y-my)**2;},0)/arr.length)||0.1;
+        if(Math.abs(etSmooth.x-mx)<2.5*sx&&Math.abs(etSmooth.y-my)<2.5*sy)arr.push({x:etSmooth.x,y:etSmooth.y});
+      }
+    }
+  }
+  if(etAppState==='tracking'&&etCalibMatrix){
+    const mapped=etApplyCalib(etSmooth);
+    etProcessGaze(mapped);
+  }
+}
+
+function etEstimateGaze(lm) {
+  if(!lm[468]||!lm[473])return null;
+  const lIris={x:1-lm[468].x,y:lm[468].y}, rIris={x:1-lm[473].x,y:lm[473].y};
+  const irisX=(lIris.x+rIris.x)/2, irisY=(lIris.y+rIris.y)/2;
+  const noseX=1-lm[1].x,noseY=lm[1].y,foreX=1-lm[168].x,foreY=lm[168].y;
+  const headX=(noseX+foreX)/2,headY=(noseY+foreY)/2;
+  const eyeSpan=Math.hypot(lIris.x-rIris.x,lIris.y-rIris.y)||0.1;
+  return{x:(irisX-headX)/eyeSpan,y:(irisY-headY)/eyeSpan};
+}
+
+function etBuildCalibModel(means,targets) {
+  const RIDGE=0.001;
+  const X=means.map(function(m){return[1,m.x,m.y,m.x*m.y,m.x*m.x,m.y*m.y];});
+  function solve(Xm,yv){
+    const n=Xm[0].length;
+    const XtX=Array.from({length:n},function(_,i){return Array.from({length:n},function(_,j){return Xm.reduce(function(s,r){return s+r[i]*r[j];},0)+(i===j?RIDGE:0);});});
+    const Xty=Array.from({length:n},function(_,i){return Xm.reduce(function(s,r,k){return s+r[i]*yv[k];},0);});
+    const A=XtX.map(function(r,i){return[...r,Xty[i]];});
+    for(let col=0;col<n;col++){let mx=col;for(let r=col+1;r<n;r++)if(Math.abs(A[r][col])>Math.abs(A[mx][col]))mx=r;[A[col],A[mx]]=[A[mx],A[col]];const pv=A[col][col]||1e-12;for(let r=0;r<n;r++)if(r!==col){const f=A[r][col]/pv;for(let c=col;c<=n;c++)A[r][c]-=f*A[col][c];}for(let c=col;c<=n;c++)A[col][c]/=pv;}
+    return A.map(function(r){return r[n];});
+  }
+  return{cx:solve(X,targets.map(function(t){return t.x;})),cy:solve(X,targets.map(function(t){return t.y;}))};
+}
+
+function etApplyCalib(g) {
+  if(!etCalibMatrix||!etCalibMatrix.cx)return{x:.5,y:.5};
+  const{cx,cy}=etCalibMatrix;
+  const f=[1,g.x,g.y,g.x*g.y,g.x*g.x,g.y*g.y];
+  return{x:Math.max(0,Math.min(1,cx.reduce(function(s,c,i){return s+c*f[i];},0))),y:Math.max(0,Math.min(1,cy.reduce(function(s,c,i){return s+c*f[i];},0)))};
+}
+
+function etProcessGaze(m) {
+  const now=Date.now();etTotalSamples++;
+  const col=m.x<.333?0:m.x<.667?1:2;
+  const zid=col+'_'+Math.floor(m.y*4);
+  etZoneHits[zid]=(etZoneHits[zid]||0)+1;
+  const para=etGetParaFromY(m.y);
+  if(para>=0&&para<currentPassage.article.length){
+    if(!etParaData[para])etParaData[para]={hits:{},regressions:0,dwellMs:0,interRegs:0};
+    if(etLastGazeTime)etParaData[para].dwellMs+=(now-etLastGazeTime);
+  }
+  etLastGazeTime=now;
+  if(etLastCol!==-1&&col<etLastCol&&(etLastGazeX-m.x)>0.08){etRegressions++;if(para>=0)etParaData[para].regressions++;}
+  etLastCol=col;etLastGazeX=m.x;
+  if(etLastPara!==-1&&para<etLastPara&&para>=0){etParaRegBuffer++;if(etParaRegBuffer>=2&&etParaRegBuffer===2){etParaRegressions++;}}else{etParaRegBuffer=0;}
+  if(para>=0)etLastPara=para;
+  if(!etLastFixPos||Math.hypot(m.x-etLastFixPos.x,m.y-etLastFixPos.y)>.04){
+    if(etLastFixPos&&etFixStart!==null){etFixations.push({sx:etLastFixPos.x,sy:etLastFixPos.y,dur:now-etFixStart});}
+    etLastFixPos={x:m.x,y:m.y};etFixStart=now;
+  }
+  etGazeLog.push({t:now-etStartTime,sx:m.x,sy:m.y,para});
+  document.getElementById('etReg').textContent=etRegressions;
+  document.getElementById('etParaReg').textContent=etParaRegressions;
+  const gc=document.getElementById('et-gaze-cursor');
+  if(gc){
+    gc.style.left=(etReadAreaRect.left+m.x*etReadAreaRect.width)+'px';
+    gc.style.top=(etReadAreaRect.top+m.y*etReadAreaRect.height)+'px';
+    gc.style.display='block';
+  }
+}
+
+function etGetParaFromY(ny) {
+  const screenY=etReadAreaRect.top+ny*etReadAreaRect.height;
+  const ps=document.querySelectorAll('.et-para');
+  let best=-1,bestD=Infinity;
+  ps.forEach(function(p,i){const r=p.getBoundingClientRect(),cy=r.top+r.height/2,d=Math.abs(cy-screenY);if(d<bestD){bestD=d;best=i;}});
+  return best;
+}
+
+// 캘리브레이션
+const etCalibCv=document.getElementById('et-calib-cv');
+const etCalibCtx=etCalibCv.getContext('2d');
+
+function etStartCalib() {
+  etCalibStep=0; etCalibSamples=Array.from({length:9},function(){return[];});
+  etUpdateReadAreaRect();
+  document.getElementById('et-calib-screen').classList.add('show');
+  etBuildCalibProg(); etShowCalibPoint(0);
+}
+
+function etBuildCalibProg() {
+  const w=document.getElementById('et-calib-prog');w.innerHTML='';
+  for(let i=0;i<9;i++){const d=document.createElement('div');d.className='et-cp-pip'+(i<etCalibStep?' done':i===etCalibStep?' cur':'');w.appendChild(d);}
+}
+
+function etShowCalibPoint(step) {
+  if(step>=9){etFinishCalib();return;}
+  etBuildCalibProg();
+  const t=ET_CT[step]; let cnt=4;
+  document.getElementById('et-calib-num').textContent=4;
+  document.getElementById('et-calib-msg').textContent='포인트 '+(step+1)+'/9 — 빨간 원을 4초간 응시하세요';
+  etCalibStepStart=Date.now();
+  if(etCalibAnimId)cancelAnimationFrame(etCalibAnimId);
+  function animate(){etDrawCalibFrame(t.x,t.y,Math.min((Date.now()-etCalibStepStart)/4000,1));etCalibAnimId=requestAnimationFrame(animate);}
+  animate();
+  if(etCalibTimer)clearInterval(etCalibTimer);
+  etCalibTimer=setInterval(function(){
+    cnt--;document.getElementById('et-calib-num').textContent=Math.max(cnt,0);
+    if(cnt<=0){clearInterval(etCalibTimer);etCalibTimer=null;if(etCalibAnimId){cancelAnimationFrame(etCalibAnimId);etCalibAnimId=null;}etCalibStep++;etShowCalibPoint(etCalibStep);}
+  },1000);
+}
+
+function etDrawCalibFrame(tx,ty,prog) {
+  etCalibCv.width=window.innerWidth;etCalibCv.height=window.innerHeight;
+  etCalibCtx.fillStyle='rgba(0,0,0,0.92)';etCalibCtx.fillRect(0,0,etCalibCv.width,etCalibCv.height);
+  const ra=etReadAreaRect;
+  etCalibCtx.strokeStyle='rgba(61,220,132,0.2)';etCalibCtx.lineWidth=1.5;etCalibCtx.setLineDash([6,4]);
+  etCalibCtx.strokeRect(ra.left+2,ra.top+2,ra.width-4,ra.height-4);etCalibCtx.setLineDash([]);
+  for(let i=0;i<etCalibStep;i++){const t2=ET_CT[i];etCalibCtx.beginPath();etCalibCtx.arc(ra.left+t2.x*ra.width,ra.top+t2.y*ra.height,8,0,Math.PI*2);etCalibCtx.fillStyle='rgba(61,220,132,0.6)';etCalibCtx.fill();}
+  const px=ra.left+tx*ra.width, py=ra.top+ty*ra.height;
+  const pulse=(Date.now()%1000)/1000;
+  etCalibCtx.beginPath();etCalibCtx.arc(px,py,36+pulse*18,0,Math.PI*2);etCalibCtx.strokeStyle='rgba(255,107,107,'+(0.35*(1-pulse))+')';etCalibCtx.lineWidth=2;etCalibCtx.stroke();
+  etCalibCtx.beginPath();etCalibCtx.arc(px,py,36,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);etCalibCtx.strokeStyle='rgba(255,107,107,0.75)';etCalibCtx.lineWidth=3;etCalibCtx.stroke();
+  etCalibCtx.beginPath();etCalibCtx.arc(px,py,12,0,Math.PI*2);etCalibCtx.fillStyle='#ff6b6b';etCalibCtx.fill();
+  etCalibCtx.beginPath();etCalibCtx.arc(px,py,5,0,Math.PI*2);etCalibCtx.fillStyle='#fff';etCalibCtx.fill();
+}
+
+function etFinishCalib() {
+  document.getElementById('et-calib-screen').classList.remove('show');
+  const means=etCalibSamples.map(function(s,i){
+    if(!s||s.length<3)return{x:ET_CT[i].x*0.5,y:ET_CT[i].y*0.5};
+    const sortedX=[...s].sort(function(a,b){return a.x-b.x;});
+    const sortedY=[...s].sort(function(a,b){return a.y-b.y;});
+    const q1=Math.floor(s.length*.25),q3=Math.ceil(s.length*.75);
+    return{x:sortedX.slice(q1,q3).reduce(function(a,b){return a+b.x;},0)/Math.max(sortedX.slice(q1,q3).length,1),y:sortedY.slice(q1,q3).reduce(function(a,b){return a+b.y;},0)/Math.max(sortedY.slice(q1,q3).length,1)};
+  });
+  let model={cx:null,cy:null};
+  try{model=etBuildCalibModel(means,ET_CT);}catch(e){console.warn('ET 캘리브 회귀 실패',e);}
+  etCalibMatrix={means,targets:ET_CT,cx:model.cx,cy:model.cy};
+  etAppState='tracking';etStartTime=Date.now();
+  document.getElementById('etPdot').className='et-pdot on';
+  document.getElementById('etStatusTxt').textContent='추적 중';
+  document.getElementById('etBtnCalib').style.display='none';
+  document.getElementById('etBtnStop').style.display='block';
+  document.getElementById('et-gaze-cursor').style.display='block';
+  etTimerInterval=setInterval(function(){
+    const e=Math.floor((Date.now()-etStartTime)/1000);
+    document.getElementById('etTimer').textContent=String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
+  },500);
+}
+
+window.etHandleStart = async function() {
+  // 이미 카메라가 켜진 상태면 캘리브레이션만
+  etFitText(); etUpdateReadAreaRect(); etStartCalib();
+};
+
+window.etStopReading = function() {
+  if(etTimerInterval){clearInterval(etTimerInterval);etTimerInterval=null;}
+  etReadEndTime=Date.now(); etAppState='done';
+  if(etLastFixPos&&etFixStart!==null)etFixations.push({sx:etLastFixPos.x,sy:etLastFixPos.y,dur:Date.now()-etFixStart});
+  document.getElementById('etPdot').className='et-pdot done';
+  document.getElementById('etStatusTxt').textContent='읽기 완료';
+  document.getElementById('etBtnStop').style.display='none';
+  document.getElementById('et-gaze-cursor').style.display='none';
+
+  // 미디어 정리
+  if(etMpCam){try{etMpCam.stop();}catch(e){}}
+  if(etMediaStream){etMediaStream.getTracks().forEach(function(t){t.stop();});}
+
+  // 풀스크린 닫기
+  setTimeout(function(){
+    document.getElementById('etFullscreen').classList.remove('active');
+    etFinishReading();
+  },400);
+};
+
+window.addEventListener('resize',function(){if(etAppState==='tracking'){etFitText();etUpdateReadAreaRect();}});
+
+updateProgress();
+</script>
+</body>
+</html>
