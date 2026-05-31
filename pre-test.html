@@ -1581,19 +1581,12 @@ function showToast(msg) {
    ④ 정밀도: smoothing α 0.22, 노이즈 임계값 세분화
 ════════════════════════════════════════════════════════════════ */
 
-/* ── 전역 ET 변수 (기존 변수 그대로 유지 + 추가) ── */
-let etAppState='idle', etMediaStream=null, etFaceMesh=null, etMpCam=null;
-let etCalibStep=0, etCalibSamples=[], etCalibMatrix=null, etCalibTimer=null,
-    etCalibAnimId=null, etCalibStepStart=null;
-let etGazeLog=[], etZoneHits={}, etParaData={};
-let etFixations=[], etSaccades=[];
-let etRegressions=0, etParaRegressions=0;
-let etLastPara=-1, etTotalSamples=0;
-let etStartTime=null, etReadEndTime=null, etTimerInterval=null;
-let etLastFixPos=null, etFixStart=null, etLastGazeTime=null;
-let etSmooth={x:.5, y:.5};
-let etReadAreaRect={left:0, top:44, width:window.innerWidth, height:window.innerHeight-44};
-let etParaRegBuffer=0;
+// 원본의 let etLastGazeX=.5; 바로 아래에 추가
+let etLineHistory = [];
+const ET_LINE_BUF = 30;
+const ET_REG_X_THRESH = 0.10;
+const ET_REG_Y_SAME_THRESH = 0.05;
+let etScanpathPoints = [];
 
 // ── v2 추가: 줄 단위 역행 감지 ──
 let etLineHistory = [];      // {x, y, lineIdx, t} 최근 N개
