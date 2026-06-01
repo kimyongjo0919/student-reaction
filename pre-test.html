@@ -1739,6 +1739,7 @@ function etApplyCalib(g) {
    시선 처리 + 역행 감지
 ════════════════════════════════════════ */
 function etProcessGaze(m) {
+console.log('gaze', m.x.toFixed(3), m.y.toFixed(3)); //
   const now = Date.now();
   etTotalSamples++;
 
