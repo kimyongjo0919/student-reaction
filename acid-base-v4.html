@@ -2600,80 +2600,63 @@ window.startNFCScan = async function() {
   const statusEl = document.getElementById('nfcStatus');
   const dot = document.getElementById('nfcDot');
 
-  if(!('NDEFReader' in window)) {
-    statusEl.textContent = '❌ 이 브라우저는 NFC 미지원 (안드로이드 크롬 필요)';
-    statusEl.style.color = 'var(--red)';
-    return;
-  }
+ // WebSocket NFC 브릿지 연결 (PC용 ACR1251U)
+btn.textContent = '⏳ NFC 브릿지 연결 중...';
+btn.disabled = true;
 
-  btn.textContent = '⏳ NFC 권한 요청 중...';
-  btn.disabled = true;
+try {
+  const ws = new WebSocket('ws://localhost:8765');
 
-  try {
-    const ndef = new NDEFReader();
-    await ndef.scan(); // 이 시점에 권한 팝업 뜸
-
-    // 성공!
+  ws.onopen = () => {
     btn.textContent = '✅ NFC 스캔 중 (카드 갖다 대세요)';
     btn.style.background = 'rgba(46,213,115,0.15)';
     btn.style.borderColor = 'var(--green)';
     btn.style.color = 'var(--green)';
     dot.style.background = 'var(--green)';
     dot.style.animation = 'pulseDot 1.5s infinite';
-    statusEl.textContent = '✅ NFC 스캔 대기 중... 카드를 폰 뒤에 갖다 대세요!';
+    statusEl.textContent = '✅ NFC 브릿지 연결됨... 카드를 리더기에 올려놓으세요!';
     statusEl.style.color = 'var(--green)';
+    showNfcToast('✅ NFC 브릿지 연결!', '#2ed573');
+  };
 
-    showNfcToast('✅ NFC 스캔 시작!', '#2ed573');
+  ws.onmessage = (event) => {
+    const text = event.data.trim();
+    console.log('📲 NFC 읽힘:', text);
+    statusEl.textContent = '📲 인식: ' + text;
+    const lastTag = document.getElementById('nfcLastTag');
+    if(lastTag) {
+      lastTag.style.display = 'block';
+      lastTag.textContent = '📲 ' + text;
+    }
+    if(NFC_MAP[text]) {
+      NFC_MAP[text]();
+    } else {
+      parseNFCTag(text);
+    }
+  };
 
-    // 카드 인식 이벤트
-    ndef.onreading = (event) => {
-      for(const record of event.message.records) {
-        let text = '';
-        try {
-          if(record.recordType === 'text') {
-            text = new TextDecoder(record.encoding||'utf-8').decode(record.data).trim();
-          } else if(record.recordType === 'url') {
-            text = new TextDecoder().decode(record.data).trim();
-          }
-        } catch(e) { continue; }
-
-        if(!text) continue;
-        console.log('📲 NFC 읽힘:', text);
-
-        // 상태 표시
-        statusEl.textContent = '📲 인식: ' + text;
-        const lastTag = document.getElementById('nfcLastTag');
-        if(lastTag) {
-          lastTag.style.display = 'block';
-          lastTag.textContent = '📲 ' + text;
-        }
-
-        // NFC_MAP → parseNFCTag 순으로 처리
-        if(NFC_MAP[text]) {
-          NFC_MAP[text]();
-        } else {
-          parseNFCTag(text);
-        }
-      }
-    };
-
-    ndef.onreadingerror = () => {
-      statusEl.textContent = '❌ 태그 읽기 오류 - 다시 갖다 대세요';
-    };
-
-  } catch(e) {
+  ws.onerror = () => {
     btn.disabled = false;
     btn.textContent = '📲 NFC 스캔 시작';
-    if(e.name === 'NotAllowedError') {
-      statusEl.textContent = '❌ NFC 권한 거부됨 - 브라우저 설정에서 허용해주세요';
-    } else {
-      statusEl.textContent = '❌ 오류: ' + e.message;
-    }
+    statusEl.textContent = '❌ 브릿지 연결 실패 - nfc_bridge.py 실행 중인지 확인하세요';
     statusEl.style.color = 'var(--red)';
-    console.error('NFC 오류:', e);
-  }
-};
+  };
 
+  ws.onclose = () => {
+    btn.disabled = false;
+    btn.textContent = '📲 NFC 스캔 시작';
+    dot.style.animation = 'none';
+    statusEl.textContent = '🔌 NFC 브릿지 연결 끊김';
+  };
+
+} catch(e) {
+  btn.disabled = false;
+  btn.textContent = '📲 NFC 스캔 시작';
+  statusEl.textContent = '❌ 오류: ' + e.message;
+  statusEl.style.color = 'var(--red)';
+  console.error('NFC 오류:', e);
+}
+};
 // ── NFC 태그 매핑 테이블 ─────────────────────────────────────────
 // NFC 카드에 입력할 텍스트 → 실제 화학식 매핑
 const NFC_FORMULA_MAP = {
