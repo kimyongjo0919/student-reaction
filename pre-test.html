@@ -1724,9 +1724,14 @@ function etApplyCalib(g) {
   if (!etCalibMatrix || !etCalibMatrix.cx) return {x:0.5, y:0.5};
   const {cx,cy} = etCalibMatrix;
   const f = [1, g.x, g.y, g.x*g.y, g.x*g.x, g.y*g.y];
+  let rx = cx.reduce((s,c,i)=>s+c*f[i],0);
+  let ry = cy.reduce((s,c,i)=>s+c*f[i],0);
+  // 범위 강제 확장 (0~1로 정규화)
+  rx = (rx - 0.1) / 0.8;
+  ry = (ry - 0.1) / 0.8;
   return {
-    x: Math.max(0, Math.min(1, cx.reduce((s,c,i)=>s+c*f[i],0))),
-    y: Math.max(0, Math.min(1, cy.reduce((s,c,i)=>s+c*f[i],0))),
+    x: Math.max(0, Math.min(1, rx)),
+    y: Math.max(0, Math.min(1, ry)),
   };
 }
 
