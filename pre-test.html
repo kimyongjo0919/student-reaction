@@ -1683,11 +1683,11 @@ function onEtFaceResults(res) {
 /* ── 시선 추정 ── */
 function etEstimateGaze(lm) {
   if (!lm[468] || !lm[473] || !lm[1] || !lm[168]) return null;
-  const lx = 1-lm[468].x, ly = lm[468].y;
-  const rx = 1-lm[473].x, ry = lm[473].y;
+ const lx = lm[468].x, ly = lm[468].y;
+const rx = lm[473].x, ry = lm[473].y;
   const ix = (lx+rx)/2, iy = (ly+ry)/2;
-  const nx = 1-lm[1].x, ny = lm[1].y;
-  const fx = 1-lm[168].x, fy = lm[168].y;
+  const nx = lm[1].x, ny = lm[1].y;
+const fx = lm[168].x, fy = lm[168].y;
   const hx = (nx+fx)/2, hy = (ny+fy)/2;
   const span = Math.hypot(lx-rx, ly-ry) || 0.08;
   return {x: (ix-hx)/span, y: (iy-hy)/span};
