@@ -1658,7 +1658,7 @@ function onEtFaceResults(res) {
   // 캘리브레이션 샘플 수집
   if (etAppState === 'calibrating' && etCalibStep < 9 && etCalibStepStart) {
     const elapsed = (now - etCalibStepStart) / 1000;
-    if (elapsed > 1.5) {
+    if (elapsed > 2.5) {
       const arr = etCalibSamples[etCalibStep];
       if (arr.length < 4) {
         arr.push({x: etSmooth.x, y: etSmooth.y});
@@ -1916,7 +1916,7 @@ function etShowCalibPoint(step) {
   if (step >= 9) { etFinishCalib(); return; }
   etBuildCalibProg();
   const t = ET_CT[step];
-  let cnt = 4;
+  let cnt = 6;
   const numEl = document.getElementById('et-calib-num');
   const msgEl = document.getElementById('et-calib-msg');
   if (numEl) numEl.textContent = 4;
@@ -1925,7 +1925,7 @@ function etShowCalibPoint(step) {
   if (etCalibAnimId) cancelAnimationFrame(etCalibAnimId);
 
   function draw() {
-    etDrawCalibPt(t.x, t.y, Math.min((Date.now()-etCalibStepStart)/4000,1));
+    etDrawCalibPt(t.x, t.y, Math.min((Date.now()-etCalibStepStart)/6000,1));
     etCalibAnimId = requestAnimationFrame(draw);
   }
   draw();
