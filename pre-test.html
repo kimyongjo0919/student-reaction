@@ -1690,7 +1690,7 @@ const rx = lm[473].x, ry = lm[473].y;
 const fx = lm[168].x, fy = lm[168].y;
   const hx = (nx+fx)/2, hy = (ny+fy)/2;
   const span = Math.hypot(lx-rx, ly-ry) || 0.08;
-  return {x: (ix-hx)/span, y: (iy-hy)/span};
+  return {x: -((ix-hx)/span), y: -((iy-hy)/span)};
 }
 
 /* ── 캘리브레이션 모델 (2차 회귀) ── */
