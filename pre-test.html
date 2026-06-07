@@ -1565,62 +1565,57 @@ function showToast(msg) {
   t.textContent=msg; t.classList.add('show');
   setTimeout(function(){t.classList.remove('show');},3000);
 }
+<!-- 아래 코드로 기존 ET ENGINE v3 전체 교체 -->
+<script>
 /* ════════════════════════════════════════
-   ET ENGINE v3 — 완전 재작성
+   ET ENGINE v4 — 역행 감지 단순화
 ════════════════════════════════════════ */
-
-// ── 새 변수 (원본에 없는 것만) ──
 let etLineHistory = [];
-const ET_LINE_BUF = 30;
-const ET_REG_X_THRESH = 0.07;
-const ET_REG_Y_SAME   = 0.10;
-const ET_REG_COOLDOWN = 350;
-let etLastRegTime = 0;
 let etLastGazeX   = 0.5;
 let etScanpathPoints = [];
 let etFpsCnt2 = 0, etFpsLast2 = Date.now();
 
-// ── 캘리브레이션 9포인트: reading area 내부 ──
+// 역행 감지용: 직전 fixation 위치 저장
+let etLastFixationX = -1;   // 0~1, 직전 fixation의 X
+let etLastFixationPara = -1; // 직전 fixation의 문단 번호
+let etLastRegTime = 0;
+const ET_REG_COOLDOWN = 400; // ms 쿨다운
+
+// 캘리브레이션 9포인트
 const ET_CT = [
   {x:.08,y:.10},{x:.50,y:.10},{x:.92,y:.10},
   {x:.08,y:.50},{x:.50,y:.50},{x:.92,y:.50},
   {x:.08,y:.90},{x:.50,y:.90},{x:.92,y:.90},
 ];
 
-/* ── etFitText: 지문 폰트 크기 자동 조정 ── */
 function etFitText() {
   const txts = document.querySelectorAll('.et-para-txt');
   if (!txts.length) return;
   const areaH = window.innerHeight - 44;
-  const titleEl = document.getElementById('et-passage-title-display');
-  const titleH = titleEl ? titleEl.offsetHeight : 36;
+  const titleH = (document.getElementById('et-passage-title-display')||{}).offsetHeight || 30;
   const nParas = currentPassage ? currentPassage.article.length : 2;
-  const perPara = (areaH - titleH - 24) / nParas;
-  let lo = 10, hi = 22;
-  for (let k = 0; k < 18; k++) {
+  const perPara = (areaH - titleH - 20) / nParas;
+  let lo = 9, hi = 22;
+  for (let k = 0; k < 16; k++) {
     const mid = (lo + hi) / 2;
     txts.forEach(t => t.style.fontSize = mid + 'px');
     let maxH = 0;
     document.querySelectorAll('.et-para').forEach(p => maxH = Math.max(maxH, p.offsetHeight));
     if (maxH < perPara - 4) lo = mid; else hi = mid;
   }
-  txts.forEach(t => t.style.fontSize = Math.floor(lo * 10) / 10 + 'px');
+  txts.forEach(t => t.style.fontSize = Math.floor(lo*10)/10 + 'px');
 }
 
-/* ── etUpdateReadAreaRect ── */
 function etUpdateReadAreaRect() {
   const el = document.getElementById('et-reading-area');
   if (el) {
     const r = el.getBoundingClientRect();
-    etReadAreaRect = {left: r.left, top: r.top, width: r.width, height: r.height};
+    etReadAreaRect = {left:r.left, top:r.top, width:r.width, height:r.height};
   }
 }
 
-/* ════════════════════════════════════════
-   FaceMesh 콜백
-════════════════════════════════════════ */
+/* ── FaceMesh 콜백 ── */
 function onEtFaceResults(res) {
-  // FPS 표시
   etFpsCnt2++;
   const now = Date.now();
   if (now - etFpsLast2 > 1000) {
@@ -1640,7 +1635,7 @@ function onEtFaceResults(res) {
       [468, 473].forEach(idx => {
         if (!lm[idx]) return;
         ctx.beginPath();
-        ctx.arc((1 - lm[idx].x) * fc.width, lm[idx].y * fc.height, 5, 0, Math.PI*2);
+        ctx.arc((1-lm[idx].x)*fc.width, lm[idx].y*fc.height, 5, 0, Math.PI*2);
         ctx.fillStyle = 'rgba(255,100,100,0.95)';
         ctx.fill();
       });
@@ -1652,11 +1647,10 @@ function onEtFaceResults(res) {
   const raw = etEstimateGaze(lm);
   if (!raw) return;
 
-  // 스무딩
   const dist = Math.hypot(raw.x - etSmooth.x, raw.y - etSmooth.y);
   const alpha = etAppState === 'calibrating' ? 0.10 : Math.min(0.28, 0.12 + dist * 1.2);
-  etSmooth.x = alpha * raw.x + (1 - alpha) * etSmooth.x;
-  etSmooth.y = alpha * raw.y + (1 - alpha) * etSmooth.y;
+  etSmooth.x = alpha * raw.x + (1-alpha) * etSmooth.x;
+  etSmooth.y = alpha * raw.y + (1-alpha) * etSmooth.y;
 
   // 캘리브레이션 샘플 수집
   if (etAppState === 'calibrating' && etCalibStep < 9 && etCalibStepStart) {
@@ -1666,17 +1660,16 @@ function onEtFaceResults(res) {
       if (arr.length < 4) {
         arr.push({x: etSmooth.x, y: etSmooth.y});
       } else {
-        const mx = arr.reduce((s,p) => s+p.x, 0) / arr.length;
-        const my = arr.reduce((s,p) => s+p.y, 0) / arr.length;
-        const sx = Math.sqrt(arr.reduce((s,p) => s+(p.x-mx)**2, 0)/arr.length) || 0.08;
-        const sy = Math.sqrt(arr.reduce((s,p) => s+(p.y-my)**2, 0)/arr.length) || 0.08;
-        if (Math.abs(etSmooth.x-mx) < 2.5*sx && Math.abs(etSmooth.y-my) < 2.5*sy)
+        const mx = arr.reduce((s,p)=>s+p.x,0)/arr.length;
+        const my = arr.reduce((s,p)=>s+p.y,0)/arr.length;
+        const sx = Math.sqrt(arr.reduce((s,p)=>s+(p.x-mx)**2,0)/arr.length)||0.08;
+        const sy = Math.sqrt(arr.reduce((s,p)=>s+(p.y-my)**2,0)/arr.length)||0.08;
+        if (Math.abs(etSmooth.x-mx)<2.5*sx && Math.abs(etSmooth.y-my)<2.5*sy)
           arr.push({x: etSmooth.x, y: etSmooth.y});
       }
     }
   }
 
-  // 추적 중
   if (etAppState === 'tracking' && etCalibMatrix && etCalibMatrix.cx) {
     const mapped = etApplyCalib(etSmooth);
     etProcessGaze(mapped);
@@ -1685,108 +1678,93 @@ function onEtFaceResults(res) {
 
 /* ── 시선 추정 ── */
 function etEstimateGaze(lm) {
-  if (!lm[468] || !lm[473] || !lm[1] || !lm[168]) return null;
- const lx = lm[468].x, ly = lm[468].y;
-const rx = lm[473].x, ry = lm[473].y;
-  const ix = (lx+rx)/2, iy = (ly+ry)/2;
-  const nx = lm[1].x, ny = lm[1].y;
-const fx = lm[168].x, fy = lm[168].y;
-  const hx = (nx+fx)/2, hy = (ny+fy)/2;
-  const span = Math.hypot(lx-rx, ly-ry) || 0.08;
-  return {x: -((ix-hx)/span), y: -((iy-hy)/span)};
+  if (!lm[468]||!lm[473]||!lm[1]||!lm[168]) return null;
+  const lx=lm[468].x, ly=lm[468].y;
+  const rx=lm[473].x, ry=lm[473].y;
+  const ix=(lx+rx)/2, iy=(ly+ry)/2;
+  const nx=lm[1].x, ny=lm[1].y;
+  const fx=lm[168].x, fy=lm[168].y;
+  const hx=(nx+fx)/2, hy=(ny+fy)/2;
+  const span=Math.hypot(lx-rx,ly-ry)||0.08;
+  return {x:-((ix-hx)/span), y:-((iy-hy)/span)};
 }
 
-/* ── 캘리브레이션 모델 (2차 회귀) ── */
+/* ── 캘리브레이션 모델 ── */
 function etBuildCalibModel(means, targets) {
   const R = 0.003;
-  const X = means.map(m => [1, m.x, m.y, m.x*m.y, m.x*m.x, m.y*m.y]);
+  const X = means.map(m=>[1,m.x,m.y,m.x*m.y,m.x*m.x,m.y*m.y]);
   function solve(Xm, yv) {
     const n = Xm[0].length;
-    const A = Array.from({length:n}, (_,i) =>
-      [...Array.from({length:n}, (_,j) =>
-        Xm.reduce((s,r) => s+r[i]*r[j], 0) + (i===j?R:0)
-      ), Xm.reduce((s,r,k) => s+r[i]*yv[k], 0)]
-    );
-    for (let c=0; c<n; c++) {
-      let mx=c;
-      for (let r=c+1;r<n;r++) if(Math.abs(A[r][c])>Math.abs(A[mx][c])) mx=r;
-      [A[c],A[mx]]=[A[mx],A[c]];
-      const pv=A[c][c]||1e-12;
-      for (let r=0;r<n;r++) if(r!==c){const f=A[r][c]/pv;for(let k=c;k<=n;k++)A[r][k]-=f*A[c][k];}
-      for (let k=c;k<=n;k++) A[c][k]/=pv;
-    }
+    const A = Array.from({length:n},(_,i)=>[...Array.from({length:n},(_,j)=>Xm.reduce((s,r)=>s+r[i]*r[j],0)+(i===j?R:0)),Xm.reduce((s,r,k)=>s+r[i]*yv[k],0)]);
+    for(let c=0;c<n;c++){let mx=c;for(let r=c+1;r<n;r++)if(Math.abs(A[r][c])>Math.abs(A[mx][c]))mx=r;[A[c],A[mx]]=[A[mx],A[c]];const pv=A[c][c]||1e-12;for(let r=0;r<n;r++)if(r!==c){const f=A[r][c]/pv;for(let k=c;k<=n;k++)A[r][k]-=f*A[c][k];}for(let k=c;k<=n;k++)A[c][k]/=pv;}
     return A.map(r=>r[n]);
   }
-  return {
-    cx: solve(X, targets.map(t=>t.x)),
-    cy: solve(X, targets.map(t=>t.y)),
-  };
+  return {cx:solve(X,targets.map(t=>t.x)), cy:solve(X,targets.map(t=>t.y))};
 }
 
 function etApplyCalib(g) {
-  if (!etCalibMatrix || !etCalibMatrix.cx) return {x:0.5, y:0.5};
-  const {cx,cy} = etCalibMatrix;
-  const f = [1, g.x, g.y, g.x*g.y, g.x*g.x, g.y*g.y];
-const rx = cx.reduce((s,c,i)=>s+c*f[i],0);
-  const ry = cy.reduce((s,c,i)=>s+c*f[i],0);
-  return {
-    x: Math.max(0.02, Math.min(0.98, rx)),
-    y: Math.max(0.02, Math.min(0.98, ry)),
-  };
+  if (!etCalibMatrix||!etCalibMatrix.cx) return {x:0.5,y:0.5};
+  const {cx,cy}=etCalibMatrix;
+  const f=[1,g.x,g.y,g.x*g.y,g.x*g.x,g.y*g.y];
+  const rx=cx.reduce((s,c,i)=>s+c*f[i],0);
+  const ry=cy.reduce((s,c,i)=>s+c*f[i],0);
+  return {x:Math.max(0.02,Math.min(0.98,rx)), y:Math.max(0.02,Math.min(0.98,ry))};
 }
 
 /* ════════════════════════════════════════
-   시선 처리 + 역행 감지
+   시선 처리 + 역행 감지 (v4 단순화)
 ════════════════════════════════════════ */
 function etProcessGaze(m) {
   const now = Date.now();
   etTotalSamples++;
 
-  // 문단 인식
+  // 현재 문단
   const para = etGetParaFromY(m.y);
-  if (para >= 0 && para < (currentPassage ? currentPassage.article.length : 0)) {
+  if (para >= 0) {
     if (!etParaData[para]) etParaData[para] = {regressions:0, dwellMs:0};
     if (etLastGazeTime) etParaData[para].dwellMs += (now - etLastGazeTime);
   }
   etLastGazeTime = now;
 
- // ── 역행 감지 v4: 슬라이딩 윈도우 평균 기반 ──
-  const entry = {x: m.x, y: m.y, t: now};
-  etLineHistory.push(entry);
-  if (etLineHistory.length > ET_LINE_BUF) etLineHistory.shift();
-
-  if (etLineHistory.length >= 6 && etAppState === 'tracking') {
-    const half    = Math.floor(etLineHistory.length / 2);
-    const older   = etLineHistory.slice(0, half);
-    const newer   = etLineHistory.slice(half);
-    const avgXOld = older.reduce((s,p) => s+p.x, 0) / older.length;
-    const avgXNew = newer.reduce((s,p) => s+p.x, 0) / newer.length;
-    const avgYOld = older.reduce((s,p) => s+p.y, 0) / older.length;
-    const avgYNew = newer.reduce((s,p) => s+p.y, 0) / newer.length;
-    const yDiff   = Math.abs(avgYNew - avgYOld);
-    const isWrap  = (avgYNew - avgYOld) > ET_REG_Y_SAME * 1.5 && avgXNew < 0.3;
-    const coolOk  = (now - etLastRegTime) > ET_REG_COOLDOWN;
-    if ((avgXOld - avgXNew) > ET_REG_X_THRESH && yDiff < ET_REG_Y_SAME && !isWrap && coolOk) {
-      etRegressions++;
-      etLastRegTime = now;
-      if (para >= 0 && etParaData[para])
-        etParaData[para].regressions = (etParaData[para].regressions||0) + 1;
-    }
-    if (etLastPara !== -1 && para >= 0 && para < etLastPara && coolOk) {
-      etParaRegressions++;
-      etLastRegTime = now;
-    }
-  }
-  if (para >= 0) etLastPara = para;
-  etLastGazeX = m.x;
-
   // ── Fixation 감지 ──
-  const SACC = 0.04, FIX_MIN = 80;
+  const SACC = 0.05, FIX_MIN = 100;
+  let isNewFixation = false;
   if (!etLastFixPos || Math.hypot(m.x-etLastFixPos.x, m.y-etLastFixPos.y) > SACC) {
     if (etLastFixPos && etFixStart && (now-etFixStart) >= FIX_MIN) {
       const dur = now - etFixStart;
       etFixations.push({sx:etLastFixPos.x, sy:etLastFixPos.y, dur});
       etScanpathPoints.push({x:etLastFixPos.x, y:etLastFixPos.y, fix:true, r:Math.min(dur/350,1)});
+      isNewFixation = true;
+
+      // ═══════════════════════════════════
+      //  역행 감지 v4 — fixation 기반, 단순
+      // ═══════════════════════════════════
+      const coolOk = (now - etLastRegTime) > ET_REG_COOLDOWN;
+      if (coolOk && etLastFixationX >= 0) {
+
+        // ① 줄 역행: 같은 문단 내에서 X가 0.15 이상 왼쪽으로 이동
+        //    (줄바꿈은 Y가 달라지므로 paraReg으로 잡힘)
+        const sameParaArea = (para === etLastFixationPara);
+        const xMoveLeft = (etLastFixationX - m.x) > 0.15;
+        if (sameParaArea && xMoveLeft) {
+          etRegressions++;
+          etLastRegTime = now;
+          if (para >= 0 && etParaData[para])
+            etParaData[para].regressions = (etParaData[para].regressions||0) + 1;
+        }
+
+        // ② 문단 역행: 이전 문단보다 위의 문단으로 이동
+        if (para >= 0 && etLastFixationPara >= 0 && para < etLastFixationPara) {
+          etParaRegressions++;
+          etLastRegTime = now;
+        }
+      }
+
+      // 직전 fixation 위치 갱신
+      if (isNewFixation) {
+        etLastFixationX = etLastFixPos.x;
+        etLastFixationPara = (para >= 0) ? para : etLastFixationPara;
+      }
     }
     etLastFixPos = {x:m.x, y:m.y};
     etFixStart = now;
@@ -1794,43 +1772,41 @@ function etProcessGaze(m) {
     etScanpathPoints.push({x:m.x, y:m.y, fix:false, r:0});
   }
 
+  if (para >= 0) etLastPara = para;
+  etLastGazeX = m.x;
   etGazeLog.push({t:now-etStartTime, sx:m.x, sy:m.y, para});
 
-  // HUD
+  // HUD 업데이트
   const re = document.getElementById('etReg');
   const pr = document.getElementById('etParaReg');
   if (re) re.textContent = etRegressions;
   if (pr) pr.textContent = etParaRegressions;
 
-  // 시선 커서 — reading area 절대좌표로 변환
+  // 시선 커서
   const gc = document.getElementById('et-gaze-cursor');
   if (gc) {
-    const ax = etReadAreaRect.left + m.x * etReadAreaRect.width;
-    const ay = etReadAreaRect.top  + m.y * etReadAreaRect.height;
-    gc.style.left = ax + 'px';
-    gc.style.top  = ay + 'px';
+    gc.style.left = (etReadAreaRect.left + m.x * etReadAreaRect.width) + 'px';
+    gc.style.top  = (etReadAreaRect.top  + m.y * etReadAreaRect.height) + 'px';
     gc.style.display = 'block';
   }
 
-  // Scanpath 렌더
   etDrawScanpath();
 }
 
+/* ── Y좌표로 문단 번호 찾기 ── */
 function etGetParaFromY(ny) {
   const sy = etReadAreaRect.top + ny * etReadAreaRect.height;
   const ps = document.querySelectorAll('.et-para');
   let best=-1, bestD=Infinity;
   ps.forEach((p,i) => {
     const r = p.getBoundingClientRect();
-    const d = Math.abs((r.top+r.height/2) - sy);
+    const d = Math.abs((r.top + r.height/2) - sy);
     if (d < bestD) { bestD=d; best=i; }
   });
   return best;
 }
 
-/* ════════════════════════════════════════
-   Scanpath 캔버스 렌더
-════════════════════════════════════════ */
+/* ── Scanpath 렌더 ── */
 function etDrawScanpath() {
   const cv = document.getElementById('et-sp-cv');
   if (!cv) return;
@@ -1839,14 +1815,11 @@ function etDrawScanpath() {
   if (cv.height !== ra.height) cv.height = ra.height;
   const ctx = cv.getContext('2d');
   ctx.clearRect(0, 0, cv.width, cv.height);
-
   const pts = etScanpathPoints.slice(-100);
   if (pts.length < 2) return;
-
-  // 사카드 선
   for (let i=1; i<pts.length; i++) {
     const p0=pts[i-1], p1=pts[i];
-    if (!p0.fix || !p1.fix) continue;
+    if (!p0.fix||!p1.fix) continue;
     const alpha = 0.12 + (i/pts.length)*0.55;
     ctx.beginPath();
     ctx.moveTo(p0.x*cv.width, p0.y*cv.height);
@@ -1855,8 +1828,6 @@ function etDrawScanpath() {
     ctx.lineWidth = 1.5;
     ctx.stroke();
   }
-
-  // fixation 원
   pts.forEach((p,i) => {
     if (!p.fix) return;
     const alpha = 0.2 + (i/pts.length)*0.7;
@@ -1869,8 +1840,6 @@ function etDrawScanpath() {
     ctx.lineWidth = 1.5;
     ctx.stroke();
   });
-
-  // 현재 위치 강조
   const last = pts[pts.length-1];
   if (last) {
     ctx.beginPath();
@@ -1921,13 +1890,11 @@ function etShowCalibPoint(step) {
   if (msgEl) msgEl.textContent = '포인트 '+(step+1)+'/9 — 빨간 원을 응시하세요';
   etCalibStepStart = Date.now();
   if (etCalibAnimId) cancelAnimationFrame(etCalibAnimId);
-
   function draw() {
     etDrawCalibPt(t.x, t.y, Math.min((Date.now()-etCalibStepStart)/6000,1));
     etCalibAnimId = requestAnimationFrame(draw);
   }
   draw();
-
   if (etCalibTimer) clearInterval(etCalibTimer);
   etCalibTimer = setInterval(()=>{
     cnt--;
@@ -1943,121 +1910,88 @@ function etShowCalibPoint(step) {
 
 function etDrawCalibPt(tx, ty, prog) {
   if (!etCalibCtx) return;
-  const cw = window.innerWidth, ch = window.innerHeight;
-  etCalibCv.width = cw; etCalibCv.height = ch;
-  const ctx = etCalibCtx;
-  const ra = etReadAreaRect;
-
-  // 배경
-  ctx.fillStyle = 'rgba(0,0,0,0.94)';
+  const cw=window.innerWidth, ch=window.innerHeight;
+  etCalibCv.width=cw; etCalibCv.height=ch;
+  const ctx=etCalibCtx;
+  const ra=etReadAreaRect;
+  ctx.fillStyle='rgba(0,0,0,0.94)';
   ctx.fillRect(0,0,cw,ch);
-
-  // reading area 테두리
-  ctx.strokeStyle = 'rgba(61,220,132,0.45)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([8,5]);
-  ctx.strokeRect(ra.left, ra.top, ra.width, ra.height);
+  ctx.strokeStyle='rgba(61,220,132,0.45)';
+  ctx.lineWidth=2; ctx.setLineDash([8,5]);
+  ctx.strokeRect(ra.left,ra.top,ra.width,ra.height);
   ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(61,220,132,0.4)';
-  ctx.font = '11px monospace';
-  ctx.fillText('READING AREA — 이 영역을 응시하세요', ra.left+8, ra.top-7);
-
-  // 완료 포인트
-  for (let i=0; i<etCalibStep; i++) {
-    const p = ET_CT[i];
-    const px = ra.left + p.x*ra.width, py = ra.top + p.y*ra.height;
-    ctx.beginPath();
-    ctx.arc(px,py,9,0,Math.PI*2);
-    ctx.fillStyle='rgba(61,220,132,0.8)';
-    ctx.fill();
-    ctx.fillStyle='#000';
-    ctx.font='bold 9px monospace';
+  ctx.fillStyle='rgba(61,220,132,0.4)';
+  ctx.font='11px monospace';
+  ctx.fillText('READING AREA — 이 영역을 응시하세요',ra.left+8,ra.top-7);
+  for(let i=0;i<etCalibStep;i++){
+    const p=ET_CT[i];
+    const px=ra.left+p.x*ra.width, py=ra.top+p.y*ra.height;
+    ctx.beginPath(); ctx.arc(px,py,9,0,Math.PI*2);
+    ctx.fillStyle='rgba(61,220,132,0.8)'; ctx.fill();
+    ctx.fillStyle='#000'; ctx.font='bold 9px monospace';
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(i+1,px,py);
     ctx.textAlign='left'; ctx.textBaseline='alphabetic';
   }
-
-  // 현재 포인트
-  const px = ra.left + tx*ra.width, py = ra.top + ty*ra.height;
-  const pulse = (Date.now()%800)/800;
-
-  // 펄스 링
-  ctx.beginPath();
-  ctx.arc(px,py,40+pulse*22,0,Math.PI*2);
+  const px=ra.left+tx*ra.width, py=ra.top+ty*ra.height;
+  const pulse=(Date.now()%800)/800;
+  ctx.beginPath(); ctx.arc(px,py,40+pulse*22,0,Math.PI*2);
   ctx.strokeStyle=`rgba(255,107,107,${0.35*(1-pulse)})`;
   ctx.lineWidth=2; ctx.stroke();
-
-  // 진행 호
-  ctx.beginPath();
-  ctx.arc(px,py,26,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);
+  ctx.beginPath(); ctx.arc(px,py,26,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);
   ctx.strokeStyle='rgba(255,107,107,0.9)';
   ctx.lineWidth=4; ctx.stroke();
-
-  // 원
   ctx.beginPath(); ctx.arc(px,py,14,0,Math.PI*2);
   ctx.fillStyle='#ff6b6b'; ctx.fill();
   ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2);
   ctx.fillStyle='#fff'; ctx.fill();
-
-  // 번호
   ctx.fillStyle='rgba(255,255,255,0.85)';
   ctx.font='bold 12px monospace';
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText((etCalibStep+1)+'/9', px, py+44);
+  ctx.fillText((etCalibStep+1)+'/9',px,py+44);
   ctx.textAlign='left'; ctx.textBaseline='alphabetic';
 }
 
-/* ── 캘리브레이션 완료 ── */
 function etFinishCalib() {
-  const cs = document.getElementById('et-calib-screen');
-  if (cs) cs.classList.remove('show');
-
-  // IQR 평균
-  const means = etCalibSamples.map((s,i) => {
-    if (!s || s.length < 3) return {x: ET_CT[i].x*0.5, y: ET_CT[i].y*0.5};
-    const sx = [...s].sort((a,b)=>a.x-b.x);
-    const sy = [...s].sort((a,b)=>a.y-b.y);
+  const cs=document.getElementById('et-calib-screen');
+  if(cs) cs.classList.remove('show');
+  const means = etCalibSamples.map((s,i)=>{
+    if(!s||s.length<3) return {x:ET_CT[i].x*0.5, y:ET_CT[i].y*0.5};
+    const sx=[...s].sort((a,b)=>a.x-b.x);
+    const sy=[...s].sort((a,b)=>a.y-b.y);
     const q1=Math.floor(s.length*0.25), q3=Math.ceil(s.length*0.75);
     return {
-      x: sx.slice(q1,q3).reduce((a,b)=>a+b.x,0)/Math.max(sx.slice(q1,q3).length,1),
-      y: sy.slice(q1,q3).reduce((a,b)=>a+b.y,0)/Math.max(sy.slice(q1,q3).length,1),
+      x:sx.slice(q1,q3).reduce((a,b)=>a+b.x,0)/Math.max(sx.slice(q1,q3).length,1),
+      y:sy.slice(q1,q3).reduce((a,b)=>a+b.y,0)/Math.max(sy.slice(q1,q3).length,1),
     };
   });
+  let model={cx:null,cy:null};
+  try{model=etBuildCalibModel(means, ET_CT);}catch(e){console.warn('캘리브 실패',e);}
+  etCalibMatrix={cx:model.cx, cy:model.cy};
 
-  let model = {cx:null, cy:null};
-  try { model = etBuildCalibModel(means, ET_CT); }
-  catch(e) { console.warn('캘리브 실패', e); }
-  etCalibMatrix = {cx:model.cx, cy:model.cy};
+  etAppState='tracking';
+  etStartTime=Date.now();
+  etScanpathPoints=[];
+  etFixations=[]; etRegressions=0; etParaRegressions=0;
+  etLastFixationX=-1; etLastFixationPara=-1;
+  etLastPara=-1; etLastRegTime=0;
 
-  // 추적 시작
-  etAppState = 'tracking';
-  etStartTime = Date.now();
-  etLineHistory = []; etScanpathPoints = [];
-  etFixations = []; etRegressions = 0; etParaRegressions = 0;
-  etParaRegBuffer = 0; etLastPara = -1;
-
-  const pdot = document.getElementById('etPdot');
-  const stxt = document.getElementById('etStatusTxt');
-  if (pdot) pdot.className = 'et-pdot on';
-  if (stxt) stxt.textContent = '추적 중 👁';
-
-  const bc = document.getElementById('etBtnCalib');
-  const bs = document.getElementById('etBtnStop');
-  if (bc) bc.style.display = 'none';
-  if (bs) bs.style.display = 'block';
-
-  // 시선 커서 활성화
-  const gc = document.getElementById('et-gaze-cursor');
-  if (gc) gc.style.display = 'block';
-
-  // 캘리브레이션 완료 토스트
+  const pdot=document.getElementById('etPdot');
+  const stxt=document.getElementById('etStatusTxt');
+  if(pdot) pdot.className='et-pdot on';
+  if(stxt) stxt.textContent='추적 중 👁';
+  const bc=document.getElementById('etBtnCalib');
+  const bs=document.getElementById('etBtnStop');
+  if(bc) bc.style.display='none';
+  if(bs) bs.style.display='block';
+  const gc=document.getElementById('et-gaze-cursor');
+  if(gc) gc.style.display='block';
   showToast('✅ 캘리브레이션 완료! 자연스럽게 지문을 읽어 주세요.');
-
-  etTimerInterval = setInterval(()=>{
-    const e = Math.floor((Date.now()-etStartTime)/1000);
-    const el = document.getElementById('etTimer');
-    if (el) el.textContent = String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
-  }, 500);
+  etTimerInterval=setInterval(()=>{
+    const e=Math.floor((Date.now()-etStartTime)/1000);
+    const el=document.getElementById('etTimer');
+    if(el) el.textContent=String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
+  },500);
 }
 
 window.etHandleStart = function() {
@@ -2067,32 +2001,33 @@ window.etHandleStart = function() {
 };
 
 window.etStopReading = function() {
-  if (etTimerInterval) { clearInterval(etTimerInterval); etTimerInterval=null; }
-  etReadEndTime = Date.now();
-  etAppState = 'done';
-  if (etLastFixPos && etFixStart) {
-    const dur = Date.now()-etFixStart;
-    if (dur>=80) etFixations.push({sx:etLastFixPos.x, sy:etLastFixPos.y, dur});
+  if(etTimerInterval){clearInterval(etTimerInterval);etTimerInterval=null;}
+  etReadEndTime=Date.now();
+  etAppState='done';
+  if(etLastFixPos&&etFixStart){
+    const dur=Date.now()-etFixStart;
+    if(dur>=80) etFixations.push({sx:etLastFixPos.x,sy:etLastFixPos.y,dur});
   }
   const pdot=document.getElementById('etPdot');
   const stxt=document.getElementById('etStatusTxt');
-  if (pdot) pdot.className='et-pdot done';
-  if (stxt) stxt.textContent='완료';
+  if(pdot) pdot.className='et-pdot done';
+  if(stxt) stxt.textContent='완료';
   const bs=document.getElementById('etBtnStop');
-  if (bs) bs.style.display='none';
+  if(bs) bs.style.display='none';
   const gc=document.getElementById('et-gaze-cursor');
-  if (gc) gc.style.display='none';
-  if (etMpCam) { try{etMpCam.stop();}catch(e){} }
-  if (etMediaStream) etMediaStream.getTracks().forEach(t=>t.stop());
+  if(gc) gc.style.display='none';
+  if(etMpCam){try{etMpCam.stop();}catch(e){}}
+  if(etMediaStream) etMediaStream.getTracks().forEach(t=>t.stop());
   setTimeout(()=>{
     document.getElementById('etFullscreen').classList.remove('active');
     etFinishReading();
-  }, 400);
+  },400);
 };
 
-window.addEventListener('resize', ()=>{
-  if (etAppState==='tracking') { etFitText(); etUpdateReadAreaRect(); }
+window.addEventListener('resize',()=>{
+  if(etAppState==='tracking'){etFitText();etUpdateReadAreaRect();}
 });
+</script>
   function etFitText() {
   const txts = document.querySelectorAll('.et-para-txt');
   if (!txts.length) return;
