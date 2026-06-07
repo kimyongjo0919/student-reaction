@@ -2030,91 +2030,50 @@ window.addEventListener('resize',()=>{
   /* ════════════════════════════════════════
    카메라 체크 화면 (캘리브레이션 전)
 ════════════════════════════════════════ */
-
 function etShowCamCheck() {
-  // 기존 체크 화면 있으면 제거
   const old = document.getElementById('etCamCheck');
   if (old) old.remove();
 
   const overlay = document.createElement('div');
   overlay.id = 'etCamCheck';
-  overlay.style.cssText = `
-    position:fixed;inset:0;z-index:5500;
-    background:rgba(7,7,14,0.97);
-    display:flex;flex-direction:column;
-    align-items:center;justify-content:center;
-    gap:20px;font-family:'Noto Sans KR',sans-serif;
-  `;
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:5500;background:rgba(7,7,14,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;font-family:\'Noto Sans KR\',sans-serif;';
 
-  overlay.innerHTML = `
-    <div style="font-size:13px;font-weight:700;color:#3ddc84;
-      letter-spacing:1px;font-family:'Space Mono',monospace;">
-      📷 카메라 위치 확인
-    </div>
+  const checks = [
+    ['💡','조명이 얼굴 정면에서 비추나요?','역광(창문 등 뒤)은 피해 주세요'],
+    ['📏','카메라와 40~60cm 거리인가요?','팔 길이 정도가 적당해요'],
+    ['👁','얼굴 전체가 화면에 보이나요?','이마~턱이 모두 보여야 해요'],
+    ['🚫','안경 반사광이 없나요?','조명 각도를 조절해 보세요'],
+  ];
 
-    <!-- 카메라 미리보기 (크게) -->
-    <div style="position:relative;width:320px;height:240px;
-      border-radius:12px;overflow:hidden;border:2px solid rgba(61,220,132,0.5);
-      background:#000;">
-      <video id="etCheckVideo" playsinline muted autoplay
-        style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
-      <!-- 얼굴 가이드 타원 -->
-      <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;">
-        <ellipse cx="50%" cy="48%" rx="28%" ry="36%"
-          fill="none" stroke="rgba(61,220,132,0.6)" stroke-width="2"
-          stroke-dasharray="8,4"/>
-      </svg>
-      <!-- 거리 안내 -->
-      <div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;
-        font-size:10px;color:rgba(255,255,255,0.6);font-family:'Space Mono',monospace;">
-        얼굴이 타원 안에 오도록 조정하세요
-      </div>
-    </div>
+  const checkHTML = checks.map(function(item) {
+    return '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">' +
+      '<span style="font-size:16px;flex-shrink:0;">' + item[0] + '</span>' +
+      '<div>' +
+        '<div style="font-size:12px;font-weight:600;color:#f0f0f8;">' + item[1] + '</div>' +
+        '<div style="font-size:10px;color:#55556a;margin-top:2px;">' + item[2] + '</div>' +
+      '</div></div>';
+  }).join('');
 
-    <!-- 체크리스트 -->
-    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
-      border-radius:12px;padding:16px 20px;width:320px;">
-      <div style="font-size:11px;font-weight:700;color:#9090b0;
-        margin-bottom:12px;font-family:'Space Mono',monospace;">
-        체크리스트
-      </div>
-      ${[
-        ['💡','조명이 얼굴 정면에서 비추나요?','역광(창문 등 뒤)은 피해 주세요'],
-        ['📏','카메라와 40~60cm 거리인가요?','팔 길이 정도가 적당해요'],
-        ['👁','얼굴 전체가 화면에 보이나요?','이마~턱이 모두 보여야 해요'],
-        ['🚫','안경 반사광이 없나요?','조명 각도를 조절해 보세요'],
-      ].map(([icon,title,desc]) => `
-        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
-          <span style="font-size:16px;flex-shrink:0;">${icon}</span>
-          <div>
-            <div style="font-size:12px;font-weight:600;color:#f0f0f8;">${title}</div>
-            <div style="font-size:10px;color:#55556a;margin-top:2px;">${desc}</div>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-
-    <!-- 버튼 -->
-    <div style="display:flex;gap:10px;">
-      <button onclick="etCancelCamCheck()"
-        style="padding:10px 24px;border-radius:50px;border:1px solid rgba(255,255,255,0.15);
-        background:transparent;color:#9090b0;font-size:13px;font-weight:700;cursor:pointer;
-        font-family:'Noto Sans KR',sans-serif;">
-        취소
-      </button>
-      <button onclick="etConfirmCamCheck()"
-        style="padding:10px 28px;border-radius:50px;border:none;
-        background:linear-gradient(135deg,#3ddc84,#2dd4bf);
-        color:#07070e;font-size:13px;font-weight:700;cursor:pointer;
-        font-family:'Noto Sans KR',sans-serif;">
-        ✓ 준비됐어요 → 캘리브레이션 시작
-      </button>
-    </div>
-  `;
+  overlay.innerHTML =
+    '<div style="font-size:13px;font-weight:700;color:#3ddc84;letter-spacing:1px;font-family:\'Space Mono\',monospace;">📷 카메라 위치 확인</div>' +
+    '<div style="position:relative;width:320px;height:240px;border-radius:12px;overflow:hidden;border:2px solid rgba(61,220,132,0.5);background:#000;">' +
+      '<video id="etCheckVideo" playsinline muted autoplay style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>' +
+      '<svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;">' +
+        '<ellipse cx="50%" cy="48%" rx="28%" ry="36%" fill="none" stroke="rgba(61,220,132,0.6)" stroke-width="2" stroke-dasharray="8,4"/>' +
+      '</svg>' +
+      '<div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:10px;color:rgba(255,255,255,0.6);font-family:\'Space Mono\',monospace;">얼굴이 타원 안에 오도록 조정하세요</div>' +
+    '</div>' +
+    '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px 20px;width:320px;">' +
+      '<div style="font-size:11px;font-weight:700;color:#9090b0;margin-bottom:12px;font-family:\'Space Mono\',monospace;">체크리스트</div>' +
+      checkHTML +
+    '</div>' +
+    '<div style="display:flex;gap:10px;">' +
+      '<button onclick="etCancelCamCheck()" style="padding:10px 24px;border-radius:50px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:#9090b0;font-size:13px;font-weight:700;cursor:pointer;font-family:\'Noto Sans KR\',sans-serif;">취소</button>' +
+      '<button onclick="etConfirmCamCheck()" style="padding:10px 28px;border-radius:50px;border:none;background:linear-gradient(135deg,#3ddc84,#2dd4bf);color:#07070e;font-size:13px;font-weight:700;cursor:pointer;font-family:\'Noto Sans KR\',sans-serif;">✓ 준비됐어요 → 캘리브레이션 시작</button>' +
+    '</div>';
 
   document.body.appendChild(overlay);
 
-  // 체크 화면용 카메라 스트림 연결
   const video = document.getElementById('etCheckVideo');
   if (etMediaStream && video) {
     video.srcObject = etMediaStream;
