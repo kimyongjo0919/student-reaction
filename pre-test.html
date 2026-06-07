@@ -1571,9 +1571,12 @@ function showToast(msg) {
 
 // ── 새 변수 (원본에 없는 것만) ──
 let etLineHistory = [];
-const ET_LINE_BUF = 40;
-const ET_REG_X_THRESH = 0.12;
-const ET_REG_Y_SAME = 0.06;
+const ET_LINE_BUF = 30;
+const ET_REG_X_THRESH = 0.07;
+const ET_REG_Y_SAME   = 0.10;
+const ET_REG_COOLDOWN = 350;
+let etLastRegTime = 0;
+let etLastGazeX   = 0.5;
 let etScanpathPoints = [];
 let etFpsCnt2 = 0, etFpsLast2 = Date.now();
 
@@ -1724,14 +1727,11 @@ function etApplyCalib(g) {
   if (!etCalibMatrix || !etCalibMatrix.cx) return {x:0.5, y:0.5};
   const {cx,cy} = etCalibMatrix;
   const f = [1, g.x, g.y, g.x*g.y, g.x*g.x, g.y*g.y];
-  let rx = cx.reduce((s,c,i)=>s+c*f[i],0);
-  let ry = cy.reduce((s,c,i)=>s+c*f[i],0);
-  // 범위 강제 확장 (0~1로 정규화)
-  rx = (rx - 0.1) / 0.8;
-  ry = (ry - 0.1) / 0.8;
+const rx = cx.reduce((s,c,i)=>s+c*f[i],0);
+  const ry = cy.reduce((s,c,i)=>s+c*f[i],0);
   return {
-    x: Math.max(0, Math.min(1, rx)),
-    y: Math.max(0, Math.min(1, ry)),
+    x: Math.max(0.02, Math.min(0.98, rx)),
+    y: Math.max(0.02, Math.min(0.98, ry)),
   };
 }
 
@@ -1739,7 +1739,6 @@ function etApplyCalib(g) {
    시선 처리 + 역행 감지
 ════════════════════════════════════════ */
 function etProcessGaze(m) {
-console.log('gaze', m.x.toFixed(3), m.y.toFixed(3)); //
   const now = Date.now();
   etTotalSamples++;
 
@@ -1751,36 +1750,35 @@ console.log('gaze', m.x.toFixed(3), m.y.toFixed(3)); //
   }
   etLastGazeTime = now;
 
-  // ── 역행 감지 (줄 단위) ──
+ // ── 역행 감지 v4: 슬라이딩 윈도우 평균 기반 ──
   const entry = {x: m.x, y: m.y, t: now};
-  if (etLineHistory.length >= 2) {
-    const prev = etLineHistory[etLineHistory.length - 1];
-    const sameLine = Math.abs(m.y - prev.y) < ET_REG_Y_SAME;
-    const goLeft   = (prev.x - m.x) > ET_REG_X_THRESH;
-    // 줄바꿈 구별: Y가 아래로 크게 이동하면서 X가 왼쪽 → 줄바꿈
-    const isWrap   = (m.y - prev.y) > ET_REG_Y_SAME * 1.8 && m.x < 0.35;
-    if (sameLine && goLeft && !isWrap) {
-      // 직전 2프레임 모두 같은 방향이어야 카운트 (노이즈 방지)
-      const pp = etLineHistory[etLineHistory.length - 2];
-      const ppSame = Math.abs(prev.y - pp.y) < ET_REG_Y_SAME;
-      const ppLeft = (pp.x - prev.x) > ET_REG_X_THRESH * 0.5;
-      if (ppSame && ppLeft) {
-        etRegressions++;
-        if (para >= 0 && etParaData[para])
-          etParaData[para].regressions = (etParaData[para].regressions||0) + 1;
-      }
-    }
-    // 문단 역행
-    if (etLastPara !== -1 && para >= 0 && para < etLastPara) {
-      etParaRegBuffer++;
-      if (etParaRegBuffer >= 3) { etParaRegressions++; etParaRegBuffer = 0; }
-    } else if (para > etLastPara) {
-      etParaRegBuffer = 0;
-    }
-  }
   etLineHistory.push(entry);
   if (etLineHistory.length > ET_LINE_BUF) etLineHistory.shift();
+
+  if (etLineHistory.length >= 6 && etAppState === 'tracking') {
+    const half    = Math.floor(etLineHistory.length / 2);
+    const older   = etLineHistory.slice(0, half);
+    const newer   = etLineHistory.slice(half);
+    const avgXOld = older.reduce((s,p) => s+p.x, 0) / older.length;
+    const avgXNew = newer.reduce((s,p) => s+p.x, 0) / newer.length;
+    const avgYOld = older.reduce((s,p) => s+p.y, 0) / older.length;
+    const avgYNew = newer.reduce((s,p) => s+p.y, 0) / newer.length;
+    const yDiff   = Math.abs(avgYNew - avgYOld);
+    const isWrap  = (avgYNew - avgYOld) > ET_REG_Y_SAME * 1.5 && avgXNew < 0.3;
+    const coolOk  = (now - etLastRegTime) > ET_REG_COOLDOWN;
+    if ((avgXOld - avgXNew) > ET_REG_X_THRESH && yDiff < ET_REG_Y_SAME && !isWrap && coolOk) {
+      etRegressions++;
+      etLastRegTime = now;
+      if (para >= 0 && etParaData[para])
+        etParaData[para].regressions = (etParaData[para].regressions||0) + 1;
+    }
+    if (etLastPara !== -1 && para >= 0 && para < etLastPara && coolOk) {
+      etParaRegressions++;
+      etLastRegTime = now;
+    }
+  }
   if (para >= 0) etLastPara = para;
+  etLastGazeX = m.x;
 
   // ── Fixation 감지 ──
   const SACC = 0.04, FIX_MIN = 80;
