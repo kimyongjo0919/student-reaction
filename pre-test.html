@@ -1565,8 +1565,6 @@ function showToast(msg) {
   t.textContent=msg; t.classList.add('show');
   setTimeout(function(){t.classList.remove('show');},3000);
 }
-<!-- 아래 코드로 기존 ET ENGINE v3 전체 교체 -->
-<script>
 /* ════════════════════════════════════════
    ET ENGINE v4 — 역행 감지 단순화
 ════════════════════════════════════════ */
@@ -2028,26 +2026,7 @@ window.addEventListener('resize',()=>{
   if(etAppState==='tracking'){etFitText();etUpdateReadAreaRect();}
 });
 </script>
-  function etFitText() {
-  const txts = document.querySelectorAll('.et-para-txt');
-  if (!txts.length) return;
-  const areaH = window.innerHeight - 44;
-  const titleH = (document.getElementById('et-passage-title-display') || {}).offsetHeight || 30;
-  const nParas = currentPassage.article.length || 2;
-  const perPara = (areaH - titleH - 20) / nParas;
-  let lo = 9, hi = 22;
-  for (let k = 0; k < 16; k++) {
-    const mid = (lo + hi) / 2;
-    txts.forEach(function(t) { t.style.fontSize = mid + 'px'; });
-    let maxH = 0;
-    document.querySelectorAll('.et-para').forEach(function(pw) {
-      maxH = Math.max(maxH, pw.offsetHeight);
-    });
-    if (maxH < perPara - 4) lo = mid; else hi = mid;
-  }
-  txts.forEach(function(t) { t.style.fontSize = Math.floor(lo * 10) / 10 + 'px'; });
-}
-updateProgress();
+
   /* ════════════════════════════════════════
    카메라 체크 화면 (캘리브레이션 전)
 ════════════════════════════════════════ */
