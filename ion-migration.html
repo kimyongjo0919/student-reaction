@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이온의 이동 | META FLOW+</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+:root {
+  --bg:#0a0e1a; --panel:#111827; --border:#1e2d40;
+  --purple:#9333ea; --purple-light:#c084fc;
+  --blue:#2563eb; --blue-light:#60a5fa;
+  --neg:#ef4444; --pos:#f97316;
+  --text:#e2e8f0; --muted:#64748b; --green:#10b981;
+  --paper:#f5f0e8;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+/* 헤더 */
+header{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;gap:12px;}
+.logo{font-size:13px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.logo span{color:var(--purple-light);font-weight:700;}
+.student-badge{font-size:12px;color:var(--text);background:#1e2d40;padding:4px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+
+/* 단계 표시 */
+.step-bar{display:flex;gap:6px;flex:1;justify-content:center;}
+.step-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);transition:all 0.3s;}
+.step-item.active{color:var(--text);}
+.step-item.done{color:var(--green);}
+.step-num{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--muted);display:flex;align-items:center;justify-content:center;font-size:10px;font-family:'JetBrains Mono',monospace;transition:all 0.3s;flex-shrink:0;}
+.step-item.active .step-num{border-color:var(--purple);background:var(--purple);color:white;}
+.step-item.done .step-num{border-color:var(--green);background:var(--green);color:white;}
+.step-arrow{color:var(--border);font-size:10px;}
+
+/* 메인 레이아웃 */
+main{display:grid;grid-template-columns:1fr 320px;flex:1;overflow:hidden;}
+
+/* 시뮬레이션 패널 */
+.sim-panel{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 20px;gap:12px;}
+
+/* 단계 안내 카드 */
+.guide-card{width:100%;max-width:700px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:14px;min-height:56px;}
+.guide-icon{font-size:26px;flex-shrink:0;}
+.guide-text{flex:1;}
+.guide-title{font-size:14px;font-weight:700;margin-bottom:2px;}
+.guide-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+.guide-card.step-highlight{border-color:var(--purple);background:rgba(147,51,234,0.08);}
+
+/* 거름종이 + 전극 영역 */
+.experiment-area{width:100%;max-width:700px;position:relative;}
+.electrode-row{display:flex;justify-content:space-between;margin-bottom:8px;padding:0 2px;}
+.elabel{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;padding:6px 18px;border-radius:8px;transition:all 0.4s;}
+.elabel.neg{color:var(--neg);background:rgba(239,68,68,0.1);border:2px solid rgba(239,68,68,0.3);}
+.elabel.pos{color:var(--pos);background:rgba(249,115,22,0.1);border:2px solid rgba(249,115,22,0.3);}
+.elabel.neg.active{background:rgba(239,68,68,0.2);border-color:var(--neg);box-shadow:0 0 20px rgba(239,68,68,0.5);}
+.elabel.pos.active{background:rgba(249,115,22,0.2);border-color:var(--pos);box-shadow:0 0 20px rgba(249,115,22,0.5);}
+.elabel.neg.inactive{opacity:0.3;}
+.elabel.pos.inactive{opacity:0.3;}
+
+/* 캔버스 */
+#simCanvas{width:100%;height:220px;border-radius:14px;border:2px solid var(--border);display:block;cursor:default;}
+
+/* 전류선 */
+.current-row{display:flex;align-items:center;gap:8px;width:100%;max-width:700px;}
+.current-line{flex:1;height:4px;border-radius:2px;background:var(--border);position:relative;overflow:hidden;}
+.current-line.on{background:linear-gradient(90deg,var(--neg),#888,var(--pos));}
+.current-line.on::after{content:'';position:absolute;top:0;left:-60px;width:60px;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.7),transparent);animation:flowAnim 1.2s linear infinite;}
+@keyframes flowAnim{to{left:calc(100% + 60px);}}
+.cur-label{font-size:13px;font-family:'JetBrains Mono',monospace;font-weight:700;}
+
+/* 오개념 퀴즈 배너 */
+.misconception-banner{width:100%;max-width:700px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.4);border-radius:10px;padding:10px 16px;display:none;}
+.misconception-banner.visible{display:flex;align-items:flex-start;gap:10px;}
+.mb-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
+.mb-text{font-size:12px;line-height:1.7;color:#fcd34d;}
+.mb-title{font-weight:700;font-size:13px;margin-bottom:3px;color:#f59e0b;}
+
+/* 사이드 패널 */
+.side-panel{border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;}
+
+/* 웹캠 섹션 */
+.cam-section{position:relative;background:#000;flex-shrink:0;}
+.cam-placeholder{width:100%;height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#0a0e1a;border-bottom:1px solid var(--border);}
+.cam-btn{padding:8px 20px;border-radius:20px;border:1px solid var(--purple);background:rgba(147,51,234,0.15);color:var(--purple-light);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.cam-btn:hover{background:rgba(147,51,234,0.3);}
+.cam-btn.active{background:var(--purple);color:white;border-color:var(--purple);}
+#videoEl{width:100%;display:block;transform:scaleX(-1);max-height:160px;object-fit:cover;}
+#camCanvas{position:absolute;top:0;left:0;width:100%;height:100%;transform:scaleX(-1);}
+
+/* 손 상태 */
+.hand-status{display:flex;justify-content:space-around;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;}
+.hand-box{text-align:center;font-size:11px;color:var(--muted);transition:color 0.2s;}
+.hand-box.detected{color:var(--text);}
+.hand-box .hicon{font-size:20px;display:block;margin-bottom:2px;}
+.hand-box .hlabel{font-weight:700;font-size:10px;}
+
+/* NFC 단계 패널 */
+.nfc-panel{padding:12px 14px;flex-shrink:0;border-bottom:1px solid var(--border);}
+.nfc-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-family:'JetBrains Mono',monospace;}
+.nfc-steps{display:flex;flex-direction:column;gap:6px;}
+.nfc-step-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:12px;cursor:pointer;transition:all 0.2s;text-align:left;width:100%;}
+.nfc-step-btn:hover{border-color:var(--purple);color:var(--text);}
+.nfc-step-btn.current{border-color:var(--purple);background:rgba(147,51,234,0.12);color:var(--purple-light);cursor:pointer;}
+.nfc-step-btn.done{border-color:var(--green);background:rgba(16,185,129,0.08);color:var(--green);}
+.nfc-step-btn.locked{opacity:0.35;cursor:not-allowed;}
+.nfc-step-num{width:20px;height:20px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-family:'JetBrains Mono',monospace;flex-shrink:0;}
+.nfc-step-btn.current .nfc-step-num{background:var(--purple);color:white;}
+.nfc-step-btn.done .nfc-step-num{background:var(--green);color:white;}
+.nfc-step-info{flex:1;}
+.nfc-step-label{font-weight:700;font-size:12px;line-height:1.3;}
+.nfc-step-sub{font-size:10px;opacity:0.75;margin-top:1px;}
+
+/* 이온 범례 */
+.legend-panel{padding:10px 14px;flex-shrink:0;border-bottom:1px solid var(--border);}
+.legend-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;font-family:'JetBrains Mono',monospace;}
+.legend-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:11px;padding:5px 8px;border-radius:7px;background:#0f1929;}
+.legend-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:white;}
+.legend-info{flex:1;}
+.legend-formula{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px;}
+.legend-dir{font-size:10px;color:var(--muted);}
+
+/* 문해력 버튼 */
+.literacy-btn{margin:10px 14px;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--purple),#7c3aed);color:white;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;flex-shrink:0;}
+.literacy-btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(147,51,234,0.5);}
+.literacy-btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* 모달 공통 */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px);}
+.modal-overlay.hidden{display:none;}
+.modal-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:28px;width:360px;}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:4px;}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
+.modal-input{width:100%;background:#0a0e1a;border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:14px;margin-bottom:10px;outline:none;transition:border-color 0.2s;}
+.modal-input:focus{border-color:var(--purple);}
+.modal-btn{width:100%;padding:12px;border-radius:8px;border:none;background:var(--purple);color:white;font-size:14px;font-weight:700;font-family:'Noto Sans KR',sans-serif;cursor:pointer;}
+
+/* NFC 스캔 오버레이 */
+.nfc-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:150;backdrop-filter:blur(6px);}
+.nfc-overlay.hidden{display:none;}
+.nfc-scan-box{text-align:center;}
+.nfc-ring{width:130px;height:130px;border-radius:50%;border:3px solid var(--purple);display:flex;align-items:center;justify-content:center;font-size:52px;margin:0 auto 20px;animation:pulse 1s ease-in-out infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.07);opacity:0.7;}}
+.nfc-scan-title{font-size:18px;font-weight:700;margin-bottom:6px;}
+.nfc-scan-sub{font-size:13px;color:var(--muted);}
+
+/* 문해력 모달 */
+.lit-modal{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(6px);}
+.lit-modal.hidden{display:none;}
+.lit-box{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:26px;width:520px;max-height:88vh;overflow-y:auto;}
+.lit-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.lit-badge{font-size:11px;font-family:'JetBrains Mono',monospace;padding:4px 12px;border-radius:20px;background:rgba(147,51,234,0.2);color:var(--purple-light);border:1px solid var(--purple);}
+.lit-tabs{display:flex;gap:5px;margin-bottom:16px;}
+.lit-tab{flex:1;padding:7px 4px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:10px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;text-align:center;transition:all 0.2s;line-height:1.4;}
+.lit-tab.active{border-color:var(--purple);background:rgba(147,51,234,0.15);color:var(--purple-light);}
+.lit-tab.done{border-color:var(--green);color:var(--green);}
+.lit-prompt{background:#0a0e1a;border-radius:10px;padding:13px;margin-bottom:10px;font-size:14px;line-height:1.7;border-left:3px solid var(--purple);}
+.lit-hint{font-size:12px;color:var(--muted);margin-bottom:9px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;}
+.lit-ta{width:100%;background:#0a0e1a;border:1px solid var(--border);border-radius:9px;padding:11px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;resize:vertical;min-height:85px;outline:none;transition:border-color 0.2s;margin-bottom:9px;}
+.lit-ta:focus{border-color:var(--purple);}
+.lit-actions{display:flex;gap:8px;}
+.lit-next{flex:1;padding:11px;border-radius:8px;border:none;background:var(--purple);color:white;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer;}
+.lit-close{padding:11px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:14px;cursor:pointer;}
+.ai-fb{margin-top:12px;padding:12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);border-radius:10px;font-size:13px;line-height:1.7;color:#a7f3d0;display:none;}
+.ai-fb.visible{display:block;}
+.ai-fb-title{font-size:10px;color:var(--green);font-weight:700;margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
+
+/* 토스트 */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--green);color:white;padding:10px 24px;border-radius:24px;font-size:14px;font-weight:700;transition:transform 0.3s;z-index:300;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* 시약 선택 버튼 (헤더 내) */
+.reagent-select{display:flex;gap:6px;}
+.rg-btn{padding:4px 12px;border-radius:16px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:12px;cursor:pointer;transition:all 0.2s;}
+.rg-btn:hover{border-color:var(--purple);color:var(--text);}
+.rg-btn.active-mno4{border-color:var(--purple);background:rgba(147,51,234,0.15);color:var(--purple-light);}
+.rg-btn.active-cu2{border-color:var(--blue);background:rgba(37,99,235,0.15);color:var(--blue-light);}
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<header>
+  <div class="logo"><span>META FLOW+</span> · 이온의 이동</div>
+
+  <div class="step-bar" id="stepBar">
+    <div class="step-item active" id="stepItem0"><div class="step-num">1</div><span>시약선택</span></div>
+    <div class="step-arrow">›</div>
+    <div class="step-item" id="stepItem1"><div class="step-num">2</div><span>KNO₃ 준비</span></div>
+    <div class="step-arrow">›</div>
+    <div class="step-item" id="stepItem2"><div class="step-num">3</div><span>전극연결</span></div>
+    <div class="step-arrow">›</div>
+    <div class="step-item" id="stepItem3"><div class="step-num">4</div><span>시약투하</span></div>
+    <div class="step-arrow">›</div>
+    <div class="step-item" id="stepItem4"><div class="step-num">5</div><span>이동관찰</span></div>
+    <div class="step-arrow">›</div>
+    <div class="step-item" id="stepItem5"><div class="step-num">6</div><span>문해력</span></div>
+  </div>
+
+  <div id="studentBadge" class="student-badge" onclick="showLoginModal()">👤 로그인</div>
+  <button onclick="resetExperiment()" style="padding:4px 12px;border-radius:16px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:11px;cursor:pointer;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--neg)';this.style.color='var(--neg)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">🔄 초기화</button>
+</header>
+
+<!-- 메인 -->
+<main>
+
+  <!-- 시뮬레이션 패널 -->
+  <div class="sim-panel">
+
+    <!-- 단계 안내 카드 -->
+    <div class="guide-card step-highlight" id="guideCard">
+      <div class="guide-icon" id="guideIcon">🧪</div>
+      <div class="guide-text">
+        <div class="guide-title" id="guideTitle">실험 시약을 선택하세요</div>
+        <div class="guide-desc" id="guideDesc">오른쪽 패널에서 KMnO₄ 또는 CuSO₄ NFC 태그를 찍거나 버튼을 눌러 시작하세요.</div>
+      </div>
+    </div>
+
+    <!-- 거름종이 실험 영역 -->
+    <div class="experiment-area">
+      <div class="electrode-row">
+        <div class="elabel neg inactive" id="lblNeg">(−)극</div>
+        <div class="elabel pos inactive" id="lblPos">(+)극</div>
+      </div>
+      <canvas id="simCanvas"></canvas>
+      <div class="current-row" style="margin-top:8px;">
+        <span class="cur-label" style="color:var(--neg);">(−)</span>
+        <div class="current-line" id="currentLine"></div>
+        <span class="cur-label" style="color:var(--pos);">(+)</span>
+      </div>
+    </div>
+
+    <!-- 오개념 교정 배너 -->
+    <div class="misconception-banner" id="misconceptionBanner">
+      <div class="mb-icon">💡</div>
+      <div class="mb-text">
+        <div class="mb-title" id="mbTitle">잠깐! 오개념 확인</div>
+        <div id="mbText"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 사이드 패널 -->
+  <div class="side-panel">
+
+    <!-- 웹캠 -->
+    <div class="cam-section">
+      <div class="cam-placeholder" id="camPlaceholder">
+        <div id="camPlaceholderDesc" style="font-size:13px;color:var(--muted);text-align:center;">전극 연결 단계에서<br>웹캠을 활성화하세요</div>
+        <button class="cam-btn" id="camBtn" onclick="toggleCamera()">📷 웹캠 켜기</button>
+      </div>
+      <video id="videoEl" autoplay muted playsinline style="display:none;"></video>
+      <canvas id="camCanvas" style="display:none;"></canvas>
+    </div>
+
+    <!-- 손 감지 상태 -->
+    <div class="hand-status">
+      <div class="hand-box" id="handLeft">
+        <span class="hicon">🤚</span>
+        <div class="hlabel" style="color:var(--neg);">왼손 → (−)극</div>
+        <div id="handLeftStatus" style="font-size:10px;color:var(--muted);">미감지</div>
+      </div>
+      <div class="hand-box" id="handRight">
+        <span class="hicon">🤚</span>
+        <div class="hlabel" style="color:var(--pos);">오른손 → (+)극</div>
+        <div id="handRightStatus" style="font-size:10px;color:var(--muted);">미감지</div>
+      </div>
+    </div>
+
+    <!-- 시약 투하 힌트 (전극 잠금 후 표시) -->
+    <div id="dropHint" style="display:none;margin:10px 14px 0;padding:10px 12px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.4);border-radius:10px;align-items:center;gap:10px;">
+      <span style="font-size:20px;">💧</span>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#fb923c;margin-bottom:2px;">시약 NFC 태그를 다시 찍으세요!</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.4;">같은 시약 태그를 찍으면<br>거름종이 중앙에 투하됩니다</div>
+      </div>
+    </div>
+
+    <!-- 관찰 완료 버튼 (투하 후 표시) -->
+    <button id="obsCompleteBtn" onclick="completeObservation()" style="display:none;margin:8px 14px 0;padding:10px;border-radius:10px;border:1px solid var(--green);background:rgba(16,185,129,0.1);color:var(--green);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;width:calc(100% - 28px);">
+      🔬 이온 이동 관찰 완료
+    </button>
+
+    <!-- NFC 단계 버튼 -->
+    <div class="nfc-panel">
+      <div class="nfc-title">📡 실험 단계 진행</div>
+      <div class="nfc-steps">
+
+        <button class="nfc-step-btn current" id="nfcBtn0" onclick="nfcStep(0)">
+          <div class="nfc-step-num">1</div>
+          <div class="nfc-step-info">
+            <div class="nfc-step-label">시약 선택</div>
+            <div class="nfc-step-sub">KMnO₄ 또는 CuSO₄ 태그</div>
+          </div>
+          <div style="display:flex;gap:5px;">
+            <button onclick="event.stopPropagation();selectReagent('kmno4')" style="padding:3px 8px;border-radius:8px;border:1px solid var(--purple);background:rgba(147,51,234,0.15);color:var(--purple-light);font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">🟣 KMnO₄</button>
+            <button onclick="event.stopPropagation();selectReagent('cuso4')" style="padding:3px 8px;border-radius:8px;border:1px solid var(--blue);background:rgba(37,99,235,0.15);color:var(--blue-light);font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">🔵 CuSO₄</button>
+          </div>
+        </button>
+
+        <button class="nfc-step-btn locked" id="nfcBtn1" onclick="openKno3Modal()">
+          <div class="nfc-step-num">2</div>
+          <div class="nfc-step-info">
+            <div class="nfc-step-label">KNO₃ 거름종이 준비</div>
+            <div class="nfc-step-sub">클릭해서 역할 확인 후 준비 완료</div>
+          </div>
+          <span style="font-size:16px;">📖</span>
+        </button>
+
+        <button class="nfc-step-btn locked" id="nfcBtn2" onclick="nfcStep(2)">
+          <div class="nfc-step-num">3</div>
+          <div class="nfc-step-info">
+            <div class="nfc-step-label">전극 연결 (웹캠 제스처)</div>
+            <div class="nfc-step-sub">왼손=(−) 오른손=(+) 동시에 올리기</div>
+          </div>
+        </button>
+
+        <button class="nfc-step-btn locked" id="nfcBtn3">
+          <div class="nfc-step-num">4</div>
+          <div class="nfc-step-info">
+            <div class="nfc-step-label" id="nfcBtn3Label">시약 중앙 투하</div>
+            <div class="nfc-step-sub" id="nfcBtn3Sub">NFC 태그 또는 아래 버튼 클릭</div>
+          </div>
+          <button id="dropManualBtn" onclick="event.stopPropagation();dropByTag(reagent)" style="display:none;padding:4px 10px;border-radius:8px;border:1px solid var(--pos);background:rgba(249,115,22,0.15);color:#fb923c;font-size:10px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;">💧 투하!</button>
+        </button>
+
+        <button class="nfc-step-btn locked" id="nfcBtn4" onclick="nfcStep(4)">
+          <div class="nfc-step-num">5</div>
+          <div class="nfc-step-info">
+            <div class="nfc-step-label">이온 이동 관찰 완료</div>
+            <div class="nfc-step-sub">색깔 이온 이동 방향 확인 후 태그</div>
+          </div>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- 이온 범례 -->
+    <div class="legend-panel" id="legendPanel">
+      <div class="legend-title">이온 범례</div>
+      <div class="legend-grid" id="legendGrid">
+        <div class="legend-item" style="grid-column:1/-1;opacity:0.4;justify-content:center;font-size:11px;color:var(--muted);">시약 선택 후 표시됩니다</div>
+      </div>
+    </div>
+
+    <!-- 문해력 버튼 -->
+    <button class="literacy-btn" id="literacyBtn" onclick="openLitModal()" disabled>
+      ✍️ 4단계 문해력 작성하기
+    </button>
+
+  </div>
+</main>
+
+<!-- 로그인 모달 -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal-box">
+    <div class="modal-title">👤 학생 정보 입력</div>
+    <div class="modal-sub">이온의 이동 실험을 시작합니다</div>
+    <input type="text" id="inputId" class="modal-input" placeholder="학번 (예: 20301)" maxlength="10">
+    <input type="text" id="inputName" class="modal-input" placeholder="이름">
+    <button class="modal-btn" onclick="saveStudent()">실험 시작하기</button>
+  </div>
+</div>
+
+<!-- NFC 스캔 오버레이 -->
+<div class="nfc-overlay hidden" id="nfcOverlay">
+  <div class="nfc-scan-box">
+    <div class="nfc-ring" id="nfcRing">📡</div>
+    <div class="nfc-scan-title" id="nfcScanTitle">태그 인식 중...</div>
+    <div class="nfc-scan-sub" id="nfcScanSub">잠시만 기다려주세요</div>
+  </div>
+</div>
+
+<!-- 문해력 모달 -->
+<div class="lit-modal hidden" id="litModal">
+  <div class="lit-box">
+    <div class="lit-head">
+      <div style="font-size:16px;font-weight:700;">✍️ 4단계 과학 문해력</div>
+      <div class="lit-badge" id="litBadge">1단계 / 4단계</div>
+    </div>
+    <div class="lit-tabs">
+      <button class="lit-tab active" id="ltab0">1단계<br><small>Basic</small></button>
+      <button class="lit-tab" id="ltab1">2단계<br><small>Proficient</small></button>
+      <button class="lit-tab" id="ltab2">3단계<br><small>Advanced</small></button>
+      <button class="lit-tab" id="ltab3">4단계<br><small>Excellent</small></button>
+    </div>
+    <div class="lit-prompt" id="litPrompt"></div>
+    <div class="lit-hint" id="litHint"></div>
+    <textarea class="lit-ta" id="litTa" placeholder="여기에 답변을 작성하세요..."></textarea>
+    <div class="lit-actions">
+      <button class="lit-close" onclick="closeLitModal()">닫기</button>
+      <button class="lit-next" id="litNext" onclick="nextLit()">다음 단계 →</button>
+    </div>
+    <div class="ai-fb" id="aiFb">
+      <div class="ai-fb-title">🤖 AI 피드백</div>
+      <div id="aiFbText"></div>
+    </div>
+  </div>
+</div>
+
+<!-- KNO₃ 설명 모달 -->
+<div class="modal-overlay hidden" id="kno3Modal">
+  <div class="modal-box" style="width:480px;max-width:95vw;">
+    <div style="font-size:20px;font-weight:700;margin-bottom:6px;">📄 KNO₃ 거름종이의 역할</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">질산칼륨 수용액을 거름종이에 적시는 이유를 알아봐요</div>
+    <div style="background:#0a0e1a;border-radius:12px;padding:14px;margin-bottom:12px;text-align:center;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;margin-bottom:10px;">
+        KNO₃ &nbsp;→&nbsp; <span style="color:#94a3b8;">K⁺</span> &nbsp;+&nbsp; <span style="color:#64748b;">NO₃⁻</span>
+      </div>
+      <div style="position:relative;height:72px;background:#f5f0e8;border-radius:8px;overflow:hidden;border:1px solid #ddd;">
+        <div style="position:absolute;top:0;left:0;width:8px;height:100%;background:rgba(239,68,68,0.2);border-right:2px solid rgba(239,68,68,0.4);"></div>
+        <div style="position:absolute;top:0;right:0;width:8px;height:100%;background:rgba(249,115,22,0.2);border-left:2px solid rgba(249,115,22,0.4);"></div>
+        <div id="kno3MiniViz" style="position:absolute;inset:0;"></div>
+        <div style="position:absolute;bottom:3px;left:11px;font-size:9px;color:rgba(239,68,68,0.8);font-family:'JetBrains Mono',monospace;">(−)</div>
+        <div style="position:absolute;bottom:3px;right:11px;font-size:9px;color:rgba(249,115,22,0.8);font-family:'JetBrains Mono',monospace;">(+)</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:18px;">
+      <div style="display:flex;gap:10px;align-items:flex-start;background:#0f1929;border-radius:8px;padding:9px 12px;">
+        <span style="font-size:16px;flex-shrink:0;">⚡</span>
+        <div><div style="font-size:12px;font-weight:700;margin-bottom:2px;">전류를 흐르게 하는 매개체</div><div style="font-size:11px;color:var(--muted);line-height:1.5;">순수 거름종이는 전기가 통하지 않아요. KNO₃ 수용액에 적셔야 이온이 전류를 전달할 수 있어요.</div></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;background:#0f1929;border-radius:8px;padding:9px 12px;">
+        <span style="font-size:16px;flex-shrink:0;">🎨</span>
+        <div><div style="font-size:12px;font-weight:700;margin-bottom:2px;">무색이라 관찰 방해 없음</div><div style="font-size:11px;color:var(--muted);line-height:1.5;">K⁺와 NO₃⁻ 모두 무색이에요. 나중에 투하할 시약의 색깔 이동만 깔끔하게 관찰할 수 있어요.</div></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:9px 12px;">
+        <span style="font-size:16px;flex-shrink:0;">💡</span>
+        <div><div style="font-size:12px;font-weight:700;margin-bottom:2px;color:#f59e0b;">K⁺와 NO₃⁻도 이동해요!</div><div style="font-size:11px;color:#fcd34d;line-height:1.5;">K⁺는 (−)극으로, NO₃⁻는 (+)극으로 이동하지만 무색이라 보이지 않아요. 시약 투하 후 같은 원리를 색깔로 확인하게 됩니다.</div></div>
+      </div>
+    </div>
+    <button class="modal-btn" onclick="confirmKno3()" style="background:var(--green);">✅ 거름종이 준비 완료 → 다음 단계</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">✅ 저장 완료!</div>
+
+<script>
+// ─── Firebase ───
+window.addEventListener('load', () => {
+  firebase.initializeApp({
+    apiKey:"AIzaSyBX-BE14JViw82xAiA3Gts6p-SC6gVBjG8",
+    authDomain:"student-literacy.firebaseapp.com",
+    projectId:"student-literacy",
+    storageBucket:"student-literacy.firebasestorage.app",
+    messagingSenderId:"66926306937",
+    appId:"1:66926306937:web:5204bff44a4cc5d62d16a8"
+  });
+  window.db = firebase.firestore();
+});
+
+// ─── 상태 ───
+let student = {id:'',name:''};
+let reagent = null;       // 'kmno4' | 'cuso4'
+let expStep = 0;          // 0~4 (5단계)
+let currentElectrode = null;
+let camActive = false;
+let mpCamera = null;
+let ions = [];
+let animRunning = false;
+let litStep = 0;
+let mfAnswers = ['','','',''];
+let prevElectrode = null;
+
+// ─── 시약 설정 ───
+const REAGENT_CFG = {
+  kmno4: {
+    name: 'KMnO₄ (과망가니즈산 칼륨)',
+    colorIon: { formula:'MnO₄⁻', color:'#9333ea', glow:'rgba(147,51,234,0.5)', charge:-1, dir:1, label:'보라색 → (+)극' },
+    clearIon: { formula:'K⁺',     color:'#94a3b8', glow:'rgba(148,163,184,0.2)', charge:+1, dir:-1, label:'무색 → (−)극 (안 보임)' },
+    kno3ions: [
+      { formula:'K⁺',   color:'#94a3b8', charge:+1, dir:-1 },
+      { formula:'NO₃⁻', color:'#64748b', charge:-1, dir:+1 },
+    ],
+    misconception: 'K⁺도 (−)극으로 이동합니다! 무색이라 눈에 안 보일 뿐이에요. 보라색 MnO₄⁻만 움직이는 것처럼 보이지만, 질산칼륨의 K⁺, NO₃⁻도 모두 전하에 따라 이동하고 있습니다.',
+    mcTitle: '💡 K⁺는 이동하지 않나요?',
+  },
+  cuso4: {
+    name: 'CuSO₄ (황산 구리(Ⅱ))',
+    colorIon: { formula:'Cu²⁺', color:'#2563eb', glow:'rgba(37,99,235,0.5)', charge:+1, dir:-1, label:'파란색 → (−)극' },
+    clearIon: { formula:'SO₄²⁻', color:'#94a3b8', glow:'rgba(148,163,184,0.2)', charge:-1, dir:+1, label:'무색 → (+)극 (안 보임)' },
+    kno3ions: [
+      { formula:'K⁺',   color:'#94a3b8', charge:+1, dir:-1 },
+      { formula:'NO₃⁻', color:'#64748b', charge:-1, dir:+1 },
+    ],
+    misconception: 'SO₄²⁻도 (+)극으로 이동합니다! 무색이라 눈에 안 보일 뿐이에요. 파란색 Cu²⁺만 움직이는 것처럼 보이지만, SO₄²⁻와 질산칼륨의 이온들도 모두 이동하고 있습니다.',
+    mcTitle: '💡 SO₄²⁻는 이동하지 않나요?',
+  }
+};
+
+const STEP_GUIDES = [
+  { icon:'🧪', title:'실험 시약을 선택하세요', desc:'KMnO₄(과망가니즈산 칼륨) 또는 CuSO₄(황산 구리Ⅱ) 태그를 찍거나 버튼을 선택하세요.' },
+  { icon:'📄', title:'KNO₃ 거름종이를 준비하세요', desc:'질산칼륨(KNO₃) 수용액에 거름종이를 적셔 페트리 접시에 놓으세요. KNO₃는 전류를 흐르게 하는 매개체예요.' },
+  { icon:'⚡', title:'전극을 연결하세요 (웹캠 제스처)', desc:'웹캠을 켜고 왼손을 올리면 (−)극, 오른손을 올리면 (+)극이 활성화됩니다. 양손을 동시에 올리면 전류가 흐릅니다!' },
+  { icon:'💧', title:'시약을 거름종이 중앙에 투하하세요', desc:'전류가 흐르는 상태에서 시약을 중앙에 떨어뜨려야 이동 방향을 정확히 관찰할 수 있어요.' },
+  { icon:'🔬', title:'이온의 이동을 관찰하세요', desc:'색깔 이온이 어느 극으로 이동하는지 천천히 관찰하세요. 무색 이온도 함께 이동하고 있다는 것을 기억하세요!' },
+];
+
+// ─── 학생 로그인 ───
+function showLoginModal(){ document.getElementById('loginModal').classList.remove('hidden'); }
+function saveStudent(){
+  const id=document.getElementById('inputId').value.trim();
+  const name=document.getElementById('inputName').value.trim();
+  if(!id||!name){alert('학번과 이름을 입력해주세요.');return;}
+  student={id,name};
+  localStorage.setItem('mf_ion_student',JSON.stringify(student));
+  document.getElementById('studentBadge').textContent=`👤 ${name} · ${id}번`;
+  document.getElementById('loginModal').classList.add('hidden');
+}
+(function(){
+  const s=localStorage.getItem('mf_ion_student');
+  if(s){try{student=JSON.parse(s);document.getElementById('studentBadge').textContent=`👤 ${student.name} · ${student.id}번`;}catch(e){}}
+  else setTimeout(()=>document.getElementById('loginModal').classList.remove('hidden'),500);
+})();
+
+// ─── KNO₃ 모달 ───
+function openKno3Modal(){
+  if(expStep!==1) return;
+  document.getElementById('kno3Modal').classList.remove('hidden');
+  renderKno3Mini();
+}
+function confirmKno3(){
+  document.getElementById('kno3Modal').classList.add('hidden');
+  // 단계 진행: 1 완료 → 2(전극연결)로
+  expStep=2;
+  updateGuide(2);
+  setStepDone(0); setStepDone(1); setStepCurrent(2);
+  updateNfcBtns(2);
+  document.getElementById('stepItem2').classList.add('active');
+  // 캔버스에 KNO₃ 이온 표시 (이미 initIons에서 들어가 있음)
+}
+function renderKno3Mini(){
+  const viz=document.getElementById('kno3MiniViz');
+  viz.innerHTML='';
+  const ions=[
+    {x:15,y:30,c:'#94a3b8',f:'K⁺'},{x:55,y:18,c:'#94a3b8',f:'K⁺'},
+    {x:95,y:40,c:'#94a3b8',f:'K⁺'},{x:140,y:22,c:'#94a3b8',f:'K⁺'},
+    {x:185,y:38,c:'#94a3b8',f:'K⁺'},{x:230,y:16,c:'#94a3b8',f:'K⁺'},
+    {x:275,y:35,c:'#94a3b8',f:'K⁺'},{x:320,y:20,c:'#94a3b8',f:'K⁺'},
+    {x:35,y:52,c:'#64748b',f:'NO₃⁻'},{x:75,y:55,c:'#64748b',f:'NO₃⁻'},
+    {x:120,y:50,c:'#64748b',f:'NO₃⁻'},{x:165,y:56,c:'#64748b',f:'NO₃⁻'},
+    {x:210,y:48,c:'#64748b',f:'NO₃⁻'},{x:255,y:54,c:'#64748b',f:'NO₃⁻'},
+    {x:300,y:50,c:'#64748b',f:'NO₃⁻'},
+  ];
+  ions.forEach(ion=>{
+    const el=document.createElement('div');
+    el.style.cssText=`position:absolute;left:${ion.x}px;top:${ion.y}px;width:22px;height:22px;border-radius:50%;background:${ion.c}55;border:1.5px solid ${ion.c}99;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:${ion.c};font-family:'JetBrains Mono',monospace;transform:translate(-50%,-50%);`;
+    el.textContent=ion.f;
+    viz.appendChild(el);
+  });
+}
+
+// ─── 실험 초기화 ───
+function resetExperiment(){
+  // 상태 리셋
+  reagent=null; expStep=0;
+  currentElectrode=null; electrodeLocked=false;
+  prevElectrode=null; ions=[]; dropParticles=[];
+
+  // UI 리셋
+  updateElectrodeUI(null);
+  updateGuide(0);
+  document.getElementById('misconceptionBanner').classList.remove('visible');
+  document.getElementById('literacyBtn').disabled=true;
+  document.getElementById('dropHint').style.display='none';
+  document.getElementById('obsCompleteBtn').style.display='none';
+  const dropBtn=document.getElementById('dropManualBtn');
+  if(dropBtn) dropBtn.style.display='none';
+
+  // 헤더 단계 리셋
+  for(let i=0;i<=5;i++){
+    const el=document.getElementById('stepItem'+i);
+    if(el) el.className='step-item'+(i===0?' active':'');
+  }
+  // NFC 버튼 리셋
+  updateNfcBtns(0);
+  document.getElementById('nfcBtn0').className='nfc-step-btn current';
+
+  // 범례 리셋
+  document.getElementById('legendGrid').innerHTML='<div class="legend-item" style="grid-column:1/-1;opacity:0.4;justify-content:center;font-size:11px;color:var(--muted);">시약 선택 후 표시됩니다</div>';
+
+  // 웹캠 플레이스홀더 텍스트 리셋
+  const desc=document.getElementById('camPlaceholderDesc');
+  if(desc){ desc.textContent='전극 연결 단계에서\n웹캠을 활성화하세요'; desc.style.color='var(--muted)'; }
+
+  // 배지 리셋
+  simCtx && resizeSim();
+}
+
+// ─── NFC 태그 텍스트 → 태그 종류 판별 (공통) ───
+function parseNfcTagText(raw){
+  const t=raw.trim().toLowerCase();
+  if(t.includes('kmno4')||t.includes('망가니즈'))return 'kmno4';
+  if(t.includes('cuso4')||t.includes('구리'))return 'cuso4';
+  if(t.includes('kno3')||t.includes('질산칼륨'))return 'kno3';
+  if(t.includes('drop')||t.includes('투하'))return 'drop';
+  if(t.includes('observe')||t.includes('관찰'))return 'observe';
+  return null;
+}
+function showBridgeToast(msg){
+  const t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._bt);
+  t._bt=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ─── NFC Web API (안드로이드 폰 내장 NFC) ───
+if('NDEFReader' in window){
+  (async()=>{
+    try{
+      const ndef=new NDEFReader();
+      await ndef.scan();
+      ndef.addEventListener('reading',({message})=>{
+        for(const r of message.records){
+          if(r.recordType==='text'){
+            const raw=new TextDecoder(r.encoding||'utf-8').decode(r.data);
+            const type=parseNfcTagText(raw);
+            if(type)showNfcAnim(type);
+          }
+        }
+      });
+    }catch(e){}
+  })();
+}
+
+// ─── PC용 ACR1252U 리더 — 산염기 적정/동족 원소/원자모형과 동일한 로컬 브릿지(ws://localhost:8765) ───
+// ※ 자동 시뮬레이션 폴백 없음: nfc_bridge.py가 켜져 있지 않으면 연결 실패 토스트만 뜨고 동작하지 않음.
+(function connectNfcBridge(){
+  try{
+    const ws=new WebSocket('ws://localhost:8765');
+    ws.onopen=()=>showBridgeToast('✅ NFC 브릿지 연결됨');
+    ws.onmessage=(event)=>{
+      const type=parseNfcTagText(event.data);
+      if(type)showNfcAnim(type);
+      else showBridgeToast('⚠️ 알 수 없는 태그: '+event.data.trim());
+    };
+    ws.onerror=()=>showBridgeToast('❌ NFC 브릿지 연결 실패 — nfc_bridge.py를 먼저 실행해주세요');
+    ws.onclose=()=>{};
+  }catch(e){}
+})();
+
+function showNfcAnim(type){
+  const overlay=document.getElementById('nfcOverlay');
+  const ring=document.getElementById('nfcRing');
+  const title=document.getElementById('nfcScanTitle');
+  const sub=document.getElementById('nfcScanSub');
+  // 시약 태그: expStep에 따라 "선택" 또는 "투하"로 동작
+  function reagentTagAction(type){
+    if(expStep===0){ selectReagent(type); }           // 처음 → 시약 선택
+    else if(expStep===3){ dropByTag(type); }           // 전극 잠금 후 → 투하
+    else if(expStep===0||expStep===1||expStep===2){ selectReagent(type); }
+  }
+  const map={
+    kmno4:{
+      icon:'🟣',
+      t: expStep===3 ? 'KMnO₄ 투하!' : 'KMnO₄ 선택!',
+      s: expStep===3 ? '거름종이 중앙에 떨어뜨리는 중...' : '과망가니즈산 칼륨 시약 선택됨',
+      fn:()=>reagentTagAction('kmno4')
+    },
+    cuso4:{
+      icon:'🔵',
+      t: expStep===3 ? 'CuSO₄ 투하!' : 'CuSO₄ 선택!',
+      s: expStep===3 ? '거름종이 중앙에 떨어뜨리는 중...' : '황산 구리(Ⅱ) 시약 선택됨',
+      fn:()=>reagentTagAction('cuso4')
+    },
+    kno3:{icon:'📄',t:'KNO₃ 준비 완료',s:'질산칼륨 수용액에 적신 거름종이',fn:()=>{}},
+    observe:{icon:'🔬',t:'관찰 완료!',s:'이온 이동 방향 확인',fn:()=>nfcStep(4)},
+  };
+  const m=map[type]||{icon:'📡',t:'태그 인식',s:'',fn:()=>{}};
+  ring.textContent=m.icon;
+  title.textContent=m.t;
+  sub.textContent=m.s;
+  overlay.classList.remove('hidden');
+  setTimeout(()=>{overlay.classList.add('hidden');m.fn();},1600);
+}
+
+// ─── 시약 선택 (step 0 → 1) ───
+function selectReagent(type){
+  reagent=type;
+  expStep=1;
+  const cfg=REAGENT_CFG[type];
+  updateGuide(1);
+  setStepDone(0); setStepCurrent(1);
+  updateNfcBtns(1);
+  // KNO3 버튼 current로 강제 지정
+  const b1=document.getElementById('nfcBtn1');
+  if(b1) b1.className='nfc-step-btn current';
+  updateLegend(type);
+  initIons(false);
+  document.getElementById('nfcBtn3Label').textContent = `${type==='kmno4'?'KMnO₄':'CuSO₄'} 중앙 투하`;
+  document.getElementById('nfcBtn3Sub').textContent = `전류 흐르는 상태에서 ${type==='kmno4'?'KMnO₄':'CuSO₄'} 투하`;
+}
+
+// ─── NFC 단계 진행 ───
+function nfcStep(step){
+  if(expStep!==step) return;
+  if(step===3){
+    // 시약 투하
+    if(currentElectrode!=='both' && currentElectrode!=='neg' && currentElectrode!=='pos'){
+      alert('먼저 전극을 연결해주세요! (웹캠 제스처)'); return;
+    }
+    expStep=3;
+    updateGuide(4);
+    setStepDone(3); setStepCurrent(4);
+    updateNfcBtns(4);
+    dropReagent(); // 시약 투하 → 이온 이동 시작
+  } else if(step===4){
+    // 관찰 완료
+    expStep=4;
+    updateGuide(5);
+    setStepDone(4);
+    updateNfcBtns(5);
+    document.getElementById('literacyBtn').disabled=false;
+    showMisconception();
+    // 헤더 단계 표시
+    document.getElementById('stepItem5').classList.add('active');
+  }
+}
+
+// ─── 전극 연결 완료 감지 (웹캠) → step 2→3, 전극 LOCK ───
+let electrodeLocked = false;
+
+function onElectrodeConnected(){
+  if(expStep!==2) return;
+  expStep=3;
+  electrodeLocked=true;
+  currentElectrode='both';
+  updateElectrodeUI('both');
+  updateGuide(3);
+  setStepDone(2); setStepCurrent(3);
+  updateNfcBtns(3);
+  document.getElementById('stepItem3').classList.add('active');
+  // 웹캠 플레이스홀더 안내 교체
+  document.getElementById('camPlaceholderDesc').textContent='✅ 전극 연결 완료! 이제 손을 내려도 됩니다.';
+  document.getElementById('camPlaceholderDesc').style.color='var(--green)';
+  // 투하 힌트 + 수동 투하 버튼 표시
+  showDropHint();
+  const dropBtn=document.getElementById('dropManualBtn');
+  if(dropBtn) dropBtn.style.display='block';
+  // nfcBtn3 current 스타일로
+  const b3=document.getElementById('nfcBtn3');
+  if(b3) b3.className='nfc-step-btn current';
+}
+
+function showDropHint(){
+  const hint=document.getElementById('dropHint');
+  if(hint) hint.style.display='flex';
+}
+
+// ─── 태그로 시약 투하 ───
+function dropByTag(type){
+  if(expStep!==3) return;
+  if(type!==reagent) return;
+  expStep=4;
+  updateGuide(4);
+  setStepDone(3); setStepCurrent(4);
+  updateNfcBtns(4);
+  document.getElementById('stepItem4').classList.add('active');
+  dropReagent();
+  // 투하 버튼/힌트 숨기기
+  const hint=document.getElementById('dropHint');
+  if(hint) hint.style.display='none';
+  const dropBtn=document.getElementById('dropManualBtn');
+  if(dropBtn) dropBtn.style.display='none';
+  // nfcBtn4 current + 클릭 가능
+  const b4=document.getElementById('nfcBtn4');
+  if(b4){ b4.className='nfc-step-btn current'; b4.onclick=()=>completeObservation(); }
+  // 관찰 완료 버튼 표시
+  const obsBtn=document.getElementById('obsCompleteBtn');
+  if(obsBtn) obsBtn.style.display='block';
+}
+
+function completeObservation(){
+  if(expStep!==4) return;
+  nfcStep(4);
+  document.getElementById('obsCompleteBtn').style.display='none';
+}
+
+const simCanvas=document.getElementById('simCanvas');
+const simCtx=simCanvas.getContext('2d');
+let W=0,H=0;
+
+function resizeSim(){
+  const rect=simCanvas.getBoundingClientRect();
+  W=simCanvas.width=rect.width;
+  H=simCanvas.height=rect.height;
+}
+window.addEventListener('resize',()=>{resizeSim();});
+setTimeout(resizeSim,150);
+
+// 이온 클래스
+class Ion {
+  constructor(x, y, cfg, isColor, size){
+    this.x=x; this.y=y;
+    this.cfg=cfg;
+    this.isColor=isColor;
+    this.size=size||18;
+    this.vx=0; this.vy=0;
+    this.moving=false;
+    this.trail=[];
+    this.arrived=false;
+    this.targetX=null;
+    // 이온마다 고유 y 레인 배정 → 뭉치지 않게
+    this.laneY = null;
+    // 개별 속도 변동 (0.7~1.3배)
+    this.speedMult = 0.7 + Math.random()*0.6;
+    // 투하 딜레이 (0~120프레임) → 동시에 출발 안 하게
+    this.delay = Math.floor(Math.random()*80);
+    this.delayCount = 0;
+  }
+  setTarget(){
+    if(!reagent) return;
+    const dir=this.cfg.dir;
+    this.targetX = dir<0 ? this.size+10 : W-this.size-10;
+    // y 레인: 전체 높이를 이온 수만큼 분할
+    if(this.laneY===null){
+      this.laneY = this.size + Math.random()*(H - this.size*2);
+    }
+  }
+  update(powered){
+    if(this.arrived){
+      this.x += (Math.random()-0.5)*0.3;
+      this.y += (Math.random()-0.5)*0.3;
+      this.x = Math.max(this.size+4, Math.min(W-this.size-4, this.x));
+      this.y = Math.max(this.size+4, Math.min(H-this.size-4, this.y));
+      return;
+    }
+    if(powered && this.moving){
+      // 딜레이 처리
+      if(this.delayCount < this.delay){ this.delayCount++; return; }
+      if(this.targetX===null) this.setTarget();
+      const dx = this.targetX - this.x;
+      const dy = this.laneY - this.y;
+      // x: 목표 방향으로 천천히
+      const spd = (this.isColor ? 0.5 : 0.38) * this.speedMult;
+      this.vx += dx * 0.004 * this.speedMult;
+      // y: 배정된 레인으로 서서히 이동
+      this.vy += dy * 0.04;
+      // 속도 제한
+      this.vx = Math.max(-spd, Math.min(spd, this.vx));
+      this.vy = Math.max(-1.2, Math.min(1.2, this.vy));
+      this.vx *= 0.94; this.vy *= 0.82;
+      if(this.isColor){
+        this.trail.push({x:this.x, y:this.y});
+        if(this.trail.length>25) this.trail.shift();
+      }
+      if(Math.abs(dx)<5 && Math.abs(dy)<8){
+        this.arrived=true; this.vx=0; this.vy=0;
+        this.x=this.targetX; this.y=this.laneY;
+      }
+    } else if(!powered){
+      this.vx+=(Math.random()-0.5)*0.25;
+      this.vy+=(Math.random()-0.5)*0.25;
+      this.vx*=0.93; this.vy*=0.93;
+      this.trail=[];
+      this.delayCount=0; // 전원 꺼지면 딜레이 리셋
+    }
+    this.x+=this.vx; this.y+=this.vy;
+    this.x=Math.max(this.size+4, Math.min(W-this.size-4, this.x));
+    this.y=Math.max(this.size+4, Math.min(H-this.size-4, this.y));
+  }
+  draw(ctx){
+    // 궤적
+    if(this.trail.length>2 && this.isColor){
+      ctx.beginPath();
+      ctx.moveTo(this.trail[0].x, this.trail[0].y);
+      for(let i=1;i<this.trail.length;i++) ctx.lineTo(this.trail[i].x,this.trail[i].y);
+      ctx.strokeStyle=this.cfg.color+'44';
+      ctx.lineWidth=2.5;
+      ctx.stroke();
+    }
+    // glow
+    if(this.isColor){
+      const grd=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.size*2.5);
+      grd.addColorStop(0,this.cfg.glow);
+      grd.addColorStop(1,'transparent');
+      ctx.beginPath();
+      ctx.arc(this.x,this.y,this.size*2.5,0,Math.PI*2);
+      ctx.fillStyle=grd;
+      ctx.fill();
+    }
+    // 원 본체
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
+    ctx.fillStyle = this.isColor ? this.cfg.color : 'rgba(210,215,220,0.75)';
+    ctx.fill();
+    if(this.isColor){
+      ctx.strokeStyle='rgba(255,255,255,0.5)';
+      ctx.lineWidth=2;
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle='rgba(150,160,170,0.6)';
+      ctx.lineWidth=1.5;
+      ctx.stroke();
+    }
+    // 텍스트 — 무색 이온은 진한 검정
+    const label=this.cfg.formula;
+    const fs = label.length>4 ? this.size*0.48 : this.size*0.62;
+    ctx.font=`bold ${fs}px 'JetBrains Mono',monospace`;
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillStyle = this.isColor ? 'white' : '#1e293b';
+    ctx.fillText(label, this.x, this.y);
+  }
+}
+
+// 이온 초기화
+function initIons(withReagent){
+  resizeSim();
+  ions=[];
+  if(!reagent) return;
+  const cfg=REAGENT_CFG[reagent];
+
+  // KNO₃ 이온 (배경 – 처음부터 분산)
+  for(let i=0;i<8;i++){
+    const c=cfg.kno3ions[i%2];
+    const ion=new Ion(
+      40+(W-80)*Math.random(),
+      20+(H-40)*Math.random(),
+      c, false, 14
+    );
+    ion.moving=true;
+    ions.push(ion);
+  }
+
+  if(withReagent){
+    // 색깔 이온 (중앙 근처에 투하)
+    for(let i=0;i<7;i++){
+      const ion=new Ion(
+        W/2+(Math.random()-0.5)*50,
+        H/2+(Math.random()-0.5)*50,
+        cfg.colorIon, true, 22
+      );
+      ion.moving=true;
+      ions.push(ion);
+    }
+    // 무색 짝이온 (중앙 근처)
+    for(let i=0;i<7;i++){
+      const ion=new Ion(
+        W/2+(Math.random()-0.5)*50,
+        H/2+(Math.random()-0.5)*50,
+        cfg.clearIon, false, 16
+      );
+      ion.moving=true;
+      ions.push(ion);
+    }
+  }
+}
+
+// 물방울 파티클 (투하 애니메이션용)
+let dropParticles = [];
+
+function triggerDropAnimation(){
+  // 중앙 위에서 방울이 떨어지는 효과
+  dropParticles = [];
+  const cx = W/2;
+  for(let i=0;i<6;i++){
+    dropParticles.push({
+      x: cx + (Math.random()-0.5)*20,
+      y: -10,
+      vy: 2.5 + Math.random()*2,
+      vx: (Math.random()-0.5)*1.2,
+      r: 5 + Math.random()*5,
+      alpha: 1,
+      color: reagent==='kmno4' ? 'rgba(147,51,234,' : 'rgba(37,99,235,',
+      phase: 'fall', // fall → splash → fade
+      delay: i * 6,
+      delayCount: 0,
+    });
+  }
+}
+
+function updateDropParticles(){
+  dropParticles = dropParticles.filter(p => p.alpha > 0.02);
+  dropParticles.forEach(p => {
+    if(p.delayCount < p.delay){ p.delayCount++; return; }
+    if(p.phase==='fall'){
+      p.y += p.vy; p.x += p.vx;
+      p.vy += 0.18; // 중력
+      if(p.y >= H/2){
+        p.phase='splash';
+        p.vy = -(2+Math.random()*2);
+        p.vx = (Math.random()-0.5)*3;
+        p.r *= 1.3;
+      }
+    } else {
+      p.y += p.vy; p.x += p.vx;
+      p.vy += 0.1;
+      p.alpha -= 0.04;
+      p.r *= 0.97;
+    }
+  });
+}
+
+function drawDropParticles(){
+  dropParticles.forEach(p => {
+    if(p.delayCount < p.delay) return;
+    simCtx.beginPath();
+    simCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    simCtx.fillStyle = p.color + p.alpha + ')';
+    simCtx.fill();
+  });
+}
+
+// 시약 투하 시 이온 추가 (레인 분산)
+function dropReagent(){
+  if(!reagent) return;
+  resizeSim();
+  const cfg=REAGENT_CFG[reagent];
+  const ionCount = 8;
+
+  // 색깔 이온 — y레인 균등 분산
+  for(let i=0;i<ionCount;i++){
+    const laneY = 24 + (H-48)*(i/(ionCount-1)) + (Math.random()-0.5)*18;
+    const ion=new Ion(W/2+(Math.random()-0.5)*30, H/2+(Math.random()-0.5)*30, cfg.colorIon, true, 21);
+    ion.moving=true;
+    ion.laneY=laneY;
+    ions.push(ion);
+  }
+  // 무색 짝이온 — y레인 균등 분산 (색깔 이온 사이사이)
+  for(let i=0;i<ionCount;i++){
+    const laneY = 30 + (H-60)*(i/(ionCount-1)) + (Math.random()-0.5)*14;
+    const ion=new Ion(W/2+(Math.random()-0.5)*30, H/2+(Math.random()-0.5)*30, cfg.clearIon, false, 15);
+    ion.moving=true;
+    ion.laneY=laneY;
+    ions.push(ion);
+  }
+
+  // 투하 애니메이션 트리거
+  triggerDropAnimation();
+}
+
+// 렌더 루프
+function simLoop(){
+  if(!W||!H){requestAnimationFrame(simLoop);return;}
+  // 배경 – 거름종이
+  simCtx.fillStyle='#f5f0e8';
+  simCtx.fillRect(0,0,W,H);
+  // 격자 질감
+  simCtx.strokeStyle='rgba(0,0,0,0.04)';
+  simCtx.lineWidth=1;
+  for(let x=0;x<W;x+=24){simCtx.beginPath();simCtx.moveTo(x,0);simCtx.lineTo(x,H);simCtx.stroke();}
+  for(let y=0;y<H;y+=24){simCtx.beginPath();simCtx.moveTo(0,y);simCtx.lineTo(W,y);simCtx.stroke();}
+
+  // 전극 시각화
+  const negA = currentElectrode==='neg'||currentElectrode==='both';
+  const posA = currentElectrode==='pos'||currentElectrode==='both';
+  // (−)극 막대
+  simCtx.fillStyle=negA?'rgba(239,68,68,0.18)':'rgba(239,68,68,0.06)';
+  simCtx.fillRect(0,0,14,H);
+  simCtx.strokeStyle=negA?'#ef4444':'rgba(239,68,68,0.3)';
+  simCtx.lineWidth=negA?3:1.5;
+  simCtx.beginPath();simCtx.moveTo(7,12);simCtx.lineTo(7,H-12);simCtx.stroke();
+  // (+)극 막대
+  simCtx.fillStyle=posA?'rgba(249,115,22,0.18)':'rgba(249,115,22,0.06)';
+  simCtx.fillRect(W-14,0,14,H);
+  simCtx.strokeStyle=posA?'#f97316':'rgba(249,115,22,0.3)';
+  simCtx.lineWidth=posA?3:1.5;
+  simCtx.beginPath();simCtx.moveTo(W-7,12);simCtx.lineTo(W-7,H-12);simCtx.stroke();
+
+  // 전원 꺼져있고 시약도 없으면 안내
+  if(!reagent){
+    simCtx.fillStyle='rgba(0,0,0,0.22)';
+    simCtx.font='14px Noto Sans KR,sans-serif';
+    simCtx.textAlign='center';
+    simCtx.textBaseline='middle';
+    simCtx.fillText('시약을 선택하면 시뮬레이션이 시작됩니다',W/2,H/2);
+    requestAnimationFrame(simLoop);return;
+  }
+
+  const powered = currentElectrode==='both' || currentElectrode==='neg' || currentElectrode==='pos';
+
+  // 이온 업데이트 & 렌더
+  ions.forEach(ion=>{
+    ion.update(powered&&expStep>=2);
+    ion.draw(simCtx);
+  });
+
+  // 투하 물방울 애니메이션
+  updateDropParticles();
+  drawDropParticles();
+
+  requestAnimationFrame(simLoop);
+}
+simLoop();
+
+// ─── 웹캠 (수동 켜기) ───
+let handsModel=null;
+
+function toggleCamera(){
+  if(!camActive){
+    startCamera();
+  } else {
+    stopCamera();
+  }
+}
+
+function startCamera(){
+  document.getElementById('camPlaceholder').style.display='none';
+  const video=document.getElementById('videoEl');
+  const canvas=document.getElementById('camCanvas');
+  video.style.display='block';
+  canvas.style.display='block';
+  camActive=true;
+  document.getElementById('camBtn').textContent='📷 웹캠 끄기';
+  document.getElementById('camBtn').classList.add('active');
+
+  if(!handsModel){
+    handsModel=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+    handsModel.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:0.7,minTrackingConfidence:0.5});
+    handsModel.onResults(onHandResults);
+  }
+  mpCamera=new Camera(video,{
+    onFrame:async()=>{if(handsModel)await handsModel.send({image:video});},
+    width:320,height:200
+  });
+  mpCamera.start();
+}
+
+function stopCamera(){
+  if(mpCamera){mpCamera.stop();mpCamera=null;}
+  document.getElementById('videoEl').style.display='none';
+  document.getElementById('camCanvas').style.display='none';
+  document.getElementById('camPlaceholder').style.display='flex';
+  camActive=false;
+  document.getElementById('camBtn').textContent='📷 웹캠 켜기';
+  document.getElementById('camBtn').classList.remove('active');
+  currentElectrode=null;
+  updateElectrodeUI(null);
+}
+
+function onHandResults(results){
+  const video=document.getElementById('videoEl');
+  const canvas=document.getElementById('camCanvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=video.videoWidth||320;
+  canvas.height=video.videoHeight||200;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  let leftR=false,rightR=false;
+
+  if(results.multiHandLandmarks){
+    for(let i=0;i<results.multiHandLandmarks.length;i++){
+      const lm=results.multiHandLandmarks[i];
+      const label=results.multiHandedness[i].label;
+      const raised=lm[12].y < lm[0].y-0.12;
+      if(label==='Left'){rightR=raised;}
+      else{leftR=raised;}
+      drawLandmarks(ctx,lm,label==='Left'?'#f97316':'#ef4444');
+    }
+  }
+
+  updateHandBox('handLeft','handLeftStatus',results.multiHandLandmarks?.some((_,i)=>results.multiHandedness[i].label==='Right'),leftR,'(−)극');
+  updateHandBox('handRight','handRightStatus',results.multiHandLandmarks?.some((_,i)=>results.multiHandedness[i].label==='Left'),rightR,'(+)극');
+
+  // 전극 잠금 상태면 손 무시
+  if(electrodeLocked) return;
+
+  let newEl=null;
+  if(leftR&&rightR)newEl='both';
+  else if(leftR)newEl='neg';
+  else if(rightR)newEl='pos';
+
+  if(newEl!==prevElectrode){
+    currentElectrode=newEl;
+    prevElectrode=newEl;
+    updateElectrodeUI(newEl);
+    if(newEl==='both'&&expStep===2) onElectrodeConnected();
+  }
+}
+
+function drawLandmarks(ctx,lm,color){
+  const W=ctx.canvas.width,H=ctx.canvas.height;
+  const conns=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+  ctx.strokeStyle=color+'88';ctx.lineWidth=1.5;
+  conns.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(lm[a].x*W,lm[a].y*H);ctx.lineTo(lm[b].x*W,lm[b].y*H);ctx.stroke();});
+  lm.forEach(p=>{ctx.beginPath();ctx.arc(p.x*W,p.y*H,3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();});
+}
+
+function updateHandBox(boxId,statusId,detected,raised,label){
+  const box=document.getElementById(boxId);
+  const status=document.getElementById(statusId);
+  if(detected){
+    box.classList.add('detected');
+    status.textContent=raised?`${label} ✓`:'감지됨';
+    status.style.color=raised?'var(--green)':'var(--text)';
+  } else {
+    box.classList.remove('detected');
+    status.textContent='미감지';
+    status.style.color='var(--muted)';
+  }
+}
+
+function updateElectrodeUI(el){
+  const negA=el==='neg'||el==='both';
+  const posA=el==='pos'||el==='both';
+  document.getElementById('lblNeg').className='elabel neg'+(negA?' active':(el?'':' inactive'));
+  document.getElementById('lblPos').className='elabel pos'+(posA?' active':(el?'':' inactive'));
+  document.getElementById('currentLine').className='current-line'+(el?' on':'');
+}
+
+// ─── UI 헬퍼 ───
+function updateGuide(step){
+  const g=STEP_GUIDES[Math.min(step,STEP_GUIDES.length-1)];
+  document.getElementById('guideIcon').textContent=g.icon;
+  document.getElementById('guideTitle').textContent=g.title;
+  document.getElementById('guideDesc').textContent=g.desc;
+}
+
+function setStepDone(i){
+  const el=document.getElementById('stepItem'+i);
+  if(el){el.className='step-item done';}
+  const nb=document.getElementById('nfcBtn'+i);
+  if(nb)nb.className='nfc-step-btn done';
+}
+function setStepCurrent(i){
+  const el=document.getElementById('stepItem'+i);
+  if(el){el.className='step-item active';}
+}
+function updateNfcBtns(currentStep){
+  for(let i=0;i<=4;i++){
+    const b=document.getElementById('nfcBtn'+i);
+    if(!b)continue;
+    if(i<currentStep)b.className='nfc-step-btn done';
+    else if(i===currentStep)b.className='nfc-step-btn current';
+    else b.className='nfc-step-btn locked';
+  }
+}
+
+function updateLegend(type){
+  const cfg=REAGENT_CFG[type];
+  const grid=document.getElementById('legendGrid');
+  const items=[
+    {dot:cfg.colorIon.color, f:cfg.colorIon.formula, d:cfg.colorIon.label, opacity:1},
+    {dot:cfg.clearIon.color+'99', f:cfg.clearIon.formula, d:cfg.clearIon.label, opacity:0.7},
+    {dot:'#94a3b8aa', f:'K⁺', d:'(−)극 (KNO₃)', opacity:0.6},
+    {dot:'#64748baa', f:'NO₃⁻', d:'(+)극 (KNO₃)', opacity:0.6},
+  ];
+  grid.innerHTML=items.map(it=>`
+    <div class="legend-item" style="opacity:${it.opacity}">
+      <div class="legend-dot" style="background:${it.dot};">${it.f.includes('⁻')||it.f.includes('²⁻')?'−':it.f.includes('⁺')||it.f.includes('²⁺')?'+':''}</div>
+      <div class="legend-info">
+        <div class="legend-formula">${it.f}</div>
+        <div class="legend-dir">${it.d}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showMisconception(){
+  if(!reagent)return;
+  const cfg=REAGENT_CFG[reagent];
+  const b=document.getElementById('misconceptionBanner');
+  document.getElementById('mbTitle').textContent=cfg.mcTitle;
+  document.getElementById('mbText').textContent=cfg.misconception;
+  b.classList.add('visible');
+}
+
+// ─── 문해력 ───
+const LIT=[
+  {prompt:'실험에서 관찰한 현상을 그대로 서술하세요.',hint:'💡 "어떤 색깔이 어느 방향으로 이동했다"는 형식으로 적어보세요.'},
+  {prompt:'이온이 이동한 방향과 전극의 전하를 연결하여 설명하세요.',hint:'💡 "~이기 때문에 ~방향으로 이동한다"는 원인-결과 형식으로 적어보세요.'},
+  {prompt:'이온의 전하와 전기력 개념을 사용하여 과학적으로 설명하세요.',hint:'💡 양이온/음이온, 전기력, (+)전하/(−)전하 등 과학 개념어를 사용하세요.'},
+  {prompt:'이 실험 결과를 실생활이나 다른 과학 현상과 연결하여 설명하세요.',hint:'💡 전기분해, 전지, 이온 음료, 감전 등 실생활 사례와 연결해보세요.'},
+];
+
+function openLitModal(){litStep=0;mfAnswers=['','','',''];renderLit();document.getElementById('litModal').classList.remove('hidden');document.getElementById('aiFb').classList.remove('visible');}
+function closeLitModal(){document.getElementById('litModal').classList.add('hidden');}
+function renderLit(){
+  const lv=LIT[litStep];
+  document.getElementById('litBadge').textContent=`${litStep+1}단계 / 4단계`;
+  document.getElementById('litPrompt').textContent=lv.prompt;
+  document.getElementById('litHint').textContent=lv.hint;
+  document.getElementById('litTa').value=mfAnswers[litStep]||'';
+  document.getElementById('litNext').textContent=litStep<3?'다음 단계 →':'완료 및 AI 피드백';
+  document.getElementById('aiFb').classList.remove('visible');
+  for(let i=0;i<4;i++){
+    const t=document.getElementById('ltab'+i);
+    t.className='lit-tab'+(i<litStep?' done':i===litStep?' active':'');
+  }
+}
+async function nextLit(){
+  const ans=document.getElementById('litTa').value.trim();
+  if(!ans){alert('답변을 입력해주세요.');return;}
+  mfAnswers[litStep]=ans;
+  if(litStep<3){litStep++;renderLit();}
+  else{
+    document.getElementById('litNext').disabled=true;
+    document.getElementById('litNext').textContent='처리 중...';
+    await getAiFeedback();
+    await saveFirebase();
+    document.getElementById('litNext').textContent='저장 완료 ✓';
+  }
+}
+async function getAiFeedback(){
+  const rName=reagent==='kmno4'?'KMnO₄(과망가니즈산 칼륨)':'CuSO₄(황산 구리Ⅱ)';
+  const prompt=`중학교 과학 '이온의 이동' 실험에서 학생이 4단계 과학 문해력을 작성했습니다.
+사용 시약: ${rName}
+
+1단계(관찰): ${mfAnswers[0]}
+2단계(인과): ${mfAnswers[1]}
+3단계(개념): ${mfAnswers[2]}
+4단계(전이): ${mfAnswers[3]}
+
+PISA 과학 문해력 기준(1=Basic 단순 관찰, 2=Proficient 인과관계 설명, 3=Advanced 이온·전기장 개념 연결, 4=Excellent 일반화·전이)으로
+전체 수준을 1~4 중 하나로 평가하고, 중학생에게 친근하고 격려하는 톤으로 4~5문장 피드백을 작성하세요.
+"모르겠다/모름" 등 무관한 내용이 많으면 반드시 낮은 레벨을 주세요.
+
+반드시 아래 JSON 형식으로만 답하세요 (다른 텍스트 없이):
+{"level":1,"feedback":"..."}`;
+
+  // 과학 용어/인과관계 표현은 로컬에서 직접 세어서 항상 신뢰성 있게 기록
+  const allText=mfAnswers.join(' ');
+  const sciTerms=['이온','전기장','전극','양극','음극','확산','전하','K⁺','MnO₄⁻','Cu²⁺','SO₄²⁻','전압','전류','인력','척력'];
+  const termCount=sciTerms.filter(t=>allText.includes(t)).length;
+  const causalWords=['때문에','따라서','그러므로','이므로','의해','결과적으로'];
+  const causalCount=causalWords.filter(w=>allText.includes(w)).length;
+  window.__aiFbTerms=termCount; window.__aiFbCausal=causalCount;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': localStorage.getItem('mf_api_key')||'',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok) throw new Error('API 응답 오류: '+res.status);
+    const data=await res.json();
+    const raw=data.content?.[0]?.text||'{}';
+    const r=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    window.__aiFbLevel=r.level||1;
+    document.getElementById('aiFbText').textContent=r.feedback||'피드백을 불러오지 못했습니다.';
+    document.getElementById('aiFb').classList.add('visible');
+  }catch(e){
+    // AI 연결 실패 시: 로컬 키워드 채점으로 대체 (저장 안 되고 사라지는 일이 없도록)
+    const lv=(termCount>=4&&causalCount>=1)?3:(termCount>=2)?2:1;
+    window.__aiFbLevel=lv;
+    document.getElementById('aiFbText').textContent=`(AI 연결 실패 — 키워드 기반 자동 평가) 과학 용어 ${termCount}개, 인과관계 표현 ${causalCount}개를 사용했어요. 조금 더 구체적으로 설명해보면 좋겠어요!`;
+    document.getElementById('aiFb').classList.add('visible');
+  }
+}
+async function saveFirebase(){
+  if(!window.db)return;
+  try{
+    await db.collection('sessions').add({
+      studentId:student.id,studentName:student.name,
+      experimentName:'이온의_이동',subject:'이온의 이동',
+      reagent:reagent==='kmno4'?'KMnO₄':'CuSO₄',
+      mfAnswers,
+      level:window.__aiFbLevel||1,
+      terms:window.__aiFbTerms||0,
+      causal:window.__aiFbCausal||0,
+      sentences:mfAnswers.filter(a=>a&&a!=='(건너뜀)').length,
+      feedback:document.getElementById('aiFbText').textContent,
+      answer:mfAnswers[0],
+      createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    const t=document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),3000);
+  }catch(e){console.error(e);}
+}
+</script>
+</body>
+</html>
