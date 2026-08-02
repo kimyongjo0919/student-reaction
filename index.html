@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0a0e1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="META FLOW+">
+<link rel="manifest" href="manifest.json">
+<title>META FLOW+ | 나의 문해력 성장 리포트</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&family=Cute+Font&family=Jua&family=Gaegu&family=Do+Hyeon&family=Black+Han+Sans&display=swap');
+
+:root {
+  --bg:#0a0e1a; --panel:#0e1520; --panel2:#111d2e;
+  --border:#1a2840; --cyan:#00d2ff; --green:#2ed573;
+  --yellow:#ffd32a; --red:#ff4757; --purple:#a29bfe;
+  --orange:#ff9f43; --pink:#fd79a8;
+  --text:#ffffff; --sub:#8aabcc; --sub2:#9abccc;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Noto Sans KR',sans-serif;
+  min-height:100vh;overflow-x:hidden;
+  padding-bottom:80px;
+}
+
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,210,255,0.015) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,210,255,0.015) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0;
+}
+
+.app{max-width:480px;margin:0 auto;position:relative;z-index:1;}
+
+/* ── 로딩 ── */
+.loading-screen{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:999;transition:opacity 0.5s;
+}
+.loading-screen.hide{opacity:0;pointer-events:none;}
+.loading-logo{
+  font-family:'Orbitron',monospace;font-size:28px;font-weight:900;
+  background:linear-gradient(90deg,var(--cyan),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:8px;
+}
+.loading-sub{font-size:11px;color:var(--sub2);letter-spacing:2px;margin-bottom:32px;}
+.loading-spinner{
+  width:40px;height:40px;border-radius:50%;
+  border:3px solid rgba(0,210,255,0.1);
+  border-top:3px solid var(--cyan);
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-status{font-size:11px;color:var(--sub);margin-top:12px;font-family:'Orbitron',monospace;letter-spacing:1px;}
+
+/* ── 로그인 ── */
+.login-screen{
+  display:none;padding:40px 24px;
+  min-height:100vh;
+  flex-direction:column;align-items:center;justify-content:center;
+}
+.login-screen.show{display:flex;}
+.login-logo{
+  font-family:'Orbitron',monospace;font-size:32px;font-weight:900;
+  background:linear-gradient(90deg,var(--cyan),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:6px;text-align:center;
+}
+.login-tagline{font-size:12px;color:var(--sub2);text-align:center;margin-bottom:40px;line-height:1.7;}
+.input-group{width:100%;margin-bottom:12px;}
+.input-label{font-size:10px;color:var(--sub2);letter-spacing:1px;font-family:'Orbitron',monospace;margin-bottom:6px;display:block;}
+.input-field{
+  width:100%;padding:14px 16px;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);
+  font-size:14px;font-family:'Noto Sans KR',sans-serif;
+  transition:border-color 0.2s;outline:none;
+}
+.input-field:focus{border-color:var(--cyan);}
+.login-btn{
+  width:100%;padding:14px;margin-top:8px;
+  background:linear-gradient(135deg,rgba(0,210,255,0.15),rgba(46,213,115,0.15));
+  border:1px solid var(--cyan);border-radius:10px;
+  color:var(--cyan);cursor:pointer;
+  font-family:'Orbitron',monospace;font-size:12px;font-weight:700;
+  letter-spacing:2px;transition:all 0.2s;
+}
+.login-btn:active{background:rgba(0,210,255,0.25);}
+.login-error{color:var(--red);font-size:11px;text-align:center;margin-top:8px;display:none;}
+
+/* ── 헤더 ── */
+.header{
+  background:linear-gradient(135deg,#0a0e1a,#0d1829);
+  border-bottom:1px solid var(--border);
+  padding:12px 16px 10px;
+  position:sticky;top:0;z-index:100;
+}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.logo{
+  font-family:'Orbitron',monospace;font-size:13px;font-weight:900;
+  background:linear-gradient(90deg,var(--cyan),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.student-badge{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(0,210,255,0.08);border:1px solid rgba(0,210,255,0.2);
+  border-radius:20px;padding:4px 10px;
+  font-size:11px;color:var(--cyan);font-family:'Orbitron',monospace;
+}
+.sync-status{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--sub);font-family:'Orbitron',monospace;letter-spacing:1px;}
+.sync-dot{width:5px;height:5px;border-radius:50%;background:var(--sub);}
+.sync-dot.synced{background:var(--green);animation:blink 2s infinite;}
+.sync-dot.syncing{background:var(--yellow);animation:blink 0.5s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* XP 바 (헤더) */
+.xp-bar-wrap{display:flex;align-items:center;gap:8px;}
+.xp-label{font-family:'Orbitron',monospace;font-size:9px;color:var(--yellow);white-space:nowrap;}
+.xp-track{flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.xp-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--yellow),var(--orange));transition:width 1s cubic-bezier(.34,1.2,.64,1);}
+.xp-val{font-family:'Orbitron',monospace;font-size:9px;color:var(--yellow);white-space:nowrap;}
+
+/* ── 네비게이션 ── */
+.nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;
+  background:rgba(10,14,26,0.96);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);
+  display:flex;z-index:100;
+}
+.nav-btn{
+  flex:1;padding:10px 4px 8px;background:transparent;border:none;
+  color:var(--sub);cursor:pointer;
+  font-size:10px;text-align:center;transition:all 0.2s;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.nav-icon{font-size:19px;line-height:1;}
+.nav-btn.active{color:var(--cyan);}
+
+/* ── 페이지 ── */
+.page{display:none;padding:14px;}
+.page.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.page.active > *{animation:fadeUp 0.3s ease forwards;}
+.page.active > *:nth-child(2){animation-delay:.05s;}
+.page.active > *:nth-child(3){animation-delay:.1s;}
+.page.active > *:nth-child(4){animation-delay:.15s;}
+.page.active > *:nth-child(5){animation-delay:.2s;}
+
+/* ── 공통 카드 ── */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;}
+.section-title{
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;
+  color:var(--sub2);text-transform:uppercase;
+  margin-bottom:10px;display:flex;align-items:center;gap:8px;
+}
+.section-title::before{content:'';width:12px;height:2px;background:var(--cyan);}
+
+/* ── 홈: 플레이어 카드 ── */
+.player-card{
+  background:linear-gradient(135deg,#0d1829,#0a1220);
+  border:1px solid var(--border);border-radius:16px;
+  padding:16px;margin-bottom:12px;position:relative;overflow:hidden;
+}
+.player-card::after{
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:140px;height:140px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,210,255,0.07),transparent);
+  pointer-events:none;
+}
+.pc-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.pc-avatar{
+  width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan),var(--green));
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+  box-shadow:0 0 16px rgba(0,210,255,0.3);
+  position:relative;
+}
+.pc-avatar .lv-badge{
+  position:absolute;bottom:-4px;right:-4px;
+  background:var(--yellow);color:#000;
+  font-family:'Orbitron',monospace;font-size:8px;font-weight:900;
+  padding:1px 5px;border-radius:6px;white-space:nowrap;
+}
+.pc-info{flex:1;}
+.pc-name{font-size:15px;font-weight:700;margin-bottom:2px;}
+.pc-rank{font-family:'Orbitron',monospace;font-size:10px;color:var(--cyan);margin-bottom:6px;}
+.pc-xp-wrap{display:flex;align-items:center;gap:6px;}
+.pc-xp-track{flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.pc-xp-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--yellow),var(--orange));transition:width 1.2s cubic-bezier(.34,1.2,.64,1);}
+.pc-xp-txt{font-family:'Orbitron',monospace;font-size:9px;color:var(--yellow);white-space:nowrap;}
+
+.pc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.pcs-item{background:rgba(0,0,0,0.2);border-radius:8px;padding:7px 4px;text-align:center;}
+.pcs-val{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;display:block;margin-bottom:2px;}
+.pcs-label{font-size:8px;color:var(--sub2);}
+
+/* ── 배지 시스템 ── */
+.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:0;}
+.badge-item{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 6px;border-radius:10px;
+  border:1px solid var(--border);background:rgba(0,0,0,0.15);
+  position:relative;transition:all 0.2s;
+}
+.badge-item.earned{
+  border-color:rgba(255,211,42,0.4);
+  background:rgba(255,211,42,0.06);
+  box-shadow:0 0 10px rgba(255,211,42,0.1);
+}
+.badge-item.earned .badge-icon{filter:none;}
+.badge-item:not(.earned) .badge-icon{filter:grayscale(1) opacity(0.3);}
+.badge-icon{font-size:22px;line-height:1;}
+.badge-name{font-family:'Orbitron',monospace;font-size:7px;color:var(--sub2);text-align:center;letter-spacing:.5px;}
+.badge-item.earned .badge-name{color:var(--yellow);}
+.badge-new{
+  position:absolute;top:-5px;right:-5px;
+  background:var(--red);color:#fff;
+  font-size:7px;font-weight:700;
+  padding:1px 4px;border-radius:5px;
+  font-family:'Orbitron',monospace;
+}
+
+/* ── 레이더 → 실험별 문해력 차트 ── */
+.exp-literacy-wrap{padding:4px 0;}
+.exp-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.exp-bar-label{font-size:11px;font-weight:600;color:var(--text);min-width:80px;flex-shrink:0;}
+.exp-bar-track{flex:1;height:10px;background:rgba(255,255,255,0.06);border-radius:5px;overflow:hidden;position:relative;}
+.exp-bar-fill{height:100%;border-radius:5px;transition:width 1s ease;}
+.exp-bar-pct{font-family:'Orbitron',monospace;font-size:9px;min-width:32px;text-align:right;flex-shrink:0;}
+.exp-bar-steps{display:flex;justify-content:flex-end;gap:3px;margin-top:3px;}
+.exp-step-dot{width:16px;height:5px;border-radius:2px;opacity:0.4;}
+.exp-step-dot.active{opacity:1;}
+
+/* ── 성장 그래프 ── */
+.chart-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+.cc-title{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:var(--sub2);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.cc-title::before{content:'';width:12px;height:2px;background:var(--cyan);}
+canvas{max-width:100%;height:auto;display:block;border-radius:6px;}
+
+/* ── 세션 리스트 ── */
+.session-list{display:flex;flex-direction:column;gap:7px;}
+.session-item{
+  background:var(--panel2);border:1px solid var(--border);border-radius:9px;
+  padding:11px 13px;display:flex;align-items:center;gap:11px;
+}
+.si-num{font-family:'Orbitron',monospace;font-size:10px;color:var(--sub);min-width:26px;}
+.si-info{flex:1;}
+.si-exp{font-size:12px;font-weight:700;margin-bottom:2px;color:var(--text);}
+.si-date{font-size:9px;color:var(--sub2);}
+.si-level{padding:3px 9px;border-radius:7px;font-family:'Orbitron',monospace;font-size:8px;font-weight:700;letter-spacing:1px;}
+.level-basic{background:rgba(255,71,87,0.15);color:var(--red);}
+.level-proficient{background:rgba(255,211,42,0.15);color:var(--yellow);}
+.level-advanced{background:rgba(0,210,255,0.15);color:var(--cyan);}
+.level-excellent{background:rgba(46,213,115,0.15);color:var(--green);}
+.exp-type-badge{
+  font-size:8px;padding:1px 6px;border-radius:4px;
+  background:rgba(162,155,254,0.15);color:var(--purple);
+  font-family:'Orbitron',monospace;letter-spacing:.5px;margin-left:4px;
+}
+
+/* ── 퀘스트 카드 ── */
+.quest-item{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 13px;border-radius:10px;
+  border:1px solid var(--border);background:var(--panel2);
+  margin-bottom:7px;
+}
+.quest-icon{font-size:20px;flex-shrink:0;}
+.quest-info{flex:1;}
+.quest-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.quest-desc{font-size:10px;color:var(--sub2);}
+.quest-progress{width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin-top:5px;}
+.quest-fill{height:100%;border-radius:2px;transition:width .8s ease;}
+.quest-reward{font-family:'Orbitron',monospace;font-size:9px;color:var(--yellow);white-space:nowrap;flex-shrink:0;}
+.quest-done{color:var(--green) !important;}
+
+/* ── 리포트 ── */
+.report-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;}
+.rc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.rc-exp{font-size:13px;font-weight:700;margin-bottom:2px;color:var(--text);}
+.rc-date{font-size:9px;color:var(--sub2);}
+.mf-answers-wrap{margin-bottom:10px;}
+.mf-answer-item{
+  background:var(--panel2);border-radius:6px;padding:8px 10px;
+  margin-bottom:5px;font-size:11px;line-height:1.7;
+  border-left:2px solid var(--purple);color:var(--text);
+}
+.mf-step-label{font-size:9px;color:var(--purple);font-family:'Orbitron',monospace;letter-spacing:1px;margin-bottom:3px;}
+.rc-answer{
+  background:var(--panel2);border-radius:7px;padding:11px;margin-bottom:10px;
+  font-size:12px;line-height:1.8;color:var(--text);
+  border-left:3px solid var(--cyan);
+}
+.rc-analysis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px;}
+.ra-item{text-align:center;}
+.ra-val{font-family:'Orbitron',monospace;font-size:15px;font-weight:900;display:block;margin-bottom:2px;}
+.ra-label{font-size:8px;color:var(--sub2);}
+.rc-feedback{
+  background:rgba(46,213,115,0.07);border:1px solid rgba(46,213,115,0.18);
+  border-radius:7px;padding:9px 11px;
+  font-size:12px;color:var(--text);line-height:1.7;
+}
+.rc-feedback strong{color:var(--green);}
+
+/* ── 설정 ── */
+.profile-card{
+  background:linear-gradient(135deg,#0d1829,#0a1220);
+  border:1px solid var(--border);border-radius:14px;
+  padding:22px;text-align:center;margin-bottom:12px;
+}
+.profile-avatar{
+  width:66px;height:66px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan),var(--green));
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;margin:0 auto 10px;
+  box-shadow:0 0 18px rgba(0,210,255,0.25);
+}
+.profile-name{font-size:17px;font-weight:700;margin-bottom:2px;}
+.profile-info{font-size:11px;color:var(--sub2);}
+.setting-item{
+  background:var(--panel);border:1px solid var(--border);border-radius:9px;
+  padding:13px 14px;display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:7px;font-size:12px;cursor:pointer;transition:all 0.2s;color:var(--text);
+}
+.si-right{color:var(--sub);font-size:10px;font-family:'Orbitron',monospace;}
+.logout-btn{
+  width:100%;padding:13px;margin-top:8px;
+  background:rgba(255,71,87,0.08);border:1px solid rgba(255,71,87,0.3);
+  border-radius:9px;color:var(--red);cursor:pointer;
+  font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:2px;
+}
+.color-swatch{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all 0.2s;flex-shrink:0;}
+.color-swatch:hover{transform:scale(1.15);}
+.color-swatch.active{border:3px solid var(--cyan);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--cyan);}
+.font-swatch{padding:10px 14px;border-radius:9px;border:1px solid var(--border);background:var(--panel2);color:var(--text);cursor:pointer;font-size:14px;transition:all 0.2s;}
+.font-swatch:hover{border-color:var(--cyan);}
+.font-swatch.active{border-color:var(--cyan);background:rgba(0,210,255,0.08);}
+.avatar-btn{font-size:28px;cursor:pointer;padding:4px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;display:inline-block;}
+.avatar-btn:hover{transform:scale(1.2);}
+.avatar-btn.active{border-color:var(--cyan);background:rgba(0,210,255,0.1);}
+
+/* ── 토스트 ── */
+.toast{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(46,213,115,0.9);color:#000;
+  padding:10px 20px;border-radius:20px;
+  font-size:12px;font-weight:700;
+  opacity:0;transition:all 0.3s;pointer-events:none;
+  white-space:nowrap;z-index:200;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── 배지 획득 팝업 ── */
+.badge-popup{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
+  background:linear-gradient(135deg,#1a1420,#0d1829);
+  border:2px solid var(--yellow);border-radius:20px;
+  padding:28px 32px;text-align:center;z-index:999;
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 0 40px rgba(255,211,42,0.3);
+}
+.badge-popup.show{transform:translate(-50%,-50%) scale(1);}
+.bp-icon{font-size:56px;margin-bottom:10px;display:block;animation:bounce .6s ease infinite alternate;}
+@keyframes bounce{from{transform:translateY(0);}to{transform:translateY(-6px);}}
+.bp-title{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:var(--yellow);margin-bottom:6px;}
+.bp-name{font-size:18px;font-weight:700;margin-bottom:4px;}
+.bp-desc{font-size:11px;color:var(--sub2);}
+.bp-close{margin-top:16px;padding:8px 24px;background:rgba(255,211,42,0.15);border:1px solid var(--yellow);border-radius:20px;color:var(--yellow);cursor:pointer;font-family:'Orbitron',monospace;font-size:10px;}
+
+/* ── 레벨업 팝업 ── */
+.levelup-popup{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
+  background:linear-gradient(135deg,#0a1f2e,#0d2438);
+  border:2px solid var(--cyan);border-radius:20px;
+  padding:28px 32px;text-align:center;z-index:999;
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 0 60px rgba(0,210,255,0.25);min-width:260px;
+}
+.levelup-popup.show{transform:translate(-50%,-50%) scale(1);}
+.lu-stars{font-size:28px;letter-spacing:4px;margin-bottom:8px;}
+.lu-title{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:var(--cyan);margin-bottom:8px;}
+.lu-level{font-family:'Orbitron',monospace;font-size:48px;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;}
+.lu-name{font-size:16px;font-weight:700;margin:6px 0 4px;}
+.lu-desc{font-size:11px;color:var(--sub2);}
+.lu-close{margin-top:16px;padding:8px 24px;background:rgba(0,210,255,0.15);border:1px solid var(--cyan);border-radius:20px;color:var(--cyan);cursor:pointer;font-family:'Orbitron',monospace;font-size:10px;}
+
+/* ── 실시간 피드 ── */
+.realtime-feed{
+  background:rgba(0,210,255,0.03);border:1px solid rgba(0,210,255,0.1);
+  border-radius:10px;padding:11px;margin-bottom:12px;
+}
+.rf-title{font-size:9px;color:var(--cyan);font-family:'Orbitron',monospace;letter-spacing:2px;margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+.rf-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:blink 1s infinite;}
+.rf-item{font-size:10px;color:var(--sub2);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+.rf-item:last-child{border-bottom:none;}
+.rf-item span{color:var(--cyan);}
+
+/* textarea 유지 */
+textarea{width:100%;padding:12px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:'Noto Sans KR',sans-serif;resize:none;outline:none;line-height:1.7;transition:border-color 0.2s;}
+textarea:focus{border-color:var(--cyan);}
+.submit-btn{width:100%;padding:12px;margin-top:8px;background:linear-gradient(135deg,rgba(0,210,255,0.12),rgba(46,213,115,0.12));border:1px solid var(--cyan);border-radius:9px;color:var(--cyan);cursor:pointer;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:2px;transition:all 0.2s;}
+.submit-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* ── 실험 상세 모달 ── */
+.exp-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;}
+.exp-modal-bg.show{display:flex;}
+.exp-modal{background:var(--panel);border:1px solid var(--border);border-radius:18px;width:100%;max-width:460px;max-height:85vh;overflow-y:auto;padding:20px;animation:modalPop .35s cubic-bezier(.34,1.56,.64,1);}
+@keyframes modalPop{from{opacity:0;transform:scale(.9) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.em-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.em-title{font-size:15px;font-weight:700;color:var(--text);}
+.em-close{background:rgba(255,255,255,0.08);border:none;width:30px;height:30px;border-radius:50%;color:var(--sub);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.em-step{background:var(--panel2);border-radius:8px;padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--purple);}
+.em-step-label{font-family:'Orbitron',monospace;font-size:9px;color:var(--purple);letter-spacing:1px;margin-bottom:4px;}
+.em-step-text{font-size:12px;line-height:1.7;color:var(--text);}
+.em-step-empty{font-size:12px;color:var(--sub);font-style:italic;}
+.em-feedback{background:rgba(46,213,115,0.07);border:1px solid rgba(46,213,115,0.2);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--text);margin-bottom:10px;}
+.em-teacher{background:rgba(255,211,42,0.07);border:1px solid rgba(255,211,42,0.25);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--text);}
+.em-teacher-label{font-family:'Orbitron',monospace;font-size:9px;color:var(--yellow);letter-spacing:1px;margin-bottom:5px;}
+</style>
+</head>
+<body>
+
+<!-- 로딩 -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-logo">META FLOW+</div>
+  <div class="loading-sub">깊어지는 과학 탐구</div>
+  <div class="loading-spinner"></div>
+  <div class="loading-status" id="loadingStatus">Firebase 연결 중...</div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<!-- 배지 획득 팝업 -->
+<div class="badge-popup" id="badgePopup">
+  <span class="bp-icon" id="bpIcon">🏆</span>
+  <div class="bp-title">NEW BADGE UNLOCKED!</div>
+  <div class="bp-name" id="bpName">배지 이름</div>
+  <div class="bp-desc" id="bpDesc">설명</div>
+  <button class="bp-close" onclick="closeBadgePopup()">확인!</button>
+</div>
+
+<!-- 레벨업 팝업 -->
+<div class="levelup-popup" id="levelupPopup">
+  <div class="lu-stars">⭐⭐⭐</div>
+  <div class="lu-title">LEVEL UP!</div>
+  <div class="lu-level" id="luLevel">2</div>
+  <div class="lu-name" id="luName">Proficient</div>
+  <div class="lu-desc" id="luDesc">인과관계 표현이 늘었어요!</div>
+  <button class="lu-close" onclick="closeLevelupPopup()">계속하기 →</button>
+</div>
+
+<div class="app">
+
+<!-- 로그인 -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-logo">META FLOW+</div>
+  <div class="login-tagline">깊어지는 과학 탐구<br>손끝으로 보는 나만의 문해력 성장 리포트</div>
+  <div class="input-group">
+    <label class="input-label">학교 코드</label>
+    <input class="input-field" id="schoolCode" type="text" placeholder="선생님이 알려주신 코드 (예: GN01)" maxlength="10" style="text-transform:uppercase">
+  </div>
+  <div class="input-group">
+    <label class="input-label">학번</label>
+    <input class="input-field" id="studentId" type="text" placeholder="예) 2031" maxlength="10">
+  </div>
+  <div class="input-group">
+    <label class="input-label">이름</label>
+    <input class="input-field" id="studentName" type="text" placeholder="이름 입력">
+  </div>
+  <div class="input-group">
+    <label class="input-label">학년/반</label>
+    <input class="input-field" id="studentClass" type="text" placeholder="예) 2학년 3반">
+  </div>
+  <button class="login-btn" onclick="doLogin()">시작하기 →</button>
+  <div class="login-error" id="loginError">학교 코드·학번·이름을 입력해주세요</div>
+</div>
+
+<!-- 메인 앱 -->
+<div id="mainApp" style="display:none;">
+
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">META FLOW+</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="sync-status">
+          <div class="sync-dot" id="syncDot"></div>
+          <span id="syncText">연결 중</span>
+        </div>
+        <div class="student-badge">👤 <span id="headerName">-</span></div>
+      </div>
+    </div>
+    <div class="xp-bar-wrap">
+      <span class="xp-label" id="hLvLabel">Lv.1</span>
+      <div class="xp-track"><div class="xp-fill" id="hXpFill" style="width:0%"></div></div>
+      <span class="xp-val" id="hXpVal">0 XP</span>
+    </div>
+  </div>
+
+  <!-- ══════ 홈 탭 ══════ -->
+  <div class="page active" id="page-home">
+
+    <!-- ══ 사전 문해력 진단 카드 ══ -->
+    <div id="preTestCard" style="display:none;">
+      <!-- 미완료 상태 -->
+      <div id="preTestBanner" style="
+        background:linear-gradient(135deg,rgba(0,210,255,0.08),rgba(46,213,115,0.06));
+        border:1px solid rgba(0,210,255,0.25);border-radius:14px;
+        padding:14px 16px;margin-bottom:12px;
+        display:flex;align-items:center;gap:12px;
+      ">
+        <div style="font-size:28px;flex-shrink:0;">📖</div>
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:700;color:var(--cyan);font-family:'Orbitron',monospace;letter-spacing:1px;margin-bottom:3px;">사전 문해력 진단 미완료</div>
+          <div style="font-size:11px;color:var(--sub2);line-height:1.6;">과학적 문해력 진단을 완료하면<br>나의 기초 역량을 확인할 수 있어요!</div>
+        </div>
+        <a href="https://dhteacher237.github.io/Pre-test/" target="_blank" style="
+          background:linear-gradient(135deg,rgba(0,210,255,0.15),rgba(46,213,115,0.15));
+          border:1px solid var(--cyan);border-radius:8px;
+          padding:8px 12px;color:var(--cyan);text-decoration:none;
+          font-family:'Orbitron',monospace;font-size:9px;font-weight:700;
+          letter-spacing:1px;white-space:nowrap;flex-shrink:0;
+        ">진단하기 →</a>
+      </div>
+
+      <!-- 완료 상태 -->
+      <div id="preTestResult" style="display:none;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:var(--sub2);display:flex;align-items:center;gap:8px;">
+            <span style="width:12px;height:2px;background:var(--cyan);display:inline-block;"></span>
+            사전 문해력 진단 결과
+          </div>
+          <span id="ptPhase" style="font-size:9px;font-family:'Orbitron',monospace;background:rgba(0,210,255,0.1);color:var(--cyan);padding:2px 8px;border-radius:10px;"></span>
+        </div>
+        <!-- 점수 히어로 -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div id="ptLevelIcon" style="font-size:32px;flex-shrink:0;">📗</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;">
+              <span id="ptComposite" style="font-family:'Orbitron',monospace;font-size:26px;font-weight:900;color:var(--cyan);">—</span>
+              <span style="font-size:11px;color:var(--sub2);">/ 100점</span>
+              <span id="ptLevelLabel" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-left:4px;"></span>
+            </div>
+            <!-- 종합 점수 바 -->
+            <div style="height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
+              <div id="ptScoreBar" style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--cyan),var(--green));width:0%;transition:width 1s ease;"></div>
+            </div>
+          </div>
+        </div>
+        <!-- 역량별 점수 -->
+        <div id="ptCompetencyBars" style="margin-bottom:10px;"></div>
+        <!-- 아이트래킹 요약 -->
+        <div id="ptEyeTrack" style="display:none;background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px;margin-bottom:8px;"></div>
+        <!-- 지문 정보 -->
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:10px;color:var(--sub2);">📰 <span id="ptPassage">—</span></div>
+          <div style="font-size:9px;color:var(--sub2);font-family:'Orbitron',monospace;" id="ptDate">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 플레이어 카드 -->
+    <div class="player-card">
+      <div class="pc-top">
+        <div class="pc-avatar" id="pcAvatar">
+          👨‍🎓
+          <div class="lv-badge" id="pcLvBadge">Lv.1</div>
+        </div>
+        <div class="pc-info">
+          <div class="pc-name" id="pcName">-</div>
+          <div class="pc-rank" id="pcRank">ROOKIE SCIENTIST</div>
+          <div class="pc-xp-wrap">
+            <div class="pc-xp-track"><div class="pc-xp-fill" id="pcXpFill" style="width:0%"></div></div>
+            <span class="pc-xp-txt" id="pcXpTxt">0 / 100 XP</span>
+          </div>
+        </div>
+      </div>
+      <div class="pc-stats">
+        <div class="pcs-item">
+          <span class="pcs-val" style="color:var(--cyan)" id="pcTotal">0</span>
+          <span class="pcs-label">총 실험</span>
+        </div>
+        <div class="pcs-item">
+          <span class="pcs-val" style="color:var(--green)" id="pcLevel">-</span>
+          <span class="pcs-label">최고 레벨</span>
+        </div>
+        <div class="pcs-item">
+          <span class="pcs-val" style="color:var(--yellow)" id="pcStreak">0</span>
+          <span class="pcs-label">연속 달성</span>
+        </div>
+        <div class="pcs-item">
+          <span class="pcs-val" style="color:var(--purple)" id="pcBadges">0</span>
+          <span class="pcs-label">배지</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 실험별 문해력 달성도 -->
+    <div class="card">
+      <div class="cc-title">실험별 문해력 달성</div>
+      <div class="exp-literacy-wrap" id="expLiteracyChart">
+        <div style="text-align:center;color:var(--sub);font-size:12px;padding:16px;">실험 데이터를 불러오는 중...</div>
+      </div>
+    </div>
+
+    <!-- 퀘스트 -->
+    <div class="card">
+      <div class="cc-title">진행 중 퀘스트</div>
+      <div id="questList"><!-- JS로 렌더 --></div>
+    </div>
+
+    <!-- 실시간 피드 -->
+    <div class="realtime-feed">
+      <div class="rf-title"><div class="rf-dot"></div>Firebase 실시간 연결</div>
+      <div id="realtimeFeed"><div class="rf-item">데이터를 불러오는 중...</div></div>
+    </div>
+
+    <!-- 성장 그래프 -->
+    <div class="chart-card">
+      <div class="cc-title">회차별 문해력 성장</div>
+      <canvas id="growthChart" height="150"></canvas>
+    </div>
+
+    <!-- 최근 실험 -->
+    <div class="section-title">최근 실험 기록</div>
+    <div class="session-list" id="sessionList">
+      <div style="text-align:center;color:var(--sub);font-size:12px;padding:20px;">아직 실험 기록이 없어요</div>
+    </div>
+
+  </div>
+
+  <!-- ══════ 배지 탭 ══════ -->
+  <div class="page" id="page-badge">
+    <div class="section-title">🏆 획득 배지</div>
+    <div class="card">
+      <div class="badge-grid" id="badgeGrid"><!-- JS로 렌더 --></div>
+    </div>
+    <div class="section-title">📋 진행 중 퀘스트</div>
+    <div id="questListBadge"><!-- JS로 렌더 --></div>
+  </div>
+
+  <!-- ══════ 리포트 탭 ══════ -->
+  <div class="page" id="page-report">
+    <div class="section-title">상세 실험 리포트</div>
+    <div id="reportList">
+      <div style="text-align:center;color:var(--sub);font-size:12px;padding:30px;">아직 기록이 없어요</div>
+    </div>
+  </div>
+
+  <!-- ══════ 설정 탭 ══════ -->
+  <div class="page" id="page-setting">
+    <div class="profile-card">
+      <div class="profile-avatar" id="profileAvatar">👨‍🎓</div>
+      <div class="profile-name" id="profileName">-</div>
+      <div class="profile-info" id="profileInfo">-</div>
+    </div>
+
+    <div class="section-title">🎨 내 앱 꾸미기</div>
+
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+      <div style="font-size:11px;color:var(--sub2);letter-spacing:1px;font-family:'Orbitron',monospace;margin-bottom:10px;">배경 색상</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div onclick="setBgColor('#0a0e1a',this)" class="color-swatch active" style="background:#0a0e1a;border:3px solid var(--cyan);" title="기본 다크"></div>
+        <div onclick="setBgColor('#0d1b2a',this)" class="color-swatch" style="background:#0d1b2a;" title="딥 네이비"></div>
+        <div onclick="setBgColor('#1a0a2e',this)" class="color-swatch" style="background:#1a0a2e;" title="딥 퍼플"></div>
+        <div onclick="setBgColor('#0a1f0a',this)" class="color-swatch" style="background:#0a1f0a;" title="포레스트 그린"></div>
+        <div onclick="setBgColor('#1a0f0a',this)" class="color-swatch" style="background:#1a0f0a;" title="다크 레드"></div>
+        <div onclick="setBgColor('#f0f4ff',this)" class="color-swatch" style="background:#f0f4ff;" title="라이트 블루"></div>
+        <div onclick="setBgColor('#f5f0ff',this)" class="color-swatch" style="background:#f5f0ff;" title="라이트 퍼플"></div>
+        <div onclick="setBgColor('#f0fff4',this)" class="color-swatch" style="background:#f0fff4;" title="라이트 그린"></div>
+        <div onclick="setBgColor('#fff8f0',this)" class="color-swatch" style="background:#fff8f0;" title="크림"></div>
+        <div onclick="setBgColor('#ffe4e8',this)" class="color-swatch" style="background:#ffe4e8;" title="핑크"></div>
+      </div>
+    </div>
+
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+      <div style="font-size:11px;color:var(--sub2);letter-spacing:1px;font-family:'Orbitron',monospace;margin-bottom:10px;">폰트 스타일</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div onclick="setFont('Noto Sans KR',this)" class="font-swatch active">가나다 ABC · Noto Sans (기본)</div>
+        <div onclick="setFont('Cute Font',this)" class="font-swatch" style="font-family:'Cute Font',cursive;">가나다 ABC · 귀여운 폰트</div>
+        <div onclick="setFont('Jua',this)" class="font-swatch" style="font-family:'Jua',sans-serif;">가나다 ABC · 주아체</div>
+        <div onclick="setFont('Gaegu',this)" class="font-swatch" style="font-family:'Gaegu',cursive;">가나다 ABC · 개구쟁이</div>
+        <div onclick="setFont('Do Hyeon',this)" class="font-swatch" style="font-family:'Do Hyeon',sans-serif;">가나다 ABC · 도현체</div>
+        <div onclick="setFont('Black Han Sans',this)" class="font-swatch" style="font-family:'Black Han Sans',sans-serif;">가나다 ABC · 블랙한산스</div>
+      </div>
+    </div>
+
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+      <div style="font-size:11px;color:var(--sub2);letter-spacing:1px;font-family:'Orbitron',monospace;margin-bottom:10px;">프로필 아이콘</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <span onclick="setAvatar('👨‍🎓',this)" class="avatar-btn active">👨‍🎓</span>
+        <span onclick="setAvatar('👩‍🎓',this)" class="avatar-btn">👩‍🎓</span>
+        <span onclick="setAvatar('🧑‍🔬',this)" class="avatar-btn">🧑‍🔬</span>
+        <span onclick="setAvatar('👨‍🔬',this)" class="avatar-btn">👨‍🔬</span>
+        <span onclick="setAvatar('👩‍🔬',this)" class="avatar-btn">👩‍🔬</span>
+        <span onclick="setAvatar('🦊',this)" class="avatar-btn">🦊</span>
+        <span onclick="setAvatar('🐬',this)" class="avatar-btn">🐬</span>
+        <span onclick="setAvatar('🦁',this)" class="avatar-btn">🦁</span>
+        <span onclick="setAvatar('🐙',this)" class="avatar-btn">🐙</span>
+        <span onclick="setAvatar('🚀',this)" class="avatar-btn">🚀</span>
+        <span onclick="setAvatar('⚗️',this)" class="avatar-btn">⚗️</span>
+        <span onclick="setAvatar('🔬',this)" class="avatar-btn">🔬</span>
+      </div>
+    </div>
+
+    <div class="section-title">학습 정보</div>
+    <div class="setting-item"><span>📊 총 실험 횟수</span><span class="si-right" id="settingTotal">0회</span></div>
+    <div class="setting-item"><span>🎯 현재 레벨</span><span class="si-right" id="settingLevel" style="color:var(--cyan)">-</span></div>
+    <div class="setting-item"><span>☁️ Firebase 동기화</span><span class="si-right" id="settingSync" style="color:var(--green)">연결됨</span></div>
+    <div class="setting-item"><span>🧪 연결된 실험</span><span class="si-right" id="settingExpTypes">-</span></div>
+    <div class="setting-item"><span>🎯 평가 기준</span><span class="si-right">PISA 2025</span></div>
+    <div class="setting-item"><span>📱 앱 버전</span><span class="si-right">v3.0.0</span></div>
+    <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+  </div>
+
+  <!-- 네비게이션 -->
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showPage('home',this)">
+      <span class="nav-icon">🏠</span><span>홈</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('badge',this)">
+      <span class="nav-icon">🏆</span><span>배지</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('report',this)">
+      <span class="nav-icon">📋</span><span>리포트</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('setting',this)">
+      <span class="nav-icon">⚙️</span><span>설정</span>
+    </button>
+  </nav>
+
+</div>
+</div>
+
+<!-- 실험 상세 모달 -->
+<div class="exp-modal-bg" id="expModal" onclick="if(event.target.id==='expModal')closeExpModal()">
+  <div class="exp-modal">
+    <div class="em-header">
+      <div class="em-title" id="emTitle">실험 상세</div>
+      <button class="em-close" onclick="closeExpModal()">✕</button>
+    </div>
+    <div id="emBody"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     Firebase SDK + 앱 로직 (기존 로직 완전 보존)
+══════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, query, where,
+  orderBy, onSnapshot, getDocs, serverTimestamp, doc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBX-BE14JViw82xAiA3Gts6p-SC6gVBjG8",
+  authDomain: "student-literacy.firebaseapp.com",
+  projectId: "student-literacy",
+  storageBucket: "student-literacy.firebasestorage.app",
+  messagingSenderId: "66926306937",
+  appId: "1:66926306937:web:5204bff44a4cc5d62d16a8",
+  measurementId: "G-CDG864KFKL"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ══════ 다중 컬렉션 설정 (기존 완전 보존) ══════
+const COLLECTIONS = [
+  {
+    col: 'sessions',
+    studentIdField: 'studentId',
+    tsField: 'createdAt',
+    getExpName: (d) => d.experimentName || '산염기 적정 실험',
+    getAnswer:  (d) => d.mfAnswers ? d.mfAnswers.filter(a=>a&&a!=='(건너뜀)').join(' | ') : (d.answer || ''),
+    getLevel:   (d) => d.level || 1,
+    getTerms:   (d) => d.terms || 0,
+    getCausal:  (d) => d.causal || 0,
+    getSentences:(d)=> d.sentences || 0,
+    getFeedback:(d) => d.feedback || '',
+    getMfAnswers:(d)=> d.mfAnswers || null,
+  },
+  {
+    col: 'element-group',
+    studentIdField: 'studentId',
+    tsField: 'ts',
+    getExpName: (d) => d.experimentName || '동족 원소 유사성',
+    getAnswer:  (d) => d.mfAnswers ? d.mfAnswers.filter(a=>a&&a!=='(건너뜀)').join(' | ') : (d.answer || ''),
+    getLevel:   (d) => d.level || 1,
+    getTerms:   (d) => d.terms || 0,
+    getCausal:  (d) => d.causal || 0,
+    getSentences:(d)=> d.sentences || 0,
+    getFeedback:(d) => d.feedback || '',
+    getMfAnswers:(d)=> d.mfAnswers || null,
+  },
+  {
+    col: 'atom-periodic',
+    studentIdField: 'student.id',
+    tsField: 'ts',
+    getExpName: (d) => '원자 모형 & 주기율표',
+    getAnswer:  (d) => d.mfAnswers ? d.mfAnswers.filter(a=>a&&a!=='(건너뜀)').join(' | ') : '',
+    getLevel:   (d) => d.level || 1,
+    getTerms:   (d) => d.terms || 0,
+    getCausal:  (d) => d.causal || 0,
+    getSentences:(d)=> d.sentences || 0,
+    getFeedback:(d) => d.feedback || '',
+    getMfAnswers:(d)=> d.mfAnswers || null,
+  },
+];
+
+// ══════ 상태 ══════
+let currentStudent = null;
+let sessions = [];
+let unsubscribes = [];
+let prevLevel = 0;   // 레벨업 감지용
+let earnedBadgeKeys = new Set();  // 중복 팝업 방지
+
+// ══════ 배지 정의 ══════
+const BADGES = [
+  { key:'first',    icon:'🔬', name:'첫 탐구',      desc:'첫 번째 실험 완료',         check: s => s.length >= 1 },
+  { key:'basic',    icon:'📖', name:'기초 달성',     desc:'Basic 레벨 첫 달성',        check: s => s.some(x=>x.level>=1) },
+  { key:'pro',      icon:'⚗️', name:'프로피션트',    desc:'Proficient 레벨 달성',      check: s => s.some(x=>x.level>=2) },
+  { key:'adv',      icon:'🌟', name:'어드밴스드',    desc:'Advanced 레벨 달성',        check: s => s.some(x=>x.level>=3) },
+  { key:'exc',      icon:'🏆', name:'엑설런트',      desc:'Excellent 레벨 달성!',      check: s => s.some(x=>x.level>=4) },
+  { key:'five',     icon:'🔢', name:'5회 달성',      desc:'실험 5회 완료',             check: s => s.length >= 5 },
+  { key:'ten',      icon:'💎', name:'10회 달성',     desc:'실험 10회 완료',            check: s => s.length >= 10 },
+  { key:'allexp',   icon:'🌈', name:'올라운더',      desc:'3가지 이상 실험 경험',      check: s => new Set(s.map(x=>x._col)).size >= 3 },
+  { key:'terms',    icon:'📚', name:'용어 마스터',   desc:'과학용어 5개 이상 사용',    check: s => s.some(x=>x.terms>=5) },
+  { key:'causal',   icon:'🔗', name:'인과관계 왕',   desc:'인과관계 표현 3개 이상',    check: s => s.some(x=>x.causal>=3) },
+  { key:'streak3',  icon:'🔥', name:'3연속 성장',    desc:'3회 연속 레벨 향상',        check: s => checkStreak(s,3) },
+  { key:'perfect',  icon:'👑', name:'퍼펙트 런',     desc:'4단계 모두 완료한 실험',    check: s => s.some(x=>x.mfAnswers&&x.mfAnswers.filter(a=>a&&a!=='(건너뜀)').length>=4) },
+];
+
+function checkStreak(s, n) {
+  if(s.length < n) return false;
+  const rev = [...s].reverse();
+  let cnt = 0;
+  for(let i=1; i<rev.length; i++) {
+    if(rev[i].level >= rev[i-1].level) cnt++;
+    else cnt = 0;
+    if(cnt >= n-1) return true;
+  }
+  return false;
+}
+
+// ══════ 랭크 시스템 ══════
+const RANKS = [
+  { minXp:0,   name:'ROOKIE SCIENTIST',   color:'#6a8aaa' },
+  { minXp:50,  name:'JUNIOR RESEARCHER',  color:'#2ed573' },
+  { minXp:150, name:'FIELD SCIENTIST',    color:'#00d2ff' },
+  { minXp:300, name:'SENIOR ANALYST',     color:'#ffd32a' },
+  { minXp:500, name:'EXPERT EXPLORER',    color:'#ff9f43' },
+  { minXp:800, name:'MASTER SCIENTIST',   color:'#a29bfe' },
+];
+
+function getXp(s) {
+  // XP 계산: 실험 1회 = 10 + 레벨*15 + 용어수*2 + 인과수*3
+  return s.reduce((sum, x) => sum + 10 + (x.level||1)*15 + (x.terms||0)*2 + (x.causal||0)*3, 0);
+}
+function getRank(xp) {
+  let rank = RANKS[0];
+  for(const r of RANKS) { if(xp >= r.minXp) rank = r; }
+  return rank;
+}
+function getNextRankXp(xp) {
+  for(const r of RANKS) { if(r.minXp > xp) return r.minXp; }
+  return null;
+}
+
+// ══════ 로딩 ══════
+setTimeout(() => {
+  document.getElementById('loadingStatus').textContent = 'Firebase 연결 완료!';
+  setTimeout(() => {
+    document.getElementById('loadingScreen').classList.add('hide');
+    const saved = localStorage.getItem('metaflow_student');
+    if(saved) {
+      currentStudent = JSON.parse(saved);
+      if(!currentStudent.schoolCode) {
+        // 학교 코드 도입 이전에 로그인한 계정 → 학교 코드를 새로 입력받기 위해 재로그인 유도
+        localStorage.removeItem('metaflow_student');
+        document.getElementById('loginScreen').classList.add('show');
+      } else {
+        showMain();
+      }
+    } else {
+      document.getElementById('loginScreen').classList.add('show');
+    }
+  }, 800);
+}, 1500);
+
+// ══════ 로그인 ══════
+window.doLogin = function() {
+  const school = normalizeSchoolCode(document.getElementById('schoolCode').value);
+  const id   = document.getElementById('studentId').value.trim();
+  const name = document.getElementById('studentName').value.trim();
+  const cls  = document.getElementById('studentClass').value.trim();
+  if(!school || !id || !name) { document.getElementById('loginError').style.display='block'; return; }
+  currentStudent = {id, name, cls, schoolCode: school};
+  localStorage.setItem('metaflow_student', JSON.stringify(currentStudent));
+  document.getElementById('loginScreen').classList.remove('show');
+  showMain();
+};
+
+function normalizeSchoolCode(v) {
+  return (v || '').trim().toUpperCase().replace(/\s+/g, '');
+}
+
+// ══════ 메인 ══════
+function showMain() {
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('headerName').textContent = currentStudent.name;
+  document.getElementById('profileName').textContent = currentStudent.name;
+  document.getElementById('profileInfo').textContent = (currentStudent.cls||'') + ' · 학번 ' + currentStudent.id + ' · ' + (currentStudent.schoolCode||'');
+  document.getElementById('pcName').textContent = currentStudent.name;
+  restoreCustomization();
+  connectFirebase();
+  fetchPreTestResult();
+}
+
+// ══════ 사전 문해력 진단 결과 조회 ══════
+// ⚠️ 참고: 현재 문서 ID가 학번(currentStudent.id) 단독이라, 다른 학교와 학번이 겹치면
+// 사전진단 결과도 뒤섞일 수 있다. pre-test.html 쪽에서 학교 코드를 포함한 ID
+// (예: `${schoolCode}_${studentId}`)로 저장하도록 함께 수정되면, 아래 조회 로직도
+// 그에 맞춰 업데이트가 필요하다.
+async function fetchPreTestResult() {
+  const card = document.getElementById('preTestCard');
+  if(card) card.style.display = 'block';
+  try {
+    const snap = await getDoc(doc(db, 'pre-test-results', currentStudent.id));
+    if(!snap.exists()) return; // 미완료 → 배너만 보임
+    const d = snap.data();
+    renderPreTestResult(d);
+  } catch(e) {
+    console.warn('pre-test 조회 실패:', e);
+  }
+}
+
+function renderPreTestResult(d) {
+  const banner = document.getElementById('preTestBanner');
+  const result = document.getElementById('preTestResult');
+  if(banner) banner.style.display = 'none';
+  if(result) result.style.display = 'block';
+
+  const ai = d.aiScore || {};
+  const composite = ai.composite ?? 0;
+  const level = ai.level || 'low';
+  const scores = ai; // d1~d4
+
+  // 레벨 아이콘/라벨
+  const lvMap = {
+    high: { icon:'🌟', label:'상위 수준', color:'var(--green)' },
+    mid:  { icon:'📘', label:'중간 수준', color:'var(--cyan)' },
+    low:  { icon:'📗', label:'기초 수준', color:'var(--yellow)' },
+  };
+  const lv = lvMap[level] || lvMap.low;
+  const iconEl = document.getElementById('ptLevelIcon');
+  const lblEl  = document.getElementById('ptLevelLabel');
+  const compEl = document.getElementById('ptComposite');
+  const barEl  = document.getElementById('ptScoreBar');
+  const phaseEl= document.getElementById('ptPhase');
+
+  if(iconEl) iconEl.textContent = lv.icon;
+  if(lblEl)  { lblEl.textContent = lv.label; lblEl.style.background = `rgba(0,0,0,0.15)`; lblEl.style.color = lv.color; lblEl.style.border = `1px solid ${lv.color}`; }
+  if(compEl) compEl.textContent = composite;
+  if(phaseEl) phaseEl.textContent = d.phase || '사전';
+  setTimeout(() => { if(barEl) barEl.style.width = Math.min(composite,100) + '%'; }, 300);
+
+  // 역량별 바
+  const barsEl = document.getElementById('ptCompetencyBars');
+  if(barsEl) {
+    const competencies = [
+      { label:'현상 설명', score:(scores.d1||0)+(scores.d2||0), max:4, color:'var(--cyan)' },
+      { label:'탐구 해석', score:scores.d3||0, max:2, color:'var(--green)' },
+      { label:'정보 평가', score:scores.d4||0, max:2, color:'var(--purple)' },
+    ];
+    barsEl.innerHTML = competencies.map(c => {
+      const pct = Math.round((c.score/c.max)*100);
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+        <div style="font-size:10px;color:var(--sub2);min-width:56px;">${c.label}</div>
+        <div style="flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${c.color};border-radius:3px;transition:width .8s ease;"></div>
+        </div>
+        <div style="font-size:10px;font-family:'Orbitron',monospace;color:${c.color};min-width:32px;text-align:right;">${c.score}/${c.max}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // 아이트래킹 요약
+  const et = d.eyeTracking;
+  const etCard = document.getElementById('ptEyeTrack');
+  if(etCard && et && !et.skipped && et.readingTimeSec) {
+    etCard.style.display = 'block';
+    const m = Math.floor(et.readingTimeSec/60), s2 = et.readingTimeSec%60;
+    etCard.innerHTML = `<div style="font-size:9px;color:var(--sub2);font-family:'Orbitron',monospace;margin-bottom:6px;">👁 읽기 패턴</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+        ${[['읽기시간',m+'m'+String(s2).padStart(2,'0')+'s','var(--cyan)'],
+           ['줄역행',et.regressions+'회','var(--red)'],
+           ['문단역행',et.paraRegressions+'회','var(--yellow)'],
+           ['고정점',et.fixationCount+'개','var(--green)']].map(([lbl,val,col]) =>
+          `<div style="text-align:center;background:rgba(0,0,0,0.2);border-radius:6px;padding:5px 2px;">
+            <div style="font-size:12px;font-weight:700;font-family:'Orbitron',monospace;color:${col};">${val}</div>
+            <div style="font-size:8px;color:var(--sub2);margin-top:2px;">${lbl}</div>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  // 지문/날짜
+  const psgEl = document.getElementById('ptPassage');
+  const dtEl  = document.getElementById('ptDate');
+  if(psgEl) psgEl.textContent = d.passageTitle || d.passageId || '—';
+  if(dtEl && d.submittedAt) {
+    try {
+      const dt = d.submittedAt.toDate ? d.submittedAt.toDate() : new Date(d.submittedAt);
+      dtEl.textContent = dt.getFullYear()+'.'+(dt.getMonth()+1).toString().padStart(2,'0')+'.'+dt.getDate().toString().padStart(2,'0');
+    } catch(e) { dtEl.textContent = '—'; }
+  }
+}
+
+// ══════ Firebase 연결 (기존 로직 완전 보존) ══════
+function connectFirebase() {
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  dot.className = 'sync-dot syncing';
+  txt.textContent = '동기화 중';
+
+  unsubscribes.forEach(fn => fn());
+  unsubscribes = [];
+
+  const colData = {};
+  COLLECTIONS.forEach(c => { colData[c.col] = []; });
+
+  COLLECTIONS.forEach(colCfg => {
+    const isNestedId = colCfg.studentIdField.includes('.');
+
+    if(isNestedId) {
+      const q = query(collection(db, colCfg.col), orderBy(colCfg.tsField, 'desc'));
+      const unsub = onSnapshot(q, snap => {
+        colData[colCfg.col] = [];
+        snap.forEach(doc => {
+          const d = doc.data();
+          const parts = colCfg.studentIdField.split('.');
+          let val = d;
+          for(const p of parts) val = val?.[p];
+          // 학교 코드가 없는(예전) 데이터는 그대로 보여주되, 다른 학교 코드가 찍힌 데이터는 제외한다.
+          // (학번이 학교 간에 우연히 겹치는 경우의 데이터 혼입을 방지)
+          if(val === currentStudent.id && (!d.schoolCode || d.schoolCode === currentStudent.schoolCode)) {
+            colData[colCfg.col].push(normalizeDoc(doc.id, d, colCfg));
+          }
+        });
+        mergeSessions(colData, dot, txt);
+      }, err => console.warn(colCfg.col, err));
+      unsubscribes.push(unsub);
+    } else {
+      const q = query(
+        collection(db, colCfg.col),
+        where(colCfg.studentIdField, '==', currentStudent.id),
+        orderBy(colCfg.tsField, 'desc')
+      );
+      const unsub = onSnapshot(q, snap => {
+        colData[colCfg.col] = [];
+        snap.forEach(doc => {
+          const d = doc.data();
+          // 학교 코드가 없는(예전) 데이터는 그대로 보여주되, 다른 학교 코드가 찍힌 데이터는 제외한다.
+          if(!d.schoolCode || d.schoolCode === currentStudent.schoolCode) {
+            colData[colCfg.col].push(normalizeDoc(doc.id, d, colCfg));
+          }
+        });
+        mergeSessions(colData, dot, txt);
+        if(colCfg.col === 'sessions') {
+          updateRealtimeFeed(snap.docChanges(), colCfg);
+        }
+      }, err => console.warn(colCfg.col, err));
+      unsubscribes.push(unsub);
+    }
+  });
+}
+
+// ══════ 문서 정규화 (기존 보존) ══════
+function normalizeDoc(docId, d, colCfg) {
+  return {
+    _id:          docId,
+    _col:         colCfg.col,
+    experimentName: colCfg.getExpName(d),
+    answer:       colCfg.getAnswer(d),
+    level:        colCfg.getLevel(d),
+    terms:        colCfg.getTerms(d),
+    causal:       colCfg.getCausal(d),
+    sentences:    colCfg.getSentences(d),
+    feedback:     colCfg.getFeedback(d),
+    mfAnswers:    colCfg.getMfAnswers(d),
+    createdAt:    d[colCfg.tsField] || d.createdAt || d.ts || null,
+  };
+}
+
+// ══════ 머지 (기존 보존) ══════
+function mergeSessions(colData, dot, txt) {
+  const all = [];
+  Object.values(colData).forEach(arr => all.push(...arr));
+  all.sort((a, b) => {
+    const ta = a.createdAt?.toMillis?.() || a.createdAt?.seconds*1000 || 0;
+    const tb = b.createdAt?.toMillis?.() || b.createdAt?.seconds*1000 || 0;
+    return tb - ta;
+  });
+  sessions = all;
+  dot.className = 'sync-dot synced';
+  txt.textContent = '연결됨';
+  updateUI();
+}
+
+// ══════ 실시간 피드 (기존 보존) ══════
+function updateRealtimeFeed(changes, colCfg) {
+  if(!changes.length) {
+    document.getElementById('realtimeFeed').innerHTML = '<div class="rf-item">Firebase 연결 완료 · 다중 컬렉션 동기화 중</div>';
+    return;
+  }
+  const feed = document.getElementById('realtimeFeed');
+  feed.innerHTML = '';
+  changes.slice(0,3).forEach(change => {
+    const d = change.doc.data();
+    const item = document.createElement('div');
+    item.className = 'rf-item';
+    const expName = colCfg.getExpName(d);
+    const level = colCfg.getLevel(d);
+    if(change.type==='added') item.innerHTML = `<span>새 데이터</span> ${expName} · ${getLevelName(level)}`;
+    else if(change.type==='modified') item.innerHTML = `<span>수정됨</span> ${expName}`;
+    feed.appendChild(item);
+  });
+  if(!feed.children.length) feed.innerHTML = '<div class="rf-item">Firebase 실시간 연결 활성화됨 ✅</div>';
+}
+
+// ══════ UI 업데이트 (새 게이미피케이션 추가) ══════
+function updateUI() {
+  const total = sessions.length;
+  const latest = sessions[0];
+  const xp = getXp(sessions);
+  const rank = getRank(xp);
+  const nextXp = getNextRankXp(xp);
+  const xpPct = nextXp ? Math.round((xp - getRank(xp-1>0?xp-1:0).minXp) / (nextXp - getRank(xp).minXp) * 100) : 100;
+
+  // 헤더 XP 바
+  document.getElementById('hLvLabel').textContent = rank.name.split(' ')[0];
+  document.getElementById('hXpFill').style.width = Math.min(xpPct,100) + '%';
+  document.getElementById('hXpVal').textContent = xp + ' XP';
+
+  // 플레이어 카드
+  const avatar = localStorage.getItem('mf_avatar') || '👨‍🎓';
+  document.getElementById('pcAvatar').childNodes[0].textContent = avatar;
+  document.getElementById('pcLvBadge').textContent = 'Lv.' + (total > 0 ? Math.min(Math.floor(xp/50)+1, 10) : 1);
+  document.getElementById('pcName').textContent = currentStudent.name;
+  document.getElementById('pcRank').textContent = rank.name;
+  document.getElementById('pcRank').style.color = rank.color;
+  document.getElementById('pcXpFill').style.width = Math.min(xpPct,100) + '%';
+  document.getElementById('pcXpTxt').textContent = nextXp ? `${xp} / ${nextXp} XP` : `${xp} XP · MAX`;
+
+  const maxLevel = sessions.length ? Math.max(...sessions.map(s=>s.level||1)) : 0;
+  const streak = calcStreak(sessions);
+  const earnedBadgeCount = BADGES.filter(b=>b.check(sessions)).length;
+
+  document.getElementById('pcTotal').textContent = total;
+  document.getElementById('pcLevel').textContent = total ? getLevelShort(maxLevel) : '-';
+  document.getElementById('pcStreak').textContent = streak;
+  document.getElementById('pcBadges').textContent = earnedBadgeCount;
+
+  if(!latest) {
+    document.getElementById('settingTotal').textContent = '0회';
+    renderBadgeGrid();
+    renderQuestList();
+    return;
+  }
+
+  // 레벨업 감지
+  const curLevel = latest.level || 1;
+  if(prevLevel > 0 && curLevel > prevLevel) {
+    setTimeout(() => showLevelupPopup(curLevel), 600);
+  }
+  prevLevel = curLevel;
+
+  // 배지 체크 (새로 획득한 것 팝업)
+  checkNewBadges();
+
+  // 설정 탭
+  document.getElementById('settingTotal').textContent = total + '회';
+  document.getElementById('settingLevel').textContent = getLevelName(curLevel);
+  const expTypes = [...new Set(sessions.map(s=>s._col))];
+  const expTypeNames = {'sessions':'산염기·기체','element-group':'동족원소','atom-periodic':'원자·주기율표'};
+  document.getElementById('settingExpTypes').textContent = expTypes.map(t=>expTypeNames[t]||t).join(' · ') || '-';
+
+  renderSessionList();
+  renderReportList();
+  renderBadgeGrid();
+  renderBadgeTab();
+  renderQuestList();
+  drawGrowthChart();
+  drawExpLiteracyChart();
+}
+
+function calcStreak(s) {
+  if(s.length < 2) return s.length;
+  const rev = [...s].reverse();
+  let cnt = 1;
+  for(let i=1; i<rev.length; i++) {
+    if(rev[i].level >= rev[i-1].level) cnt++;
+    else break;
+  }
+  return cnt;
+}
+
+// ══════ 배지 그리드 렌더 ══════
+function renderBadgeGrid() {
+  const grid = document.getElementById('badgeGrid');
+  grid.innerHTML = BADGES.map(b => {
+    const earned = b.check(sessions);
+    return `<div class="badge-item ${earned?'earned':''}">
+      <div class="badge-icon">${b.icon}</div>
+      <div class="badge-name">${b.name}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════ 배지 획득 감지 ══════
+function checkNewBadges() {
+  const saved = JSON.parse(localStorage.getItem('mf_earned_badges_' + currentStudent.id) || '[]');
+  const savedSet = new Set(saved);
+  const newBadges = BADGES.filter(b => b.check(sessions) && !savedSet.has(b.key));
+  if(newBadges.length > 0) {
+    // 새로 획득한 배지 저장
+    newBadges.forEach(b => savedSet.add(b.key));
+    localStorage.setItem('mf_earned_badges_' + currentStudent.id, JSON.stringify([...savedSet]));
+    // 첫 번째 새 배지 팝업
+    if(!earnedBadgeKeys.has(newBadges[0].key)) {
+      earnedBadgeKeys.add(newBadges[0].key);
+      setTimeout(() => showBadgePopup(newBadges[0]), 1000);
+    }
+  }
+}
+
+function showBadgePopup(badge) {
+  document.getElementById('bpIcon').textContent = badge.icon;
+  document.getElementById('bpName').textContent = badge.name;
+  document.getElementById('bpDesc').textContent = badge.desc;
+  document.getElementById('badgePopup').classList.add('show');
+}
+window.closeBadgePopup = function() { document.getElementById('badgePopup').classList.remove('show'); };
+
+function showLevelupPopup(level) {
+  document.getElementById('luLevel').textContent = level;
+  document.getElementById('luName').textContent = getLevelName(level);
+  const descs = {1:'관찰 능력이 인정됐어요!',2:'인과관계 표현이 늘었어요!',3:'과학 개념으로 설명할 수 있어요!',4:'완벽한 과학 문해력 달성!!'};
+  document.getElementById('luDesc').textContent = descs[level] || '성장했어요!';
+  document.getElementById('levelupPopup').classList.add('show');
+}
+window.closeLevelupPopup = function() { document.getElementById('levelupPopup').classList.remove('show'); };
+
+// ══════ 퀘스트 렌더 ══════
+const QUESTS = [
+  { icon:'🔬', name:'첫 번째 실험',   desc:'실험 1회 완료하기',           max:1,  current:s=>Math.min(s.length,1),  color:'var(--cyan)',   xp:20 },
+  { icon:'📝', name:'열심히 탐구자',  desc:'실험 5회 완료하기',           max:5,  current:s=>Math.min(s.length,5),  color:'var(--green)',  xp:50 },
+  { icon:'🌟', name:'Advanced 도전', desc:'Advanced 레벨 1회 달성',      max:1,  current:s=>s.filter(x=>x.level>=3).length>=1?1:0, color:'var(--yellow)', xp:80 },
+  { icon:'🔗', name:'인과관계 마스터',desc:'인과관계 표현 누적 10개',     max:10, current:s=>Math.min(s.reduce((a,x)=>a+(x.causal||0),0),10), color:'var(--purple)', xp:60 },
+  { icon:'📚', name:'용어 수집가',    desc:'과학 용어 누적 20개 사용',    max:20, current:s=>Math.min(s.reduce((a,x)=>a+(x.terms||0),0),20),  color:'var(--orange)', xp:70 },
+  { icon:'🏆', name:'올라운더',       desc:'3가지 이상 실험 경험하기',    max:3,  current:s=>Math.min(new Set(s.map(x=>x._col)).size,3), color:'var(--pink)', xp:100 },
+];
+
+function renderQuestList() {
+  const list = document.getElementById('questList');
+  list.innerHTML = QUESTS.map(q => {
+    const cur = q.current(sessions);
+    const done = cur >= q.max;
+    const pct = Math.round((cur/q.max)*100);
+    return `<div class="quest-item">
+      <div class="quest-icon">${q.icon}</div>
+      <div class="quest-info">
+        <div class="quest-name ${done?'quest-done':''}">${q.name} ${done?'✅':''}</div>
+        <div class="quest-desc">${q.desc}</div>
+        <div class="quest-progress">
+          <div class="quest-fill" style="width:${pct}%;background:${q.color}"></div>
+        </div>
+      </div>
+      <div class="quest-reward" style="color:${q.color}">+${q.xp}XP</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════ 세션 리스트 (기존 보존) ══════
+function renderSessionList() {
+  const list = document.getElementById('sessionList');
+  if(!sessions.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--sub);font-size:12px;padding:20px;">아직 실험 기록이 없어요</div>';
+    return;
+  }
+  list.innerHTML = sessions.slice(0,5).map((s,i) => `
+    <div class="session-item">
+      <div class="si-num">#${sessions.length-i}</div>
+      <div class="si-info">
+        <div class="si-exp">${s.experimentName}<span class="exp-type-badge">${getColLabel(s._col)}</span></div>
+        <div class="si-date">${formatDate(s.createdAt)} · ${currentStudent.cls||''}</div>
+      </div>
+      <div class="si-level level-${getLevelClass(s.level)}">${getLevelShort(s.level)}</div>
+    </div>`).join('');
+}
+
+// ══════ 리포트 (기존 보존) ══════
+function renderReportList() {
+  const list = document.getElementById('reportList');
+  if(!sessions.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--sub);font-size:12px;padding:30px;">아직 기록이 없어요</div>';
+    return;
+  }
+  list.innerHTML = sessions.map((s,i) => {
+    const mfSection = s.mfAnswers && s.mfAnswers.length > 0
+      ? `<div class="mf-answers-wrap">${s.mfAnswers.map((ans,idx)=>ans&&ans!=='(건너뜀)'?`
+          <div class="mf-answer-item">
+            <div class="mf-step-label">${idx+1}단계 · ${['Basic','Proficient','Advanced','Excellent'][idx]||''}</div>
+            ${ans}
+          </div>`:''). join('')}</div>`
+      : `<div class="rc-answer">${s.answer||'-'}</div>`;
+    return `<div class="report-card">
+      <div class="rc-header">
+        <div>
+          <div class="rc-exp">${s.experimentName} #${sessions.length-i}<span class="exp-type-badge">${getColLabel(s._col)}</span></div>
+          <div class="rc-date">${formatDate(s.createdAt)} · ${getLevelName(s.level)}</div>
+        </div>
+        <div class="si-level level-${getLevelClass(s.level)}">${getLevelShort(s.level)}</div>
+      </div>
+      ${mfSection}
+      <div class="rc-analysis">
+        <div class="ra-item"><span class="ra-val" style="color:var(--cyan)">${s.terms||0}개</span><span class="ra-label">과학 용어</span></div>
+        <div class="ra-item"><span class="ra-val" style="color:var(--green)">${s.causal||0}개</span><span class="ra-label">인과관계</span></div>
+        <div class="ra-item"><span class="ra-val" style="color:var(--yellow)">${s.sentences||0}개</span><span class="ra-label">문장 수</span></div>
+      </div>
+      <div class="rc-feedback"><strong>🤖 AI 피드백</strong><br>${s.feedback||'분석 중...'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════ 텍스트 분석 (기존 보존) ══════
+function analyzeText(text) {
+  const sciTerms=['H⁺','OH⁻','pH','이온','중화','산성','염기','농도','반투막','삼투압','전자','산화','환원','촉매','평형','BTB','페놀프탈레인','몰','반응'];
+  const causalWords=['때문에','따라서','그러므로','그래서','결과적으로','의해','으로 인해','때문','이므로'];
+  const terms=sciTerms.filter(t=>text.includes(t)).length;
+  const causal=causalWords.filter(w=>text.includes(w)).length;
+  const sentences=text.split(/[.!?。]/).filter(s=>s.trim().length>3).length;
+  let level=1;
+  if(terms>=2&&sentences>=2) level=2;
+  if(terms>=3&&causal>=1&&sentences>=3) level=3;
+  if(terms>=4&&causal>=2&&sentences>=4) level=4;
+  const feedbacks={1:'과학 용어를 사용해서 더 구체적으로 설명해보세요.',2:'인과관계 표현(때문에, 따라서)을 추가해보세요!',3:'이온 수준의 설명을 추가하면 Excellent가 될 수 있어요!',4:'완벽해요!'};
+  return {level,terms,causal,sentences,feedback:feedbacks[level]};
+}
+
+// ══════ submitAnswer (기존 보존 — 서술탭 제거해도 함수는 유지) ══════
+window.submitAnswer = async function() {
+  const ansEl = document.getElementById('answerText');
+  if(!ansEl) return;
+  const answer = ansEl.value.trim();
+  if(!answer||answer.length<10) { showToast('⚠️ 10자 이상 서술해주세요'); return; }
+  const btn = document.getElementById('submitBtn');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Firebase 저장 중...'; }
+  const analysis = analyzeText(answer);
+  try {
+    await addDoc(collection(db,'sessions'),{
+      studentId:currentStudent.id, studentName:currentStudent.name, studentClass:currentStudent.cls||'',
+      schoolCode: currentStudent.schoolCode || '',
+      experimentName: document.getElementById('expName')?.value || '실험',
+      answer, level:analysis.level, terms:analysis.terms,
+      causal:analysis.causal, sentences:analysis.sentences, feedback:analysis.feedback,
+      createdAt:serverTimestamp()
+    });
+    showToast('✅ Firebase에 저장됐어요!');
+    if(ansEl) ansEl.value='';
+    showPage('home', document.querySelector('.nav-btn'));
+  } catch(e) { showToast('❌ 저장 실패: '+e.message); console.error(e); }
+  if(btn){ btn.disabled=false; btn.textContent='💾 Firebase에 저장하기'; }
+};
+
+// ══════ 성장 그래프 (기존 보존) ══════
+function drawGrowthChart() {
+  const cv = document.getElementById('growthChart');
+  if(!cv||sessions.length<1) return;
+  const ctx = cv.getContext('2d');
+  cv.width = cv.offsetWidth * window.devicePixelRatio;
+  cv.height = 150 * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  const W=cv.offsetWidth, H=150;
+  ctx.clearRect(0,0,W,H);
+  const data=[...sessions].reverse();
+  const maxL=4, pL=38,pR=14,pT=14,pB=26;
+  const cW=W-pL-pR, cH=H-pT-pB;
+  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=pT+cH-(i/maxL)*cH;ctx.beginPath();ctx.moveTo(pL,y);ctx.lineTo(W-pR,y);ctx.stroke();}
+  const lbs=['','Basic','Prof','Adv','Excel'];
+  ctx.fillStyle='rgba(100,130,160,0.7)';ctx.font='8px Orbitron,monospace';ctx.textAlign='right';
+  for(let i=1;i<=4;i++) ctx.fillText(lbs[i],pL-4,pT+cH-(i/maxL)*cH+3);
+  if(data.length===1){
+    const x=pL+cW/2,y=pT+cH-(data[0].level/maxL)*cH;
+    ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle=getLevelColor(data[0].level);ctx.fill();return;
+  }
+  const grad=ctx.createLinearGradient(0,pT,0,H-pB);
+  grad.addColorStop(0,'rgba(0,210,255,0.18)');grad.addColorStop(1,'rgba(0,210,255,0.01)');
+  ctx.fillStyle=grad;ctx.beginPath();
+  data.forEach((d,i)=>{const x=pL+(i/(data.length-1))*cW,y=pT+cH-(d.level/maxL)*cH;if(i===0)ctx.moveTo(x,H-pB);ctx.lineTo(x,y);});
+  ctx.lineTo(pL+cW,H-pB);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.lineWidth=2.2;
+  data.forEach((d,i)=>{
+    const x=pL+(i/(data.length-1))*cW,y=pT+cH-(d.level/maxL)*cH;
+    if(i===0){ctx.moveTo(x,y);}else{const pv=data[i-1];const px=pL+((i-1)/(data.length-1))*cW,py=pT+cH-(pv.level/maxL)*cH;ctx.bezierCurveTo((px+x)/2,py,(px+x)/2,y,x,y);}
+  });
+  const lg=ctx.createLinearGradient(pL,0,pL+cW,0);
+  lg.addColorStop(0,'#ff4757');lg.addColorStop(0.5,'#ffd32a');lg.addColorStop(1,'#2ed573');
+  ctx.strokeStyle=lg;ctx.stroke();
+  data.forEach((d,i)=>{
+    const x=pL+(i/(data.length-1))*cW,y=pT+cH-(d.level/maxL)*cH;
+    ctx.beginPath();ctx.arc(x,y,4.5,0,Math.PI*2);ctx.fillStyle=getLevelColor(d.level);ctx.fill();
+    ctx.strokeStyle='white';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='rgba(150,180,210,0.7)';ctx.textAlign='center';ctx.font='8px Noto Sans KR,sans-serif';
+    ctx.fillText(i+1+'회',x,H-pB+14);
+  });
+}
+
+// ══════ 실험별 문해력 달성도 차트 (신규) ══════
+// 각 실험 종류별로 최고 달성 PISA 레벨을 바 차트로 표시
+function drawExpLiteracyChart() {
+  const wrap = document.getElementById('expLiteracyChart');
+  if(!wrap) return;
+
+  // 실험 종류별로 그룹핑
+  const expGroups = {};
+  sessions.forEach(s => {
+    const key = s.experimentName || '기타';
+    if(!expGroups[key]) expGroups[key] = [];
+    expGroups[key].push(s);
+  });
+
+  if(!Object.keys(expGroups).length) {
+    wrap.innerHTML = '<div style="text-align:center;color:var(--sub);font-size:12px;padding:16px;">아직 실험 기록이 없어요</div>';
+    return;
+  }
+
+  const levelColors = ['#ff4757','#ffd32a','#00d2ff','#2ed573'];
+  const levelNames  = ['Basic','Proficient','Advanced','Excellent'];
+
+  wrap.innerHTML = Object.entries(expGroups).map(([expName, recs]) => {
+    // 이 실험의 최고 레벨
+    const maxLevel = Math.max(...recs.map(r => r.level||1));
+    // 가장 최근 레벨
+    const latestLevel = recs[0]?.level || 1;
+    // 달성한 단계 수 (mfAnswers 기준)
+    const maxStepsArr = recs.map(r => r.mfAnswers ? r.mfAnswers.filter(a=>a&&a!=='(건너뜀)').length : 0);
+    const maxSteps = Math.max(...maxStepsArr, 0);
+
+    const pct = Math.round((maxLevel/4)*100);
+    const color = levelColors[maxLevel-1] || '#ff4757';
+    const shortName = expName.length > 10 ? expName.slice(0,9)+'…' : expName;
+
+    // 4단계 달성 도트
+    const stepDots = [1,2,3,4].map(step => {
+      const achieved = maxSteps >= step;
+      return `<div class="exp-step-dot ${achieved?'active':''}" style="background:${achieved?color:'rgba(255,255,255,0.15)'}"></div>`;
+    }).join('');
+
+    const firstSession = recs[0];
+    const sessionJson = encodeURIComponent(JSON.stringify(firstSession));
+    return `<div class="exp-bar-row" style="flex-wrap:wrap;row-gap:3px;cursor:pointer;padding:6px 4px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background=''" onclick="openExpModal(decodeURIComponent('${sessionJson}'))">
+      <div class="exp-bar-label">${shortName}</div>
+      <div class="exp-bar-track">
+        <div class="exp-bar-fill" style="width:${pct}%;background:${color}"></div>
+      </div>
+      <div class="exp-bar-pct" style="color:${color}">${levelNames[maxLevel-1]}</div>
+      <div style="width:80px;flex-shrink:0;"></div>
+      <div class="exp-bar-steps">${stepDots}</div>
+      <div style="font-size:9px;color:var(--sub2);font-family:'Orbitron',monospace;flex-shrink:0;">${recs.length}회 · 최대 ${maxSteps}/4단계</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════ 배지/퀘스트 탭 렌더 ══════
+function renderBadgeTab() {
+  // 배지 탭용 퀘스트 렌더
+  const questEl = document.getElementById('questListBadge');
+  if(questEl) questEl.innerHTML = QUESTS.map(q => {
+    const cur = q.current(sessions);
+    const done = cur >= q.max;
+    const pct = Math.round((cur/q.max)*100);
+    return `<div class="quest-item">
+      <div class="quest-icon">${q.icon}</div>
+      <div class="quest-info">
+        <div class="quest-name ${done?'quest-done':''}">${q.name} ${done?'✅':''}</div>
+        <div class="quest-desc">${q.desc} (${cur}/${q.max})</div>
+        <div class="quest-progress">
+          <div class="quest-fill" style="width:${pct}%;background:${q.color}"></div>
+        </div>
+      </div>
+      <div class="quest-reward" style="color:${q.color}">+${q.xp}XP</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════ 유틸 (기존 보존) ══════
+function getLevelName(l)  { return {1:'Basic',2:'Proficient',3:'Advanced',4:'Excellent'}[l]||'Basic'; }
+function getLevelShort(l) { return {1:'BAS',2:'PRO',3:'ADV',4:'EXC'}[l]||'-'; }
+function getLevelClass(l) { return {1:'basic',2:'proficient',3:'advanced',4:'excellent'}[l]||'basic'; }
+function getLevelColor(l) { return {1:'#ff4757',2:'#ffd32a',3:'#00d2ff',4:'#2ed573'}[l]||'#ff4757'; }
+function getColLabel(col) { return {'sessions':'시뮬레이터','element-group':'동족원소','atom-periodic':'원자·주기율표'}[col]||col; }
+function formatDate(ts) {
+  if(!ts) return '-';
+  const d=ts.toDate?ts.toDate():new Date(ts);
+  return d.getFullYear()+'.'+(d.getMonth()+1).toString().padStart(2,'0')+'.'+d.getDate().toString().padStart(2,'0');
+}
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ══════ 페이지 전환 (기존 보존) ══════
+window.showPage = function(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo(0,0);
+  if(name==='home') setTimeout(()=>{drawGrowthChart();drawExpLiteracyChart();},200);
+  if(name==='badge') { renderBadgeGrid(); renderBadgeTab(); }
+};
+
+// ══════ 로그아웃 (기존 보존) ══════
+window.doLogout = function() {
+  if(!confirm('로그아웃 하시겠어요?')) return;
+  unsubscribes.forEach(fn=>fn());
+  unsubscribes=[];
+  localStorage.removeItem('metaflow_student');
+  location.reload();
+};
+
+// ══════ 꾸미기 (기존 보존) ══════
+function adjustColor(hex,amount){
+  try{
+    const r=parseInt(hex.slice(1,3),16)+amount,g=parseInt(hex.slice(3,5),16)+amount,b=parseInt(hex.slice(5,7),16)+amount;
+    return `rgb(${Math.min(Math.max(r,0),255)},${Math.min(Math.max(g,0),255)},${Math.min(Math.max(b,0),255)})`;
+  }catch{return hex;}
+}
+function applyBgColor(color){
+  const root=document.documentElement;
+  const isLight=parseInt(color.slice(1,3),16)>180;
+  root.style.setProperty('--bg',color);
+  if(isLight){
+    root.style.setProperty('--panel','#ffffff');root.style.setProperty('--panel2','#f4f6fb');
+    root.style.setProperty('--border','#d8dff0');root.style.setProperty('--text','#111111');
+    root.style.setProperty('--sub','#444466');root.style.setProperty('--sub2','#555577');
+    const header=document.querySelector('.header');if(header)header.style.background='linear-gradient(135deg,#ffffff,#f0f4ff)';
+    const profile=document.querySelector('.profile-card');if(profile)profile.style.background='linear-gradient(135deg,#e8f0ff,#f0f8ff)';
+    const pc=document.querySelector('.player-card');if(pc)pc.style.background='linear-gradient(135deg,#e8f0ff,#f0f8ff)';
+  }else{
+    root.style.setProperty('--panel',adjustColor(color,8));root.style.setProperty('--panel2',adjustColor(color,14));
+    root.style.setProperty('--border','#1a2840');root.style.setProperty('--text','#dde8f5');
+    root.style.setProperty('--sub','#4a6a88');root.style.setProperty('--sub2','#6a8aaa');
+    const header=document.querySelector('.header');if(header)header.style.background=`linear-gradient(135deg,${color},${adjustColor(color,6)})`;
+    const profile=document.querySelector('.profile-card');if(profile)profile.style.background=`linear-gradient(135deg,${adjustColor(color,4)},${color})`;
+    const pc=document.querySelector('.player-card');if(pc)pc.style.background=`linear-gradient(135deg,${adjustColor(color,6)},${adjustColor(color,2)})`;
+  }
+}
+window.setBgColor=function(color,el){applyBgColor(color);document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active'));el.classList.add('active');localStorage.setItem('mf_bgColor',color);};
+window.setFont=function(font,el){document.body.style.fontFamily=`'${font}',sans-serif`;document.querySelectorAll('.font-swatch').forEach(s=>s.classList.remove('active'));el.classList.add('active');localStorage.setItem('mf_bodyFont',font);};
+window.setAvatar=function(emoji,el){
+  const av=document.getElementById('profileAvatar');if(av)av.textContent=emoji;
+  const pcAv=document.getElementById('pcAvatar');if(pcAv)pcAv.childNodes[0].textContent=emoji;
+  document.querySelectorAll('.avatar-btn').forEach(s=>s.classList.remove('active'));el.classList.add('active');
+  localStorage.setItem('mf_avatar',emoji);
+};
+function restoreCustomization(){
+  const bg=localStorage.getItem('mf_bgColor');
+  const font=localStorage.getItem('mf_bodyFont');
+  const avatar=localStorage.getItem('mf_avatar');
+  if(bg){applyBgColor(bg);document.querySelectorAll('.color-swatch').forEach(s=>{if(s.getAttribute('onclick')?.includes(bg))s.classList.add('active');else s.classList.remove('active');});}
+  if(font){document.body.style.fontFamily=`'${font}',sans-serif`;document.querySelectorAll('.font-swatch').forEach(s=>{if(s.getAttribute('onclick')?.includes(font))s.classList.add('active');else s.classList.remove('active');});}
+  if(avatar){
+    const av=document.getElementById('profileAvatar');if(av)av.textContent=avatar;
+    const pcAv=document.getElementById('pcAvatar');if(pcAv)pcAv.childNodes[0].textContent=avatar;
+    document.querySelectorAll('.avatar-btn').forEach(s=>{if(s.getAttribute('onclick')?.includes(avatar))s.classList.add('active');else s.classList.remove('active');});
+  }
+}
+
+window.addEventListener('resize',()=>{drawGrowthChart();drawExpLiteracyChart();});
+
+// ══════ 실험 상세 모달 ══════
+window.openExpModal = function(sessionJson) {
+  const session = typeof sessionJson === 'string' ? JSON.parse(sessionJson) : sessionJson;
+  const MF_STEPS_KO = ['1단계 · Basic','2단계 · Proficient','3단계 · Advanced','4단계 · Excellent'];
+  document.getElementById('emTitle').textContent = session.experimentName || '실험 상세';
+
+  const mfSection = session.mfAnswers && session.mfAnswers.length > 0
+    ? session.mfAnswers.map((ans, i) => `
+        <div class="em-step">
+          <div class="em-step-label">${MF_STEPS_KO[i] || (i+1)+'단계'}</div>
+          <div class="${ans && ans !== '(건너뜀)' ? 'em-step-text' : 'em-step-empty'}">${ans && ans !== '(건너뜀)' ? ans : '(미작성)'}</div>
+        </div>`).join('')
+    : `<div class="em-step"><div class="em-step-text">${session.answer || '-'}</div></div>`;
+
+  document.getElementById('emBody').innerHTML = `
+    <div style="font-size:10px;color:var(--sub);font-family:'Orbitron',monospace;margin-bottom:12px;">
+      ${formatDate(session.createdAt)} · ${currentStudent?.cls||''} · ${getLevelName(session.level||1)}
+    </div>
+    ${mfSection}
+    <div class="em-feedback">
+      <strong style="color:var(--green)">🤖 AI 피드백</strong><br>
+      ${session.feedback || '피드백 없음'}
+    </div>
+    <div class="em-teacher">
+      <div class="em-teacher-label">💬 선생님 코멘트</div>
+      <div id="emTeacherComment" style="color:var(--sub);font-style:italic;">불러오는 중...</div>
+    </div>`;
+
+  document.getElementById('expModal').classList.add('show');
+  loadTeacherComment(session._id);
+};
+
+window.closeExpModal = function() {
+  document.getElementById('expModal').classList.remove('show');
+  if(window._commentUnsub) { window._commentUnsub(); window._commentUnsub = null; }
+};
+
+function loadTeacherComment(sessionId) {
+  if(!sessionId) {
+    const el = document.getElementById('emTeacherComment');
+    if(el) { el.style.fontStyle='italic'; el.textContent='아직 코멘트가 없어요'; }
+    return;
+  }
+  if(window._commentUnsub) window._commentUnsub();
+  window._commentUnsub = onSnapshot(doc(db,'teacherComments',sessionId), snap => {
+    const el = document.getElementById('emTeacherComment');
+    if(!el) return;
+    if(snap.exists()) {
+      el.style.fontStyle = 'normal';
+      el.style.color = 'var(--text)';
+      el.textContent = snap.data().comment;
+    } else {
+      el.style.fontStyle = 'italic';
+      el.style.color = 'var(--sub)';
+      el.textContent = '아직 코멘트가 없어요';
+    }
+  });
+}
+</script>
+</body>
+</html>
