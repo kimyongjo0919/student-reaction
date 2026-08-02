@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>META FLOW+ | 관리자 문의 수신함</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&family=Exo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #0066ff; --primary-light: #e8f0ff;
+    --secondary: #00b4d8; --secondary-light: #e0f7fc;
+    --accent: #ff6b35; --accent-light: #fff0eb;
+    --success: #00c896; --success-light: #e0faf3;
+    --warning: #ffb300; --warning-light: #fff8e0;
+    --danger: #ff4560; --danger-light: #ffe8ec;
+    --gray-50: #f8faff; --gray-100: #f0f4ff; --gray-200: #e2e8f7;
+    --gray-300: #c8d3ec; --gray-400: #8898bb; --gray-500: #5a6a8a;
+    --gray-700: #2d3a5a; --gray-900: #0d1535; --white: #ffffff;
+    --shadow-md: 0 4px 20px rgba(0,102,255,0.10);
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body { font-family:'Pretendard',sans-serif; background:var(--gray-50); color:var(--gray-700); min-height:100vh; }
+
+  /* ---- 잠금 화면 ---- */
+  #lockScreen { min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px; }
+  #lockScreen .lock-icon { font-size:40px; }
+  #lockScreen h1 { font-size:19px; font-weight:800; color:var(--gray-900); }
+  #lockScreen p { font-size:13px; color:var(--gray-500); }
+  #lockScreen input { border:1.5px solid var(--gray-200); border-radius:10px; padding:12px 16px; font-size:16px; text-align:center; letter-spacing:4px; width:200px; outline:none; }
+  #lockScreen input:focus { border-color:var(--primary); }
+  #lockScreen button { background:linear-gradient(135deg,var(--primary),var(--secondary)); color:white; border:none; padding:12px 28px; border-radius:10px; font-weight:700; font-size:14px; cursor:pointer; }
+  #lockError { color:var(--danger); font-size:12.5px; height:16px; }
+
+  #appRoot { display:none; }
+  header { background:white; border-bottom:1px solid var(--gray-200); box-shadow:0 1px 0 var(--gray-200), 0 4px 16px rgba(0,102,255,0.06); padding:18px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:20; }
+  .logo { display:flex; align-items:center; gap:12px; }
+  .logo-icon { width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-size:22px; }
+  .logo-text { font-family:'Exo 2',sans-serif; font-weight:800; font-size:20px; color:var(--gray-900); }
+  .logo-sub { font-size:12px; color:var(--gray-500); font-weight:500; margin-top:2px; }
+  .admin-badge { font-size:12px; font-weight:700; color:var(--accent); background:var(--accent-light); padding:6px 12px; border-radius:999px; }
+
+  main { max-width: 920px; margin:0 auto; padding:28px 20px 60px; }
+  .stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+  .stat-box { background:white; border:1px solid var(--gray-200); border-radius:12px; padding:16px; text-align:center; }
+  .stat-box .num { font-size:22px; font-weight:800; color:var(--gray-900); }
+  .stat-box .lbl { font-size:11.5px; color:var(--gray-500); font-weight:600; margin-top:2px; }
+
+  .toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+  .filter-row { display:flex; gap:6px; flex-wrap:wrap; }
+  .filter-btn { font-size:12.5px; padding:6px 12px; border-radius:999px; border:1.5px solid var(--gray-200); background:white; color:var(--gray-500); cursor:pointer; font-weight:600; }
+  .filter-btn.active { background:var(--gray-900); border-color:var(--gray-900); color:white; }
+  .search-box { border:1.5px solid var(--gray-200); border-radius:10px; padding:8px 14px; font-size:13px; width:220px; outline:none; }
+  .search-box:focus { border-color:var(--primary); }
+
+  .req-item { background:white; border:1.5px solid var(--gray-200); border-radius:12px; padding:18px 20px; margin-bottom:12px; box-shadow: var(--shadow-md); }
+  .req-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:8px; }
+  .req-type-badge { display:inline-block; font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:999px; margin-bottom:6px; }
+  .badge-card { background:var(--secondary-light); color:#0090ad; }
+  .badge-new { background:var(--accent-light); color:var(--accent); }
+  .badge-bug { background:var(--danger-light); color:var(--danger); }
+  .badge-etc { background:var(--gray-200); color:var(--gray-500); }
+  .req-title { font-size:15.5px; font-weight:700; color:var(--gray-900); }
+  .req-meta { font-size:12.5px; color:var(--gray-400); margin-top:2px; }
+  .status-pill { font-size:11.5px; font-weight:700; padding:4px 11px; border-radius:999px; white-space:nowrap; cursor:pointer; border:none; }
+  .status-wait { background:var(--warning-light); color:#a17400; }
+  .status-done { background:var(--success-light); color:#007a5e; }
+  .req-content { font-size:14px; color:var(--gray-700); line-height:1.6; white-space:pre-wrap; margin:10px 0; background:var(--gray-50); border-radius:8px; padding:12px 14px; }
+  .req-reply-box { margin-top:12px; }
+  .req-reply-box textarea { width:100%; min-height:70px; border:1.5px solid var(--gray-200); border-radius:8px; padding:10px 12px; font-family:'Pretendard',sans-serif; font-size:13px; outline:none; resize:vertical; }
+  .req-reply-box textarea:focus { border-color:var(--primary); }
+  .reply-save-btn { margin-top:8px; background:var(--gray-900); color:white; border:none; padding:8px 16px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer; }
+  .contact-line { font-size:12px; color:var(--primary); margin-top:4px; }
+  .empty-state { text-align:center; padding:60px 20px; color:var(--gray-400); }
+  .empty-state div:first-child { font-size:34px; margin-bottom:10px; }
+  .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--gray-900); color:white; padding:13px 22px; border-radius:10px; font-size:14px; font-weight:600; opacity:0; transition:all .25s; pointer-events:none; z-index:50; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="lockScreen">
+  <div class="lock-icon">🔒</div>
+  <h1>관리자 전용 페이지입니다</h1>
+  <p>이 페이지는 전국 학교의 문의를 모아 보는 비공개 페이지입니다.</p>
+  <input type="password" id="pinInput" placeholder="PIN 입력" maxlength="10" autofocus>
+  <div id="lockError"></div>
+  <button onclick="tryUnlock()">입장하기</button>
+</div>
+
+<div id="appRoot">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">📥</div>
+      <div>
+        <div class="logo-text">META FLOW+</div>
+        <div class="logo-sub">관리자 문의 수신함 (전체 학교)</div>
+      </div>
+    </div>
+    <div class="admin-badge">🔑 관리자 모드</div>
+  </header>
+
+  <main>
+    <div class="stat-row">
+      <div class="stat-box"><div class="num" id="statTotal">0</div><div class="lbl">전체 문의</div></div>
+      <div class="stat-box"><div class="num" id="statWait">0</div><div class="lbl">답변대기</div></div>
+      <div class="stat-box"><div class="num" id="statDone">0</div><div class="lbl">답변완료</div></div>
+      <div class="stat-box"><div class="num" id="statSchools">0</div><div class="lbl">참여 학교 수</div></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="filter-row" id="filterRow">
+        <div class="filter-btn active" data-filter="all">전체</div>
+        <div class="filter-btn" data-filter="wait">답변대기</div>
+        <div class="filter-btn" data-filter="done">답변완료</div>
+        <div class="filter-btn" data-filter="card">시약·기구</div>
+        <div class="filter-btn" data-filter="new">신규실험</div>
+        <div class="filter-btn" data-filter="bug">오류</div>
+        <div class="filter-btn" data-filter="etc">기타</div>
+      </div>
+      <input class="search-box" id="searchBox" placeholder="학교명·성명·제목 검색">
+    </div>
+
+    <div id="reqList"><div class="empty-state"><div>⏳</div>불러오는 중...</div></div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBX-BE14JViw82xAiA3Gts6p-SC6gVBjG8",
+  authDomain: "student-literacy.firebaseapp.com",
+  projectId: "student-literacy",
+  storageBucket: "student-literacy.firebasestorage.app",
+  messagingSenderId: "66926306937",
+  appId: "1:66926306937:web:5204bff44a4cc5d62d16a8"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const COLLECTION = "teacher_requests";
+
+// ---- 잠금 (PIN은 필요에 따라 바꾸세요) ----
+const ADMIN_PIN = "0919";
+window.tryUnlock = function () {
+  const val = document.getElementById('pinInput').value;
+  if (val === ADMIN_PIN) {
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('appRoot').style.display = 'block';
+    sessionStorage.setItem('mf_admin_ok', '1');
+    startListening();
+  } else {
+    document.getElementById('lockError').textContent = 'PIN이 일치하지 않습니다.';
+  }
+};
+document.getElementById('pinInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') window.tryUnlock();
+});
+if (sessionStorage.getItem('mf_admin_ok') === '1') {
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'block';
+  startListening();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+const typeLabel = { card: '시약·기구 카드', new: '신규 실험 문의', bug: '오류 신고', etc: '기타 의견' };
+const typeBadgeClass = { card: 'badge-card', new: 'badge-new', bug: 'badge-bug', etc: 'badge-etc' };
+
+let allRequests = [];
+let currentFilter = 'all';
+let searchTerm = '';
+
+document.getElementById('filterRow').addEventListener('click', (e) => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = btn.dataset.filter;
+  render();
+});
+document.getElementById('searchBox').addEventListener('input', (e) => {
+  searchTerm = e.target.value.trim().toLowerCase();
+  render();
+});
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function render() {
+  const listEl = document.getElementById('reqList');
+  let items = allRequests;
+
+  if (currentFilter === 'wait' || currentFilter === 'done') {
+    items = items.filter(r => r.status === currentFilter);
+  } else if (['card', 'new', 'bug', 'etc'].includes(currentFilter)) {
+    items = items.filter(r => r.type === currentFilter);
+  }
+  if (searchTerm) {
+    items = items.filter(r =>
+      (r.school || '').toLowerCase().includes(searchTerm) ||
+      (r.name || '').toLowerCase().includes(searchTerm) ||
+      (r.title || '').toLowerCase().includes(searchTerm)
+    );
+  }
+
+  document.getElementById('statTotal').textContent = allRequests.length;
+  document.getElementById('statWait').textContent = allRequests.filter(r => r.status !== 'done').length;
+  document.getElementById('statDone').textContent = allRequests.filter(r => r.status === 'done').length;
+  document.getElementById('statSchools').textContent = new Set(allRequests.map(r => r.school)).size;
+
+  if (items.length === 0) {
+    listEl.innerHTML = `<div class="empty-state"><div>📭</div>해당하는 문의가 없습니다.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = items.map(r => {
+    const date = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString('ko-KR') : '';
+    const statusHtml = r.status === 'done'
+      ? `<button class="status-pill status-done" onclick="toggleStatus('${r.id}','wait')">답변완료 ✓</button>`
+      : `<button class="status-pill status-wait" onclick="toggleStatus('${r.id}','done')">답변대기</button>`;
+    return `
+      <div class="req-item">
+        <div class="req-top">
+          <div>
+            <span class="req-type-badge ${typeBadgeClass[r.type] || 'badge-etc'}">${typeLabel[r.type] || '기타'}</span>
+            <div class="req-title">${escapeHtml(r.title)}</div>
+            <div class="req-meta">${escapeHtml(r.school)} · ${escapeHtml(r.name)} 선생님 · ${date}</div>
+            <div class="contact-line">✉️ ${escapeHtml(r.contact)}</div>
+          </div>
+          ${statusHtml}
+        </div>
+        <div class="req-content">${escapeHtml(r.content)}</div>
+        <div class="req-reply-box">
+          <textarea id="reply-${r.id}" placeholder="답변을 입력하세요...">${escapeHtml(r.reply || '')}</textarea>
+          <button class="reply-save-btn" onclick="saveReply('${r.id}')">답변 저장 및 완료 처리</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.saveReply = async function (id) {
+  const text = document.getElementById(`reply-${id}`).value;
+  try {
+    await updateDoc(doc(db, COLLECTION, id), { reply: text, status: 'done' });
+    showToast('답변이 저장되었습니다.');
+  } catch (err) {
+    console.error(err);
+    showToast('저장 중 오류가 발생했습니다.');
+  }
+};
+
+window.toggleStatus = async function (id, newStatus) {
+  try {
+    await updateDoc(doc(db, COLLECTION, id), { status: newStatus });
+    showToast(newStatus === 'done' ? '답변완료로 변경했습니다.' : '답변대기로 되돌렸습니다.');
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+function startListening() {
+  const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
+  onSnapshot(q, (snap) => {
+    allRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    render();
+  }, (err) => {
+    console.error(err);
+    document.getElementById('reqList').innerHTML =
+      `<div class="empty-state"><div>⚠️</div>목록을 불러오지 못했습니다. Firestore 보안 규칙을 확인해주세요.</div>`;
+  });
+}
+</script>
+</body>
+</html>
