@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<!-- saved from url=(0610)file:///C:/Users/user/Desktop/%EC%97%B0%EA%B5%AC%ED%99%9C%EB%8F%99/2026%EB%85%84%20%EA%B3%BC%ED%95%99%ED%99%9C%EB%8F%99/2026%20%EC%A0%9C73%ED%9A%8C%20%EA%B2%BD%EA%B8%B0%EB%8F%84%EA%B5%90%EC%9C%A1%EC%9E%90%EB%A3%8C%EC%A0%84%20%EB%8C%80%ED%9A%8C/%EA%B2%BD%EA%B8%B0%EB%8F%84%EA%B5%90%EC%9C%A1%EC%9E%90%EB%A3%8C%EC%A0%84/%EC%A0%9C73%ED%9A%8C%20%EA%B2%BD%EA%B8%B0%EB%8F%84%20%EA%B5%90%EC%9C%A1%EC%9E%90%EB%A3%8C%EC%A0%84%20%EC%A0%9C%EC%B6%9C%20%EC%84%9C%EB%A5%98/USB(%EC%9B%B9%EC%9E%90%EB%A3%8C)/%EB%8F%99%EC%A1%B1%20%EC%9B%90%EC%86%8C%20%EC%9C%A0%EC%82%AC%EC%84%B1%20%ED%83%90%EA%B5%AC%20%C2%B7%20META%20FLOW+.html -->
+<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>동족 원소 유사성 탐구 · META FLOW+</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<!-- MediaPipe -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090f;--bg2:#111520;--bg3:#1a1f2e;--bg4:#222840;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#eef0f8;--muted:#6b7494;
+  --accent:#f97316;--cyan:#06b6d4;--green:#10b981;
+  --yellow:#fbbf24;--red:#ef4444;--purple:#a855f7;
+  --radius:14px;--rsm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:10px}
+.logo{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);white-space:nowrap}
+.logo span{color:var(--accent)}
+.step-bar{display:flex;gap:0;flex:1;max-width:340px}
+.sbi{flex:1;text-align:center;padding:5px 2px;font-size:10px;font-weight:600;color:var(--muted);border-bottom:2px solid var(--border);cursor:pointer;transition:.2s}
+.sbi.active{color:var(--accent);border-color:var(--accent)}
+.sbi.done{color:var(--green);border-color:var(--green)}
+.theme-btn{background:transparent;border:1px solid var(--border2);color:var(--muted);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px}
+
+.step-panel{display:none;padding:16px 20px;max-width:980px;margin:0 auto;animation:fi .25s ease}
+.step-panel.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.ptitle{font-size:17px;font-weight:700;margin-bottom:3px}
+.psub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.slabel{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+.slabel::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* 탭 */
+.exp-tabs{display:flex;gap:8px;margin-bottom:14px}
+.etab{flex:1;padding:12px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:.2s;text-align:center}
+.etab:hover{border-color:var(--border2)}
+.etab.active.alk{border-color:var(--accent);background:rgba(249,115,22,.07)}
+.etab.active.hal{border-color:var(--cyan);background:rgba(6,182,212,.07)}
+.etab-icon{font-size:22px;margin-bottom:3px}
+.etab-title{font-size:13px;font-weight:700}
+.etab-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* 원소 카드 */
+.egrid{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.ecard{background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;padding:14px 12px;min-width:88px;text-align:center;cursor:pointer;transition:.2s;position:relative;user-select:none}
+.ecard:hover{border-color:var(--border2);transform:translateY(-2px)}
+.ecard.sa{border-color:var(--accent);background:rgba(249,115,22,.1);box-shadow:0 0 12px rgba(249,115,22,.2)}
+.ecard.sh{border-color:var(--cyan);background:rgba(6,182,212,.1);box-shadow:0 0 12px rgba(6,182,212,.2)}
+.ecard .ez{font-size:9px;color:var(--muted)}.ecard .esym{font-size:26px;font-weight:800;line-height:1.1}
+.ecard .ename{font-size:10px;color:var(--muted);margin-top:2px}
+.ecard .echk{position:absolute;top:5px;right:5px;width:16px;height:16px;border-radius:50%;background:var(--green);display:none;align-items:center;justify-content:center;font-size:9px}
+.ecard.sa .echk,.ecard.sh .echk{display:flex}
+.ecard .ebdg{position:absolute;top:5px;left:5px;font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px}
+.ba{background:rgba(249,115,22,.2);color:var(--accent)}.bh{background:rgba(6,182,212,.2);color:var(--cyan)}
+
+/* NFC */
+.nfc-row{display:flex;gap:10px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rsm);padding:11px 13px;margin-bottom:12px}
+.ndot{width:9px;height:9px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:.3s}
+.ndot.on{background:var(--green);box-shadow:0 0 7px var(--green);animation:blink 1.5s infinite}
+.ndot.sc{background:var(--yellow);animation:blink .4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.nfc-btn{background:var(--accent);border:none;color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap}
+
+/* 실험 스테이지 */
+.stage-wrap{position:relative;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px}
+#exp-canvas{width:100%;display:block}
+.stage-tr{position:absolute;top:10px;right:10px;background:rgba(8,9,15,.8);border:1px solid var(--border2);border-radius:var(--rsm);padding:8px 12px;backdrop-filter:blur(4px)}
+.ghr{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);margin-bottom:3px}
+.ghr:last-child{margin:0}.ghr b{color:var(--text)}
+.hold-pill{position:absolute;top:10px;left:10px;background:rgba(249,115,22,.92);color:#fff;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;display:none;backdrop-filter:blur(4px)}
+.hold-pill.show{display:block}
+.gesture-flash{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);border:1px solid var(--border2);border-radius:16px;padding:5px 14px;font-size:12px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.gesture-flash.show{opacity:1}
+
+/* 웹캠 플로팅 */
+#wcf{position:fixed;bottom:16px;right:16px;width:260px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.6);display:none;user-select:none}
+#wcf.show{display:block}
+.wcf-head{background:var(--bg3);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;cursor:move}
+.wcf-stat{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.wcf-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px}
+.wc-vid-wrap{position:relative;width:100%;height:180px;overflow:hidden;background:#000}
+#wc-video{width:100%;height:180px;object-fit:cover;display:block;transform:scaleX(-1)}
+#wc-skeleton{position:absolute;top:0;left:0;width:100%;height:180px;pointer-events:none}
+.wc-gesture-bar{padding:8px 12px;border-top:1px solid var(--border);font-size:12px;font-weight:600;min-height:36px;display:flex;align-items:center;gap:8px}
+.wc-gesture-icon{font-size:18px}
+.wc-btns{padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:5px;border-top:1px solid var(--border)}
+.gcbtn{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:7px 4px;border-radius:6px;cursor:pointer;font-size:11px;text-align:center;transition:.15s;line-height:1.4}
+.gcbtn:hover{background:var(--bg4)}.gcbtn:active{transform:scale(.95)}
+.gcbtn.full{grid-column:1/-1;background:var(--accent);color:#fff;border-color:transparent;font-weight:700}
+.gcbtn.full:hover{filter:brightness(1.1)}
+.wc-open-btn{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rsm);padding:10px 14px;cursor:pointer;color:var(--text);font-size:12px;font-weight:600;margin-bottom:12px;transition:.2s;width:100%}
+.wc-open-btn:hover{border-color:var(--border2)}
+
+/* 비교 카드 */
+.cmp-row{display:grid;gap:8px;margin-bottom:12px}
+.cmp-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rsm);padding:12px;transition:.3s}
+.cmp-card.ra{border-color:var(--accent);box-shadow:0 0 14px rgba(249,115,22,.15)}
+.cmp-card.rh{border-color:var(--cyan);box-shadow:0 0 14px rgba(6,182,212,.15)}
+.cmp-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.cmp-sym{font-size:22px;font-weight:800;min-width:36px;line-height:1}
+.cmp-info{flex:1}.cmp-name{font-size:11px;color:var(--muted)}
+.cmp-st{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted)}
+.cmp-st.done{color:var(--green)}
+.bar-row{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);margin-bottom:4px}
+.bar-row span:first-child{min-width:44px}
+.btrack{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.bfill{height:100%;border-radius:3px;transition:width .8s}
+.cmp-desc{font-size:11px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);line-height:1.6}
+.cmp-desc b{color:var(--text)}
+
+/* 버튼 */
+.btn{padding:9px 18px;border-radius:var(--rsm);border:none;cursor:pointer;font-size:12px;font-weight:700;transition:.2s}
+.bp{background:var(--accent);color:#fff}.bp:hover{filter:brightness(1.1)}.bp:disabled{opacity:.35;cursor:not-allowed}
+.bs{background:var(--bg3);color:var(--text);border:1px solid var(--border2)}.bs:hover{background:var(--bg4)}
+.bg{background:var(--green);color:#fff}.bg:hover{filter:brightness(1.1)}
+.brow{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+
+/* META FLOW+ */
+.mfw{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-top:14px}
+.mf-steps{display:flex;gap:3px;margin-bottom:14px}
+.mfs{flex:1;padding:5px 2px;text-align:center;border-radius:5px;font-size:9px;font-weight:700;background:var(--bg3);color:var(--muted);border:1px solid var(--border);transition:.3s}
+.mfs.active{background:rgba(249,115,22,.15);color:var(--accent);border-color:rgba(249,115,22,.4)}
+.mfs.done{background:rgba(16,185,129,.12);color:var(--green);border-color:rgba(16,185,129,.35)}
+.mfq{background:var(--bg3);border-radius:var(--rsm);padding:12px 14px;margin-bottom:10px;font-size:13px;line-height:1.65;border-left:3px solid var(--accent)}
+.mfbdg{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;margin-bottom:6px;letter-spacing:.05em}
+.lv1{background:rgba(59,130,246,.18);color:#60a5fa}.lv2{background:rgba(245,158,11,.18);color:#fbbf24}
+.lv3{background:rgba(249,115,22,.18);color:var(--accent)}.lv4{background:rgba(168,85,247,.18);color:var(--purple)}
+.mfta{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:var(--rsm);color:var(--text);padding:10px 12px;font-size:13px;resize:vertical;min-height:80px;font-family:inherit;outline:none;transition:.2s}
+.mfta:focus{border-color:var(--accent)}
+.mfhint{background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.2);border-radius:var(--rsm);padding:10px;font-size:12px;color:var(--muted);margin-top:8px;line-height:1.55;display:none}
+.mfhint.show{display:block}
+.mfsc{display:none;background:var(--bg3);border-radius:var(--rsm);padding:12px;margin-top:10px;font-size:12px;line-height:1.6}
+.mfsc.show{display:block}
+.scn{font-size:24px;font-weight:800;color:var(--accent)}
+
+/* PISA 레벨 배지 */
+.pisa-badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;margin-left:8px}
+.pisa-1{background:rgba(59,130,246,.2);color:#60a5fa}
+.pisa-2{background:rgba(245,158,11,.2);color:#fbbf24}
+.pisa-3{background:rgba(249,115,22,.2);color:#f97316}
+.pisa-4{background:rgba(168,85,247,.2);color:#a855f7}
+
+/* 결과 */
+.rbox{background:var(--bg2);border:1px solid var(--green);border-radius:var(--radius);padding:18px;margin-top:14px;display:none}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.ri{background:var(--bg3);border-radius:var(--rsm);padding:10px}
+.ril{font-size:10px;color:var(--muted);margin-bottom:3px}.riv{font-size:13px;font-weight:700}
+
+/* 로그 */
+.rxlog{background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);padding:10px 12px;font-size:11px;min-height:50px;max-height:120px;overflow-y:auto;color:var(--muted);font-family:monospace;line-height:1.8;margin-bottom:10px}
+
+/* 모달 */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:none;align-items:center;justify-content:center}
+.mbg.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:22px;width:320px;max-width:92vw}
+.modal h2{font-size:15px;font-weight:700;margin-bottom:14px}
+.modal label{font-size:10px;color:var(--muted);display:block;margin-bottom:3px;margin-top:8px}
+.modal input{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:9px 11px;font-size:13px;outline:none;transition:.2s;font-family:inherit}
+.modal input:focus{border-color:var(--accent)}
+
+/* 토스트 */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:8px 18px;font-size:12px;z-index:500;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+
+/* 라이트 */
+body.light{--bg:#f0f2f8;--bg2:#fff;--bg3:#f1f4fb;--bg4:#e8eaf6;--border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.14);--text:#18192b;--muted:#5a6080}
+</style>
+</head>
+<body>
+
+<!-- 모달 -->
+<div class="mbg show" id="smodal">
+  <div class="modal">
+    <h2>👤 META FLOW+ 시작</h2>
+    <label>학교 코드</label><input id="s-school" placeholder="GN01 (모르면 JOINT01)" style="text-transform:uppercase" maxlength="10">
+    <label>학번</label><input id="s-id" placeholder="20301">
+    <label>이름</label><input id="s-name" placeholder="홍길동">
+    <label>학년 / 반</label><input id="s-cls" placeholder="2-3">
+    <div class="brow" style="margin-top:12px">
+      <button class="btn bp" style="flex:1" onclick="startStu()">시작하기 →</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- 헤더 -->
+<header>
+  <div class="logo">META FLOW+ · <span>동족 원소 유사성</span></div>
+  <div class="step-bar">
+    <div class="sbi active" id="sb0" onclick="tryGo(1)">①카드세팅</div>
+    <div class="sbi" id="sb1" onclick="tryGo(2)">②NFC태그</div>
+    <div class="sbi" id="sb2" onclick="tryGo(3)">③실험실행</div>
+    <div class="sbi" id="sb3" onclick="tryGo(4)">④문해력</div>
+  </div>
+  <button class="theme-btn" onclick="document.body.classList.toggle(&#39;light&#39;)">🌓</button>
+</header>
+
+<!-- STEP 1 -->
+<div class="step-panel active" id="step1">
+  <div class="ptitle">① 원소 카드 세팅</div>
+  <div class="psub">탐구할 실험을 선택하고 원소를 고르세요</div>
+  <div class="exp-tabs">
+    <div class="etab active alk" id="tab-alk" onclick="setType(&#39;alkali&#39;)">
+      <div class="etab-icon">💧</div>
+      <div class="etab-title">알칼리 금속 (1족)</div>
+      <div class="etab-sub">Li · Na · K — 물과의 반응성 비교</div>
+    </div>
+    <div class="etab hal" id="tab-hal" onclick="setType(&#39;halogen&#39;)">
+      <div class="etab-icon">🧪</div>
+      <div class="etab-title">할로겐 (17족)</div>
+      <div class="etab-sub">F · Cl · Br — 반응성 &amp; 색 변화 비교</div>
+    </div>
+  </div>
+  <div class="slabel" id="eslabel">알칼리 금속 원소 선택</div>
+  <div class="egrid" id="egrid"><div class="ecard sa" id="ec-Li"><div class="ez">Z=3</div><div class="esym">Li</div><div class="ename">리튬</div><div class="echk">✓</div><div class="ebdg ba">1족</div></div><div class="ecard sa" id="ec-Na"><div class="ez">Z=11</div><div class="esym">Na</div><div class="ename">나트륨</div><div class="echk">✓</div><div class="ebdg ba">1족</div></div><div class="ecard sa" id="ec-K"><div class="ez">Z=19</div><div class="esym">K</div><div class="ename">칼륨</div><div class="echk">✓</div><div class="ebdg ba">1족</div></div></div>
+  <div class="slabel">실험 안내</div>
+  <div id="eguide" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rsm);padding:12px;font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:8px">💧 알칼리 금속(Li, Na, K)을 물에 투하할 때의 <b>반응성 차이</b>를 비교합니다.<br>웹캠으로 손을 인식하여 <b>핀치(엄지+검지)</b>로 원소를 집고, <b>펼쳐서</b> 비커에 투하하세요!</div>
+  <div class="brow"><button class="btn bp" id="btn2" onclick="goStep(2)" disabled="">다음 → NFC 태그</button></div>
+</div>
+
+<!-- STEP 2 -->
+<div class="step-panel" id="step2">
+  <div class="ptitle">② NFC 카드 태그</div>
+  <div class="psub">원소 NFC 카드를 순서대로 태그하세요 (PC: nfc_bridge.py 실행 필요)</div>
+  <div class="nfc-row">
+    <div class="ndot" id="ndot"></div>
+    <div style="flex:1;font-size:12px" id="nfctxt">NFC 스캔 대기</div>
+    <button class="nfc-btn" onclick="startNFC()">📲 스캔 시작</button>
+  </div>
+  <div class="slabel">준비된 원소</div>
+  <div id="prep" style="display:flex;gap:8px;flex-wrap:wrap;min-height:56px;margin-bottom:12px;align-items:center"><span style="font-size:12px;color:var(--muted)">태그 후 표시</span></div>
+  <div class="slabel">알짜 이온 반응식</div>
+  <div id="netio" style="background:var(--bg3);border-radius:var(--rsm);padding:11px;font-size:12px;font-family:monospace;color:var(--muted);margin-bottom:14px;min-height:44px;line-height:1.8"></div>
+  <div class="brow">
+    <button class="btn bs" onclick="goStep(1)">← 이전</button>
+    <button class="btn bp" id="btn3" onclick="goStep(3)" disabled="">실험 시작 →</button>
+  </div>
+</div>
+
+<!-- STEP 3 -->
+<div class="step-panel" id="step3">
+  <div class="ptitle">③ 실험 실행</div>
+  <div class="psub" id="s3sub"></div>
+
+  <button class="wc-open-btn" onclick="toggleWC()" id="wc-open-btn">
+    <span style="font-size:18px">📷</span>
+    <div>
+      <div>웹캠 열기 — 손으로 원소 집어 투하</div>
+      <div style="font-size:10px;color:var(--muted);font-weight:400">MediaPipe 손 인식 · 스켈레톤 표시</div>
+    </div>
+    <span style="margin-left:auto;font-size:10px;color:var(--muted)" id="wclbl">대기중</span>
+  </button>
+
+  <div class="stage-wrap">
+    <canvas id="exp-canvas" height="360"></canvas>
+    <div class="hold-pill" id="hpill">🤌 <span id="hname">원소</span> 집는 중</div>
+    <div class="gesture-flash" id="gflash"></div>
+    <div class="stage-tr">
+      <div class="ghr"><span>🤌</span><b>핀치</b> 집기</div>
+      <div class="ghr"><span>🖐</span><b>펼침</b> 투하</div>
+      <div class="ghr"><span>✊</span><b>주먹</b> 정지</div>
+      <div class="ghr" style="margin-top:4px;font-size:9px;color:var(--muted)">키: P / O / F</div>
+    </div>
+  </div>
+
+  <div class="slabel">반응성 비교</div>
+  <div class="cmp-row" id="cmprow"></div>
+  <div class="slabel">실험 기록</div>
+  <div class="rxlog" id="rxlog">실험을 시작하면 기록이 쌓입니다...</div>
+
+  <!-- 반응 완료 후 비교 서술란 -->
+  <div id="compare-write-section" style="display:none">
+    <div class="slabel">✍️ 반응성 비교 — 직접 써보기</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rsm);padding:14px;margin-bottom:10px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">
+        실험을 관찰했나요? 아래 질문에 직접 답해보세요.
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:5px">
+          Q1. 반응성이 강한 순서대로 원소를 나열하세요.
+        </div>
+        <input id="cw-order" type="text" placeholder="예: K &gt; Na &gt; Li" style="width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:8px 11px;font-size:13px;font-family:monospace;outline:none">
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:5px">
+          Q2. 가장 격렬했던 원소와 그 특징을 서술하세요.
+        </div>
+        <input id="cw-most" type="text" placeholder="예: K — 보라색 불꽃과 함께 폭발적으로 반응했다" style="width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:8px 11px;font-size:13px;outline:none">
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:5px">
+          Q3. 세 원소의 공통점은 무엇인가요?
+        </div>
+        <input id="cw-common" type="text" placeholder="예: 모두 물과 반응하여 H₂ 기체와 OH⁻를 생성했다" style="width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:8px 11px;font-size:13px;outline:none">
+      </div>
+      <button class="btn bp" onclick="submitCompare()" style="width:100%;margin-top:4px">✅ 비교 제출 &amp; 확인</button>
+    </div>
+    <div id="compare-result" style="display:none;background:var(--bg2);border:1px solid var(--green);border-radius:var(--rsm);padding:14px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:10px">📊 반응성 비교 정리</div>
+      <div id="compare-result-content"></div>
+    </div>
+  </div>
+
+  <div class="brow">
+    <button class="btn bs" onclick="resetExp()">↺ 초기화</button>
+    <button class="btn bs" onclick="goStep(2)">← 이전</button>
+    <button class="btn bg" onclick="goStep(4)">✅ 결과 분석 →</button>
+  </div>
+</div>
+
+<!-- STEP 4 -->
+<div class="step-panel" id="step4">
+  <div class="ptitle">④ META FLOW+ 문해력 진단</div>
+  <div class="psub">PISA 2025 과학 문해력 기준 · 4단계 서술 평가</div>
+  <div class="mfw">
+    <div class="mf-steps">
+      <div class="mfs active" id="mfs0">1단계<br><span style="font-size:8px">Basic</span></div>
+      <div class="mfs" id="mfs1">2단계<br><span style="font-size:8px">Proficient</span></div>
+      <div class="mfs" id="mfs2">3단계<br><span style="font-size:8px">Advanced</span></div>
+      <div class="mfs" id="mfs3">4단계<br><span style="font-size:8px">Excellent</span></div>
+    </div>
+    <div id="mfbody"></div>
+    <div id="mfhint" class="mfhint"></div>
+    <div id="mfsc" class="mfsc"></div>
+    <div class="brow" style="margin-top:10px">
+      <button class="btn bs" onclick="showHint()">💡 힌트</button>
+      <button class="btn bs" onclick="skipQ()">건너뛰기</button>
+      <button class="btn bp" id="submitQBtn" onclick="submitQ()">✍️ 제출 &amp; AI 채점</button>
+    </div>
+  </div>
+  <div class="rbox" id="rbox">
+    <h3 style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:8px">✅ 실험 설계 산출물</h3>
+    <div class="rgrid" id="rgrid"></div>
+    <div id="save-status" style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center"></div>
+    <div class="brow" style="margin-top:12px">
+      <button class="btn bp" id="saveBtn" onclick="saveFB()">🎯 META FLOW+ 저장</button>
+      <button class="btn bs" onclick="nextStu()">👤 다음 학생</button>
+    </div>
+  </div>
+</div>
+
+<!-- 웹캠 플로팅 -->
+<div id="wcf">
+  <div class="wcf-head" id="wcf-head">
+    <span>📷 웹캠 · 손 인식</span>
+    <div class="wcf-stat"><div class="ndot" id="wcdot" style="width:7px;height:7px"></div><span id="wcstat">대기</span></div>
+    <button class="wcf-close" onclick="toggleWC()">✕</button>
+  </div>
+  <div class="wc-vid-wrap">
+    <video id="wc-video" autoplay="" muted="" playsinline=""></video>
+    <canvas id="wc-skeleton"></canvas>
+  </div>
+  <div class="wc-gesture-bar" id="wc-gbar">
+    <span class="wc-gesture-icon">✋</span>
+    <span id="wc-gtext" style="color:var(--muted)">손을 웹캠 앞에 놓으세요</span>
+  </div>
+  <div class="wc-btns">
+    <button class="gcbtn" onclick="gesture(&#39;pinch&#39;)">🤌 핀치<br><small>집기 [P]</small></button>
+    <button class="gcbtn" onclick="gesture(&#39;open&#39;)">🖐 펼침<br><small>투하 [O]</small></button>
+    <button class="gcbtn" onclick="gesture(&#39;fist&#39;)">✊ 주먹<br><small>정지 [F]</small></button>
+    <button class="gcbtn" onclick="reactAll()" style="background:var(--accent);color:#fff;grid-column:1/-1;font-weight:700;border-color:transparent">⚗️ 전체 동시 반응!</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// Firebase — 올바른 API key 사용
+// ══════════════════════════════════════════
+try{
+  firebase.initializeApp({
+    apiKey:"AIzaSyBX-BE14JViw82xAiA3Gts6p-SC6gVBjG8",
+    authDomain:"student-literacy.firebaseapp.com",
+    projectId:"student-literacy",
+    storageBucket:"student-literacy.firebasestorage.app",
+    messagingSenderId:"66926306937",
+    appId:"1:66926306937:web:5204bff44a4cc5d62d16a8"
+  });
+  var db=firebase.firestore();
+} catch(e){ var db=null; console.warn('Firebase init error:',e); }
+
+// ══════════════════════════════════════════
+// 원소 데이터
+// ══════════════════════════════════════════
+const EL={
+  Li:{name:'리튬',z:3,group:'alkali',color:'#3b82f6',flameColor:'#ef4444',reactivity:1,
+    waterReact:{bubbles:18,speed:1.2,explosive:false,flashCount:2,smokeAmt:3},
+    state:'은백색 고체',ionEq:'2Li + 2H₂O → 2Li⁺ + 2OH⁻ + H₂↑',obs:'잔잔한 기포, 수면 위를 천천히 미끄러짐',
+    cmpDesc:{speed:'느림 — 기포가 조용히 올라옴',flame:'미약한 빨간색 불꽃',danger:'비교적 안전',reactLabel:'약함'}},
+  Na:{name:'나트륨',z:11,group:'alkali',color:'#f59e0b',flameColor:'#fbbf24',reactivity:2,
+    waterReact:{bubbles:60,speed:4,explosive:false,flashCount:6,smokeAmt:10},
+    state:'은백색 고체',ionEq:'2Na + 2H₂O → 2Na⁺ + 2OH⁻ + H₂↑',obs:'격렬한 기포, 물 위를 빠르게 튀어다님, 발열',
+    cmpDesc:{speed:'빠름 — 물 위에서 격렬히 튀어다님',flame:'강한 노란색 불꽃 (나트륨 D선)',danger:'주의 필요',reactLabel:'중간'}},
+  K:{name:'칼륨',z:19,group:'alkali',color:'#a855f7',flameColor:'#c084fc',reactivity:3,
+    waterReact:{bubbles:130,speed:10,explosive:true,flashCount:12,smokeAmt:22},
+    state:'은백색 고체',ionEq:'2K + 2H₂O → 2K⁺ + 2OH⁻ + H₂↑',obs:'폭발적 반응! 보라색 불꽃, 수면에서 폭발',
+    cmpDesc:{speed:'폭발적 — 닿자마자 즉각 폭발',flame:'보라색 불꽃 폭풍',danger:'매우 위험 ⚠️',reactLabel:'매우 강함'}},
+  F:{name:'플루오린',z:9,group:'halogen',color:'#fef08a',flameColor:'#fef08a',reactivity:3,
+    waterReact:{bubbles:110,speed:10,explosive:true,flashCount:10,smokeAmt:25},
+    state:'황색 기체',ionEq:'2F₂ + 2H₂O → 4HF + O₂↑',obs:'즉각 격렬 반응! 황색 연기, 극도로 위험',
+    cmpDesc:{speed:'즉각 폭발적',flame:'황색 연기 폭발',danger:'극도로 위험 ☠️',reactLabel:'최강'}},
+  Cl:{name:'염소',z:17,group:'halogen',color:'#86efac',flameColor:'#86efac',reactivity:2,
+    waterReact:{bubbles:45,speed:3.5,explosive:false,flashCount:3,smokeAmt:12},
+    state:'황록색 기체',ionEq:'Cl₂ + H₂O → H⁺ + Cl⁻ + HClO',obs:'황록색 용액 생성, 소독 냄새, 중간 반응',
+    cmpDesc:{speed:'중간 — 거품 발생',flame:'황록색 연기',danger:'주의 필요',reactLabel:'강함'}},
+  Br:{name:'브로민',z:35,group:'halogen',color:'#f97316',flameColor:'#f97316',reactivity:1,
+    waterReact:{bubbles:16,speed:1,explosive:false,flashCount:0,smokeAmt:6},
+    state:'적갈색 액체',ionEq:'Br₂ + H₂O → H⁺ + Br⁻ + HBrO',obs:'물이 적갈색으로 천천히 변함, 약한 반응',
+    cmpDesc:{speed:'느림 — 천천히 용해',flame:'적갈색 증기',danger:'주의 필요',reactLabel:'약함'}}
+};
+const ALKALI=['Li','Na','K'],HALOGEN=['F','Cl','Br'];
+
+// ══════════════════════════════════════════
+// PISA 2025 기반 채점 기준 (강화판)
+// ══════════════════════════════════════════
+const PISA_RUBRIC = {
+  alkali: [
+    {
+      // 1단계 Basic: 관찰 현상 서술
+      lv:'lv1', pisaLevel:'Basic (PISA Level 2)',
+      lt:'1단계 · 현상 관찰 (Basic)',
+      q:'Li, Na, K를 물에 넣었을 때 원소별로 관찰한 현상을 구체적으로 서술하세요.',
+      learningGoal:'[9과11-03] 알칼리 금속의 반응성을 실험을 통해 비교하고, 원소별 반응 현상의 차이를 기술할 수 있다.',
+      scoringCriteria:{
+        full:'Li·Na·K 세 원소 각각의 반응 속도, 기포 양, 불꽃 색깔 차이를 구체적으로 기술함 (예: Li는 잔잔한 기포, Na는 격렬히 튀어다님, K는 보라색 불꽃과 함께 폭발)',
+        partial:'2개 원소만 비교하거나, 속도/불꽃 중 하나만 언급함',
+        insufficient:'단순히 "반응이 일어났다" 수준의 서술, 원소별 구분 없음'
+      },
+      keywords:['Li','Na','K','기포','불꽃','빠르','느리','폭발','보라','노란','빨간','속도'],
+      minKeywords:3,
+      hint:'<b>힌트:</b> Li, Na, K 각각의 기포 양, 반응 속도, 불꽃 색깔을 원소별로 따로 설명하세요.',
+      ph:'예: Li은 잔잔한 기포가 발생했고, Na는 격렬하게 튀어다녔으며, K는 보라색 불꽃과 함께 폭발적으로 반응했다.'
+    },
+    {
+      // 2단계 Proficient: 원인 추론
+      lv:'lv2', pisaLevel:'Proficient (PISA Level 3)',
+      lt:'2단계 · 원인 추론 (Proficient)',
+      q:'Li→Na→K 순으로 반응성이 증가하는 이유를 원자 구조(전자 껍질, 이온화 에너지)와 연결하여 설명하세요.',
+      learningGoal:'[9과11-03] 같은 족 원소의 반응성 차이를 원자 번호 증가에 따른 전자 껍질 수 증가와 이온화 에너지 감소로 설명할 수 있다.',
+      scoringCriteria:{
+        full:'전자 껍질 수 증가 → 원자가 전자가 핵에서 멀어짐 → 이온화 에너지 감소 → 반응성 증가의 인과관계를 명확히 서술함',
+        partial:'전자 껍질 또는 이온화 에너지 중 하나만 언급하거나, 인과관계 연결이 불완전함',
+        insufficient:'반응성 증가 사실만 기술하고 원인 설명 없음'
+      },
+      keywords:['전자 껍질','이온화 에너지','원자가 전자','핵','멀어','증가','감소','때문','따라서','이므로'],
+      minKeywords:3,
+      hint:'<b>힌트:</b> Li(2개 껍질)→Na(3개)→K(4개)로 전자 껍질이 늘어나면 원자가 전자(가장 바깥 껍질의 전자 1개)가 핵에서 멀어집니다. 이온화 에너지는 어떻게 변할까요?',
+      ph:'예: Li→Na→K로 갈수록 전자 껍질이 늘어나 원자가 전자가 핵에서 멀어지므로 이온화 에너지가 낮아져 전자를 잃기 쉬워져 반응성이 증가한다.'
+    },
+    {
+      // 3단계 Advanced: 개념 연결
+      lv:'lv3', pisaLevel:'Advanced (PISA Level 4)',
+      lt:'3단계 · 개념 연결 (Advanced)',
+      q:'"같은 족 원소는 원자가 전자 수가 같아 비슷한 화학적 성질을 갖는다"는 원리가 이 실험에서 어떻게 확인되었나요? 알짜 이온 반응식을 근거로 설명하세요.',
+      learningGoal:'[9과11-03] 1족 원소의 공통 성질(원자가 전자 1개, H₂ 발생, OH⁻ 생성)을 알짜 이온 반응식과 연결하여 주기율표의 족 개념을 설명할 수 있다.',
+      scoringCriteria:{
+        full:'세 원소 공통 반응(M + H₂O → M⁺ + OH⁻ + ½H₂), 원자가 전자 1개로 인한 공통 성질, 족 개념의 타당성을 모두 언급함',
+        partial:'공통 반응은 언급하나 원자가 전자 1개 또는 족 개념 연결이 누락됨',
+        insufficient:'공통점 나열만 하고 원자 구조와의 연결 없음'
+      },
+      keywords:['원자가 전자','1개','공통','OH⁻','H₂','수소','수산화','1족','알칼리','이온 반응식'],
+      minKeywords:3,
+      hint:'<b>힌트:</b> Li, Na, K의 알짜 이온 반응식을 비교해보세요: 2M + 2H₂O → 2M⁺ + 2OH⁻ + H₂↑ — 형태가 같은 이유는 모두 원자가 전자가 1개이기 때문입니다.',
+      ph:'예: Li, Na, K는 모두 원자가 전자가 1개이므로 2M + 2H₂O → 2M⁺ + 2OH⁻ + H₂↑ 형태의 동일한 알짜 이온 반응식을 보인다. 이것이 같은 족 원소의 공통 성질이다.'
+    },
+    {
+      // 4단계 Excellent: 일반화 & 전이
+      lv:'lv4', pisaLevel:'Excellent (PISA Level 5~6)',
+      lt:'4단계 · 일반화 & 전이 (Excellent)',
+      q:'할로겐(17족) F→Cl→Br의 반응성 경향은 알칼리 금속(1족)과 같은 방향일까요, 반대 방향일까요? 원자 구조(전자 친화도, 전기음성도)를 근거로 비교 설명하고, 주기율표에서 족 번호가 갖는 의미를 서술하세요.',
+      learningGoal:'[9과11-02~03] 1족과 17족을 비교하여, 족 내 반응성 경향이 반대로 나타나는 이유를 전자 구조(전자 친화도, 전기음성도)와 연결하고, 주기율표의 예측력을 평가할 수 있다.',
+      scoringCriteria:{
+        full:'① 할로겐은 반응성이 F>Cl>Br로 감소 (알칼리와 반대) ② 전자를 얻으려는 경향(전자 친화도/전기음성도) ③ 원자 반지름 증가 → 전자 친화도 감소 ④ 족 번호 = 원자가 전자 수 → 성질 예측 가능, 이 4가지를 모두 포함함',
+        partial:'방향은 맞으나 전자 친화도/전기음성도 중 하나만 설명, 또는 족 개념 언급 누락',
+        insufficient:'방향만 맞추고 근거 설명이 없거나, 1족과 17족 방향 혼동'
+      },
+      keywords:['전자 친화도','전기음성도','반대','F','Cl','Br','감소','원자 반지름','족','원자가 전자'],
+      minKeywords:4,
+      hint:'<b>힌트:</b> 할로겐은 전자를 얻으려 합니다. 원자 반지름이 커질수록(F→Cl→Br) 전자를 끌어당기는 힘(전기음성도·전자 친화도)은 감소합니다. 1족(전자 주개)과 17족(전자 받개) — 방향이 반대인 이유가 있습니다.',
+      ph:'예: 할로겐은 반응성이 F>Cl>Br로 알칼리 금속과 반대이다. 1족은 전자를 주려 하므로 껍질이 많을수록 잘 주지만, 17족은 전자를 받으려 하므로 껍질이 많아질수록 전기음성도가 낮아져 반응성이 감소한다. 족 번호는 원자가 전자 수를 나타내므로 화학적 성질 예측이 가능하다.'
+    }
+  ],
+  halogen: [
+    {
+      lv:'lv1', pisaLevel:'Basic (PISA Level 2)',
+      lt:'1단계 · 현상 관찰 (Basic)',
+      q:'F, Cl, Br을 물에 넣었을 때 관찰한 색 변화, 연기/기포, 반응 정도를 원소별로 구체적으로 서술하세요.',
+      learningGoal:'[9과11-03] 할로겐 원소의 물과의 반응을 실험을 통해 비교하고, 원소별 반응 현상(색, 연기, 속도)의 차이를 기술할 수 있다.',
+      scoringCriteria:{
+        full:'F(황색 연기·폭발적), Cl(황록색·중간), Br(적갈색·느림) 세 원소의 색·반응속도·연기 차이를 각각 구체적으로 기술함',
+        partial:'2개 원소만 비교하거나, 색 또는 속도 중 하나만 언급함',
+        insufficient:'원소 구분 없이 "반응이 일어났다" 수준'
+      },
+      keywords:['F','Cl','Br','황색','황록색','적갈색','연기','기포','폭발','느리','색','변화'],
+      minKeywords:3,
+      hint:'<b>힌트:</b> F(황색 연기), Cl(황록색), Br(적갈색)의 색 차이와 각각의 반응 속도를 원소별로 비교해서 써보세요.',
+      ph:'예: F는 즉각 격렬하게 반응하여 황색 연기가 발생했고, Cl은 황록색으로 중간 정도 반응했으며, Br은 천천히 적갈색으로 변했다.'
+    },
+    {
+      lv:'lv2', pisaLevel:'Proficient (PISA Level 3)',
+      lt:'2단계 · 원인 추론 (Proficient)',
+      q:'F→Cl→Br 순으로 반응성이 감소하는 이유를 전기음성도와 원자 반지름 변화를 사용하여 설명하세요.',
+      learningGoal:'[9과11-03] 같은 족 할로겐의 반응성 감소를 원자 번호 증가에 따른 원자 반지름 증가와 전기음성도(전자 친화도) 감소로 설명할 수 있다.',
+      scoringCriteria:{
+        full:'원자 반지름 증가 → 전기음성도(전자 친화도) 감소 → 전자를 끌어당기는 힘 약해짐 → 반응성 감소의 인과관계를 명확히 서술',
+        partial:'전기음성도 또는 원자 반지름 중 하나만 언급, 인과관계 불완전',
+        insufficient:'반응성 감소 사실만 나열'
+      },
+      keywords:['전기음성도','전자 친화도','원자 반지름','전자','끌어당기','감소','커질','껍질','때문','따라서'],
+      minKeywords:3,
+      hint:'<b>힌트:</b> F→Cl→Br로 갈수록 원자 반지름이 커집니다. 원자 반지름이 커지면 전자를 끌어당기는 힘(전기음성도·전자 친화도)은 어떻게 될까요?',
+      ph:'예: F→Cl→Br로 갈수록 원자 반지름이 커져 전기음성도가 낮아지므로, 전자를 끌어당기는 힘이 약해져 반응성이 감소한다.'
+    },
+    {
+      lv:'lv3', pisaLevel:'Advanced (PISA Level 4)',
+      lt:'3단계 · 개념 연결 (Advanced)',
+      q:'F, Cl, Br이 모두 17족 원소임을 반응식(HX 형성)과 원자가 전자 수를 근거로 설명하세요.',
+      learningGoal:'[9과11-03] 17족 원소의 공통 성질(원자가 전자 7개, HX 산 형성, -1가 음이온)을 알짜 이온 반응식과 연결하여 족 개념을 설명할 수 있다.',
+      scoringCriteria:{
+        full:'원자가 전자 7개 → 전자 1개를 얻어 X⁻ 이온 → HX 형성, 세 원소가 같은 반응 형태를 보임을 명확히 연결',
+        partial:'HX 형성은 언급하나 원자가 전자 7개 또는 공통 패턴 연결 누락',
+        insufficient:'반응이 일어난다는 사실만 서술'
+      },
+      keywords:['원자가 전자','7개','HF','HCl','HBr','음이온','-1가','X⁻','공통','17족','산'],
+      minKeywords:3,
+      hint:'<b>힌트:</b> F, Cl, Br 모두 원자가 전자가 7개입니다. 전자 1개를 얻으면 X⁻가 되고, 물과 반응하면 HF, HCl, HBr(산)을 형성합니다.',
+      ph:'예: F, Cl, Br은 모두 원자가 전자가 7개이므로 전자 1개를 받아 X⁻ 이온이 된다. 물과 반응하면 모두 HX 형태의 산을 만드는 공통 성질을 보인다.'
+    },
+    {
+      lv:'lv4', pisaLevel:'Excellent (PISA Level 5~6)',
+      lt:'4단계 · 일반화 & 전이 (Excellent)',
+      q:'알칼리 금속(1족)과 할로겐(17족)을 비교하여, 족 내 반응성 경향이 서로 반대 방향인 이유를 전자를 주는 경향 vs 받는 경향으로 설명하고, 주기율표를 통해 원소 성질을 예측하는 것이 왜 가능한지 서술하세요.',
+      learningGoal:'[9과11-02~03] 1족과 17족의 반응성 경향을 전자 주개/받개 관점에서 비교하고, 주기율표의 예측력(족 = 원자가 전자 수 = 화학적 성질)을 종합적으로 평가할 수 있다.',
+      scoringCriteria:{
+        full:'① 1족: 전자 주개, 껍질 많을수록 잘 줌 → 반응성 증가 ② 17족: 전자 받개, 껍질 많을수록 잘 못 받음 → 반응성 감소 ③ 방향이 반대인 이유 명확 ④ 족 = 원자가 전자 수 → 성질 예측 가능, 4가지 모두 포함',
+        partial:'방향은 맞으나 전자 주개/받개 비교 미흡, 또는 주기율표 예측력 설명 누락',
+        insufficient:'방향만 언급하고 근거 없음'
+      },
+      keywords:['전자 주개','전자 받개','1족','17족','반대','원자가 전자','예측','주기율표','족','성질'],
+      minKeywords:4,
+      hint:'<b>힌트:</b> 1족은 전자를 내놓으려 하고, 17족은 전자를 받으려 합니다. 같은 방향으로 원자 반지름이 커질 때, 전자를 내놓기는 더 쉬워지고 받기는 더 어려워집니다. 족 번호 = 원자가 전자 수라는 점에서 예측이 가능합니다.',
+      ph:'예: 1족은 전자 주개로 껍질이 많을수록 이온화 에너지 감소로 반응성이 증가하지만, 17족은 전자 받개로 껍질이 많을수록 전기음성도 감소로 반응성이 감소한다. 따라서 방향이 반대이다. 족 번호가 원자가 전자 수를 나타내므로, 주기율표에서 같은 족 원소는 성질을 예측할 수 있다.'
+    }
+  ]
+};
+
+// ══════════════════════════════════════════
+// 상태
+// ══════════════════════════════════════════
+const S={
+  stu:{id:'',name:'',cls:'',schoolCode:''},step:1,expType:'alkali',
+  selElems:[],pickedElems:[],availElems:[],holding:false,holdElem:null,
+  expDone:{},mfStep:0,mfAns:[],mfScores:[],
+  wcOn:false,wcStream:null,mpHands:null,mpCam:null,
+  lastGesture:'',gestureCooldown:0,
+  handPos:{x:0.5,y:0.5},pinchActive:false,
+  compareAnswers:null
+};
+
+// ══════════════════════════════════════════
+// 학교 코드
+// ══════════════════════════════════════════
+function normalizeSchoolCode(v){
+  return (v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10);
+}
+// 모달이 열릴 때(최초 로드 또는 다음 학생) 이전에 쓰던 학교 코드를 미리 채워둔다
+function prefillSchoolCode(){
+  const el=document.getElementById('s-school');
+  if(el)el.value=localStorage.getItem('mf_schoolCode')||'';
+}
+
+// ══════════════════════════════════════════
+// 학생
+// ══════════════════════════════════════════
+function startStu(){
+  const school=normalizeSchoolCode(document.getElementById('s-school').value);
+  const id=document.getElementById('s-id').value.trim();
+  const nm=document.getElementById('s-name').value.trim();
+  const cls=document.getElementById('s-cls').value.trim();
+  if(!school){toast('학교 코드를 입력하세요! (모르면 JOINT01)');return;}
+  if(!id||!nm){toast('학번과 이름을 입력하세요');return;}
+  localStorage.setItem('mf_schoolCode',school);
+  S.stu={id,name:nm,cls,schoolCode:school};
+  document.getElementById('smodal').classList.remove('show');
+  toast(`${nm} 학생, 시작!`);
+}
+prefillSchoolCode();
+
+// ══════════════════════════════════════════
+// 단계
+// ══════════════════════════════════════════
+function tryGo(n){if(n<=S.step)goStep(n);}
+function goStep(n){
+  for(let i=1;i<=4;i++){
+    document.getElementById('step'+i).classList.toggle('active',i===n);
+    const s=document.getElementById('sb'+(i-1));
+    s.classList.toggle('active',i===n);s.classList.toggle('done',i<n);
+  }
+  // Step1(카드 세팅)에서 Step2(NFC 태그)로 넘어갈 때: Step1에서 체크해둔 원소 목록은
+  // "이번 실험에서 사용 가능한 원소" 스냅샷(S.availElems)으로만 남겨두고,
+  // 실제 활성화 목록(S.selElems)은 비워서 Step2에서 NFC로 태그한 것만 새로 채워지게 함.
+  // (예전엔 Step1의 선택이 그대로 Step2까지 이어져서, NFC로 1개만 태그해도
+  //  Step1에서 미리 체크된 전체가 그대로 활성화된 것처럼 보이는 버그가 있었음)
+  if(n===2){ S.availElems=[...S.pickedElems]; S.selElems=[]; }
+  S.step=n;
+  if(n===2)prep2();if(n===3)prep3();if(n===4)prep4();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ══════════════════════════════════════════
+// STEP 1
+// ══════════════════════════════════════════
+function setType(t){
+  S.expType=t;S.pickedElems=[];
+  document.getElementById('tab-alk').classList.toggle('active',t==='alkali');
+  document.getElementById('tab-hal').classList.toggle('active',t==='halogen');
+  document.getElementById('eslabel').textContent=t==='alkali'?'알칼리 금속 원소 선택':'할로겐 원소 선택';
+  document.getElementById('eguide').innerHTML=t==='alkali'
+    ?'💧 알칼리 금속(Li, Na, K)을 물에 투하할 때의 <b>반응성 차이</b>를 비교합니다.<br>웹캠으로 손을 인식하여 <b>핀치(엄지+검지)</b>로 원소를 집고, <b>펼쳐서</b> 비커에 투하하세요!'
+    :'🧪 할로겐(F, Cl, Br)을 물에 넣었을 때 <b>색 변화와 반응성</b>을 비교합니다.<br>웹캠으로 손을 인식하여 <b>핀치(엄지+검지)</b>로 원소를 집고, <b>펼쳐서</b> 비커에 투하하세요!';
+  buildEGrid();document.getElementById('btn2').disabled=true;
+}
+function buildEGrid(){
+  const g=document.getElementById('egrid');g.innerHTML='';
+  const elems=S.expType==='alkali'?ALKALI:HALOGEN;
+  elems.forEach(sym=>{
+    const el=EL[sym];
+    const d=document.createElement('div');d.className='ecard';d.id='ec-'+sym;
+    d.innerHTML=`<div class="ez">Z=${el.z}</div><div class="esym">${sym}</div><div class="ename">${el.name}</div><div class="echk">✓</div><div class="ebdg ${S.expType==='alkali'?'ba':'bh'}">${S.expType==='alkali'?'1족':'17족'}</div>`;
+    d.onclick=()=>toggleE(sym);g.appendChild(d);
+  });
+  // ※ 예전엔 여기서 그룹 전체를 자동으로 미리 선택해뒀는데, 그러면 Step2에서 NFC로
+  // 무엇을 태그하든 이미 3개가 다 켜져 있어서 개별 태그 의미가 없었음. 이제는 카드만
+  // 그려두고 실제 선택(활성화)은 Step2의 NFC 태그로만 이루어지도록 함.
+}
+function toggleE(sym){
+  const idx=S.pickedElems.indexOf(sym);const card=document.getElementById('ec-'+sym);
+  if(idx>=0){S.pickedElems.splice(idx,1);card.classList.remove('sa','sh');}
+  else{S.pickedElems.push(sym);card.classList.add(S.expType==='alkali'?'sa':'sh');}
+  document.getElementById('btn2').disabled=S.pickedElems.length===0;
+}
+setType('alkali');
+
+// ══════════════════════════════════════════
+// STEP 2: NFC
+// ══════════════════════════════════════════
+function prep2(){
+  document.getElementById('prep').innerHTML='<span style="font-size:12px;color:var(--muted)">태그 후 표시</span>';
+  document.getElementById('netio').innerHTML='원소 태그 후 표시';
+  document.getElementById('btn3').disabled=true;
+}
+
+// NFC 카드에 적어둔 텍스트(대소문자 무관) → EL 객체 키(정확한 표기)로 매핑.
+// 예: 카드에 "LI"/"li"/"Li" 어떻게 써도 전부 EL.Li로 인식됨.
+const NFC_SYM_MAP={LI:'Li',NA:'Na',K:'K',F:'F',CL:'Cl',BR:'Br'};
+
+let _nfcSocket=null;
+
+// PC용 ACR1252U 리더 — 산염기 적정 실험과 동일한 로컬 브릿지(ws://localhost:8765)에만 연결.
+// ※ 자동 시뮬레이션 폴백 없음: nfc_bridge.py가 켜져 있지 않으면 에러만 표시하고 동작하지 않음.
+function startNFC(){
+  const dot=document.getElementById('ndot');
+  const txt=document.getElementById('nfctxt');
+  txt.textContent='⏳ NFC 브릿지 연결 중...';
+
+  try{
+    const ws=new WebSocket('ws://localhost:8765');
+    _nfcSocket=ws;
+
+    ws.onopen=()=>{
+      dot.classList.add('sc');
+      txt.textContent='✅ NFC 브릿지 연결됨 — 카드를 리더기에 올려놓으세요!';
+      toast('✅ NFC 브릿지 연결!');
+    };
+
+    ws.onmessage=(event)=>{
+      const raw=event.data.trim();
+      const sym=NFC_SYM_MAP[raw.toUpperCase()];
+      if(sym) handleTag(sym);
+      else { txt.textContent='📲 알 수 없는 태그: '+raw; toast('⚠️ 알 수 없는 태그: '+raw); }
+    };
+
+    ws.onerror=()=>{
+      _nfcSocket=null;
+      dot.classList.remove('sc');
+      txt.textContent='❌ 브릿지 연결 실패 — nfc_bridge.py를 먼저 실행해주세요';
+      toast('❌ NFC 브릿지 연결 실패');
+    };
+
+    ws.onclose=()=>{
+      _nfcSocket=null;
+      dot.classList.remove('sc');
+      txt.textContent='🔌 NFC 브릿지 연결 끊김';
+    };
+  } catch(e){
+    txt.textContent='❌ 오류: '+e.message;
+  }
+}
+function handleTag(sym){
+  if(!EL[sym])return;
+  // Step1에서 선택했던 원소가 아니면 거부 (그룹이 달라도 걸러지고,
+  // 같은 그룹이라도 Step1에서 체크 해제했다면 역시 거부됨)
+  if(!S.availElems.includes(sym)){
+    document.getElementById('nfctxt').textContent='⚠️ 이번 실험에 선택하지 않은 원소예요: '+sym;
+    toast('⚠️ '+sym+'은(는) Step1에서 선택하지 않았어요');
+    return;
+  }
+  // 이미 태그된 원소면 중복 추가하지 않음
+  if(!S.selElems.includes(sym)){
+    S.selElems.push(sym);
+    const card=document.getElementById('ec-'+sym);
+    if(card) card.classList.add(S.expType==='alkali'?'sa':'sh');
+  }
+  document.getElementById('ndot').classList.add('on');
+  document.getElementById('nfctxt').textContent=sym+' 태그됨! ('+S.selElems.join(', ')+')';
+  toast('📲 '+sym+' 태그!');
+  renderPrep();renderNetIO();document.getElementById('btn3').disabled=false;
+}
+function renderPrep(){
+  const w=document.getElementById('prep');w.innerHTML='';
+  S.selElems.forEach(sym=>{
+    const el=EL[sym];const d=document.createElement('div');
+    d.style.cssText=`background:var(--bg3);border:1px solid ${el.color}55;border-radius:10px;padding:10px 14px;text-align:center;min-width:64px`;
+    d.innerHTML=`<div style="font-size:20px;font-weight:800;color:${el.color}">${sym}</div><div style="font-size:10px;color:var(--muted)">${el.name}</div>`;
+    w.appendChild(d);
+  });
+}
+function renderNetIO(){
+  document.getElementById('netio').innerHTML=S.selElems.map(sym=>`<div style="color:var(--text);margin-bottom:4px">${EL[sym].ionEq}</div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// STEP 3: 실험 캔버스
+// ══════════════════════════════════════════
+let CV,CTX,CW,CH;
+let particles=[];
+let animID=null;
+let beakers={};
+let chipPos={};
+
+function prep3(){
+  document.getElementById('s3sub').textContent=
+    S.expType==='alkali'?'Li·Na·K를 핀치로 집어 각 비커에 투하하세요':'F·Cl·Br을 핀치로 집어 각 비커에 투하하세요';
+  buildCmpRow();initCanvas();
+}
+
+function buildCmpRow(){
+  const row=document.getElementById('cmprow');
+  row.style.gridTemplateColumns=`repeat(${S.selElems.length},1fr)`;
+  row.innerHTML='';
+  S.selElems.forEach(sym=>{
+    const el=EL[sym];const d=el.cmpDesc;
+    row.innerHTML+=`
+    <div class="cmp-card" id="cc-${sym}">
+      <div class="cmp-top">
+        <div><div class="cmp-sym" style="color:${el.color}">${sym}</div><div class="cmp-name">${el.name}</div></div>
+        <div class="cmp-st" id="cst-${sym}">대기중</div>
+      </div>
+      <div class="cmp-desc" style="color:var(--muted);font-size:11px">
+        <b>상태:</b> ${el.state}<br>
+        <b>반응식:</b> <span style="font-family:monospace;font-size:10px">${el.ionEq}</span>
+      </div>
+      <div id="cmp-obs-${sym}" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">관찰한 반응 결과</div>
+        <div style="font-size:11px;color:var(--text);line-height:1.5" id="cmp-obs-txt-${sym}"></div>
+      </div>
+    </div>`;
+  });
+}
+
+function initCanvas(){
+  CV=document.getElementById('exp-canvas');
+  CW=CV.parentElement.offsetWidth||700;CV.width=CW;CH=360;
+  CTX=CV.getContext('2d');
+  particles=[];S.expDone={};S.holding=false;S.holdElem=null;
+
+  const n=S.selElems.length;
+  const bw=Math.min(140,Math.floor((CW-80)/n)-16);const bh=190;
+  const tot=n*(bw+16)-16;const sx=(CW-tot)/2;
+  beakers={};chipPos={};
+  S.selElems.forEach((sym,i)=>{
+    const bx=sx+i*(bw+16);
+    beakers[sym]={x:bx,y:70,w:bw,h:bh,waterColor:null,reacted:false,shake:0};
+    chipPos[sym]={x:bx+bw/2-24,y:14};
+  });
+  drawAll();
+}
+
+function drawAll(){
+  if(!CTX)return;
+  const dark=!document.body.classList.contains('light');
+  CTX.clearRect(0,0,CW,CH);
+  CTX.fillStyle=dark?'#0d1117':'#f0f4ff';CTX.fillRect(0,0,CW,CH);
+  S.selElems.forEach(sym=>drawBeaker(sym,dark));
+  drawParticles();
+  S.selElems.forEach(sym=>{
+    if(S.expDone[sym])return;
+    if(S.holding && sym===S.holdElem){
+      const hx=S.handPos.x*CW-24, hy=S.handPos.y*CH-17;
+      drawChip(hx, hy, sym, true);
+    } else {
+      drawChip(chipPos[sym].x, chipPos[sym].y, sym, false);
+    }
+  });
+  if(S.wcOn&&S.handPos){
+    const hx=S.handPos.x*CW, hy=S.handPos.y*CH;
+    const near=nearestChip(hx,hy);
+    const inRange=near&&near.d<80;
+    CTX.beginPath();CTX.arc(hx,hy,S.pinchActive?10:14,0,Math.PI*2);
+    CTX.strokeStyle=S.pinchActive?'#f97316':inRange?'rgba(255,200,100,0.8)':'rgba(255,255,255,0.4)';
+    CTX.lineWidth=S.pinchActive?3:2;CTX.stroke();
+    if(S.pinchActive){CTX.fillStyle='rgba(249,115,22,0.2)';CTX.fill();}
+    if(inRange&&!S.holding&&!S.pinchActive){
+      CTX.fillStyle='rgba(255,200,100,0.9)';CTX.font='bold 11px sans-serif';CTX.textAlign='center';
+      CTX.fillText('핀치로 집기',hx,hy-20);CTX.textAlign='left';
+    }
+  }
+}
+
+function drawBeaker(sym,dark){
+  const b=beakers[sym];if(!b)return;
+  const el=EL[sym];
+  const sh=b.shake>0?(Math.sin(b.shake*1.2)*5*(b.shake/20)):0;
+  if(b.shake>0)b.shake--;
+  const bx=b.x+sh,by=b.y,bw=b.w,bh=b.h;
+  const wc=b.waterColor||(dark?'rgba(96,165,250,0.15)':'rgba(59,130,246,0.1)');
+  CTX.fillStyle=wc;CTX.fillRect(bx+4,by+bh*0.3,bw-8,bh*0.64);
+  CTX.strokeStyle=dark?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.18)';CTX.lineWidth=2;
+  CTX.beginPath();CTX.moveTo(bx+6,by);CTX.lineTo(bx+2,by+bh);
+  CTX.lineTo(bx+bw-2,by+bh);CTX.lineTo(bx+bw-6,by);CTX.stroke();
+  CTX.beginPath();CTX.moveTo(bx,by);CTX.lineTo(bx+bw,by);CTX.stroke();
+  for(let i=1;i<=3;i++){
+    CTX.strokeStyle=dark?'rgba(255,255,255,.07)':'rgba(0,0,0,.07)';CTX.lineWidth=1;
+    CTX.beginPath();CTX.moveTo(bx+bw-12,by+bh*0.3+i*bh*0.16);CTX.lineTo(bx+bw-2,by+bh*0.3+i*bh*0.16);CTX.stroke();
+  }
+  CTX.fillStyle=dark?'rgba(96,165,250,.45)':'rgba(37,99,235,.3)';CTX.font='11px monospace';
+  CTX.textAlign='center';CTX.fillText('H₂O',bx+bw/2,by+bh*0.62);
+  CTX.fillStyle=el.color;CTX.font='bold 13px sans-serif';
+  CTX.fillText(sym,bx+bw/2,by+bh+16);
+  CTX.fillStyle=dark?'rgba(255,255,255,.3)':'rgba(0,0,0,.3)';CTX.font='10px sans-serif';
+  CTX.fillText(el.name,bx+bw/2,by+bh+28);
+  CTX.textAlign='left';
+  if(b.reacted){
+    CTX.fillStyle=el.color+'99';CTX.font='bold 10px sans-serif';CTX.textAlign='center';
+    CTX.fillText('✓ 반응완료',bx+bw/2,by+bh*0.48);CTX.textAlign='left';
+  }
+  if(S.holding&&!b.reacted){
+    CTX.strokeStyle=el.color+'66';CTX.lineWidth=1.5;CTX.setLineDash([4,3]);
+    CTX.strokeRect(bx+4,by+4,bw-8,bh*0.9);CTX.setLineDash([]);
+  }
+}
+
+function drawChip(x,y,sym,floating){
+  const el=EL[sym];const w=48,h=34;
+  CTX.fillStyle=el.color+'28';CTX.strokeStyle=el.color+(floating?'ff':'99');CTX.lineWidth=floating?2:1.5;
+  rrect(CTX,x,y,w,h,8);CTX.fill();CTX.stroke();
+  if(floating){CTX.shadowColor=el.color;CTX.shadowBlur=16;rrect(CTX,x,y,w,h,8);CTX.stroke();CTX.shadowBlur=0;}
+  CTX.fillStyle=floating?el.color:(document.body.classList.contains('light')?'#333':el.color);
+  CTX.font='bold 15px sans-serif';CTX.textAlign='center';CTX.fillText(sym,x+w/2,y+h/2+5);CTX.textAlign='left';
+}
+
+function drawParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.vy+=p.grav||0.12;p.life-=p.decay||0.016;
+    if(p.life<=0){particles.splice(i,1);continue;}
+    const a=Math.max(0,Math.floor(p.life*255)).toString(16).padStart(2,'0');
+    CTX.globalAlpha=p.life;
+    if(p.t==='bubble'){
+      CTX.beginPath();CTX.arc(p.x,p.y,p.r,0,Math.PI*2);
+      CTX.strokeStyle=p.c+a;CTX.lineWidth=1.2;CTX.stroke();
+    } else if(p.t==='flame'){
+      CTX.beginPath();CTX.arc(p.x,p.y,p.r*Math.max(0.1,p.life),0,Math.PI*2);
+      CTX.fillStyle=p.c+a;CTX.fill();
+    } else if(p.t==='smoke'){
+      CTX.beginPath();CTX.arc(p.x,p.y,p.r*(1.5-p.life*0.5),0,Math.PI*2);
+      CTX.fillStyle='rgba(180,180,180,'+p.life*0.25+')';CTX.fill();
+    } else if(p.t==='spark'){
+      CTX.beginPath();CTX.moveTo(p.x,p.y);CTX.lineTo(p.x-p.vx*4,p.y-p.vy*4);
+      CTX.strokeStyle=p.c+a;CTX.lineWidth=1.8;CTX.stroke();
+    }
+    CTX.globalAlpha=1;
+  }
+}
+
+function rrect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+function startAnim(){
+  if(animID)cancelAnimationFrame(animID);
+  function loop(){drawAll();if(particles.length>0||Object.values(beakers).some(b=>b.shake>0))animID=requestAnimationFrame(loop);else animID=null;}
+  animID=requestAnimationFrame(loop);
+}
+
+function doReaction(sym){
+  if(!sym||S.expDone[sym])return;
+  const el=EL[sym];const b=beakers[sym];if(!b)return;
+  S.expDone[sym]=true;b.reacted=true;
+  const r=el.waterReact;
+  const cx=b.x+b.w/2,waterY=b.y+b.h*0.32;
+  b.waterColor=el.color+'3a';
+  for(let i=0;i<r.bubbles;i++){
+    setTimeout(()=>{
+      if(!beakers[sym])return;
+      particles.push({t:'bubble',x:b.x+8+Math.random()*(b.w-16),y:b.y+b.h*0.85,
+        vx:(Math.random()-.5)*.7,vy:-(0.5+Math.random()*2.5)*Math.sqrt(r.speed),
+        r:1.5+Math.random()*4,life:1,decay:.01+Math.random()*.01,c:el.color,grav:-0.02});
+    },i*Math.max(5,20/r.speed));
+  }
+  const flameCount=r.flashCount*4+6;
+  for(let i=0;i<flameCount;i++){
+    setTimeout(()=>{
+      if(!beakers[sym])return;
+      particles.push({t:'flame',x:cx+(Math.random()-.5)*b.w*0.7,y:waterY-(Math.random()*15),
+        vx:(Math.random()-.5)*r.speed*0.9,vy:-(1.5+Math.random()*r.speed*2),
+        r:9+Math.random()*14*Math.sqrt(r.speed),life:1,decay:.025/Math.sqrt(r.speed),c:el.flameColor,grav:0.04});
+    },i*60/r.speed);
+  }
+  for(let i=0;i<r.smokeAmt;i++){
+    setTimeout(()=>{
+      if(!beakers[sym])return;
+      particles.push({t:'smoke',x:cx+(Math.random()-.5)*b.w*0.6,y:waterY-10,
+        vx:(Math.random()-.5)*1.2,vy:-(0.4+Math.random()*1.5),
+        r:10+Math.random()*18,life:1,decay:.007,c:'gray',grav:-0.008});
+    },i*100);
+  }
+  if(r.explosive){
+    b.shake=22;
+    for(let i=0;i<35;i++){
+      const ang=Math.random()*Math.PI*2,sp=3+Math.random()*9*Math.sqrt(r.speed);
+      particles.push({t:'spark',x:cx,y:waterY,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp-5,
+        r:3,life:1,decay:.022,c:el.flameColor,grav:0.25});
+    }
+    for(let i=0;i<20;i++){
+      const ang=Math.random()*Math.PI*2,sp=2+Math.random()*5;
+      particles.push({t:'flame',x:cx+(Math.random()-.5)*b.w,y:waterY,
+        vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp-4,
+        r:18+Math.random()*24,life:1,decay:.035,c:el.flameColor,grav:0.06});
+    }
+  }
+  const cc=document.getElementById('cc-'+sym);if(cc)cc.classList.add(S.expType==='alkali'?'ra':'rh');
+  const cs=document.getElementById('cst-'+sym);if(cs){cs.textContent='✓ 완료';cs.classList.add('done');}
+  const obsBox=document.getElementById('cmp-obs-'+sym);
+  const obsTxt=document.getElementById('cmp-obs-txt-'+sym);
+  if(obsBox&&obsTxt){
+    obsBox.style.display='block';
+    obsTxt.innerHTML=`<b style="color:${el.color}">${el.cmpDesc.speed}</b><br>
+      ${S.expType==='alkali'?'🔥 불꽃: '+el.cmpDesc.flame:'🎨 색/연기: '+el.cmpDesc.flame}<br>
+      ⚠️ ${el.cmpDesc.danger}`;
+  }
+  const lg=document.getElementById('rxlog');
+  const t=new Date().toLocaleTimeString('ko',{hour12:false});
+  lg.innerHTML+=`<span style="color:var(--muted)">[${t}]</span> <span style="color:${el.color}">▶ ${sym}</span> — ${el.obs}\n`;
+  lg.scrollTop=lg.scrollHeight;
+  startAnim();
+  toast(`${r.explosive?'💥':'⚗️'} ${sym} 반응!`);
+  const allDone=S.selElems.every(s=>S.expDone[s]);
+  if(allDone){
+    setTimeout(()=>{
+      document.getElementById('compare-write-section').style.display='block';
+      document.getElementById('compare-write-section').scrollIntoView({behavior:'smooth',block:'start'});
+      toast('✅ 전체 반응 완료! 비교 서술을 작성해보세요');
+    },1200);
+  }
+}
+
+function submitCompare(){
+  const order=document.getElementById('cw-order').value.trim();
+  const most=document.getElementById('cw-most').value.trim();
+  const common=document.getElementById('cw-common').value.trim();
+  if(!order||!most||!common){toast('세 질문 모두 답해주세요');return;}
+  S.compareAnswers={order,most,common};
+  const answers=S.expType==='alkali'
+    ?{order:'K > Na > Li',most:'K — 보라색 불꽃과 함께 폭발적 반응',common:'모두 물과 반응 → H₂↑ + OH⁻ 생성 (1족 공통 성질)'}
+    :{order:'F > Cl > Br',most:'F — 황색 연기와 함께 즉각 폭발적 반응',common:'모두 물과 반응 → HX(산) + HXO 생성 (17족 공통 성질)'};
+  const cr=document.getElementById('compare-result');
+  const cc=document.getElementById('compare-result-content');
+  cr.style.display='block';
+  cc.innerHTML=`
+    <div style="display:grid;gap:8px">
+      <div style="background:var(--bg3);border-radius:6px;padding:10px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">반응성 순서</div>
+        <div style="font-size:12px;margin-bottom:4px">내 답: <b>${order}</b></div>
+        <div style="font-size:12px;color:var(--green)">정답: <b>${answers.order}</b></div>
+      </div>
+      <div style="background:var(--bg3);border-radius:6px;padding:10px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">가장 격렬한 반응</div>
+        <div style="font-size:12px;margin-bottom:4px">내 답: <b>${most}</b></div>
+        <div style="font-size:12px;color:var(--green)">정답 예시: <b>${answers.most}</b></div>
+      </div>
+      <div style="background:var(--bg3);border-radius:6px;padding:10px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">공통점</div>
+        <div style="font-size:12px;margin-bottom:4px">내 답: <b>${common}</b></div>
+        <div style="font-size:12px;color:var(--green)">정답 예시: <b>${answers.common}</b></div>
+      </div>
+    </div>`;
+  cr.scrollIntoView({behavior:'smooth',block:'start'});
+  toast('📊 비교 결과 확인!');
+}
+
+function reactAll(){S.selElems.forEach((sym,i)=>setTimeout(()=>doReaction(sym),i*450));}
+
+function resetExp(){
+  if(animID){cancelAnimationFrame(animID);animID=null;}
+  particles=[];S.expDone={};S.holding=false;S.holdElem=null;
+  document.getElementById('rxlog').innerHTML='실험을 시작하면 기록이 쌓입니다...';
+  document.querySelectorAll('.cmp-card').forEach(c=>c.classList.remove('ra','rh'));
+  document.querySelectorAll('.cmp-st').forEach(c=>{c.textContent='대기중';c.classList.remove('done');});
+  document.querySelectorAll('[id^="cmp-obs-"]').forEach(el=>el.style.display='none');
+  document.getElementById('compare-write-section').style.display='none';
+  document.getElementById('compare-result').style.display='none';
+  document.getElementById('cw-order').value='';
+  document.getElementById('cw-most').value='';
+  document.getElementById('cw-common').value='';
+  document.getElementById('hpill').classList.remove('show');
+  initCanvas();
+}
+
+function nearestChip(hx, hy){
+  let best=null, minD=9999;
+  S.selElems.forEach(sym=>{
+    if(S.expDone[sym])return;
+    const cp=chipPos[sym];
+    if(!cp)return;
+    const cx=cp.x+24, cy=cp.y+17;
+    const d=Math.hypot(hx-cx, hy-cy);
+    if(d<minD){minD=d;best={sym,d};}
+  });
+  return best;
+}
+
+function gesture(g){
+  if(S.step!==3)return;
+  flashGesture(g==='pinch'?'🤌 핀치':g==='open'?'🖐 펼침':'✊ 주먹');
+  if(g==='pinch'){
+    if(!S.holding){
+      const hx=S.handPos.x*CW, hy=S.handPos.y*CH;
+      const nearest=nearestChip(hx,hy);
+      if(!nearest){toast('모든 원소가 반응 완료됐어요!');return;}
+      if(nearest.d > 80){
+        toast('손을 원소 칩 가까이 가져가서 핀치하세요!');
+        flashGesture('❌ 너무 멀어요');return;
+      }
+      S.holding=true;S.holdElem=nearest.sym;
+      document.getElementById('hpill').classList.add('show');
+      document.getElementById('hname').textContent=nearest.sym+' ('+EL[nearest.sym].name+')';
+      drawAll();toast('🤌 '+nearest.sym+' 집기!');
+    }
+  } else if(g==='open'){
+    if(S.holding&&S.holdElem){
+      const sym=S.holdElem;
+      S.holding=false;S.holdElem=null;
+      document.getElementById('hpill').classList.remove('show');
+      doReaction(sym);drawAll();
+    }
+  } else if(g==='fist'){
+    S.holding=false;S.holdElem=null;
+    document.getElementById('hpill').classList.remove('show');
+    drawAll();toast('✊ 정지');
+  }
+}
+
+function flashGesture(msg){
+  const f=document.getElementById('gflash');
+  f.textContent=msg;f.classList.add('show');
+  clearTimeout(f._t);f._t=setTimeout(()=>f.classList.remove('show'),1200);
+}
+
+// ══════════════════════════════════════════
+// MediaPipe Hands
+// ══════════════════════════════════════════
+let mpHands=null,mpCam=null;
+
+async function startMediaPipe(){
+  const video=document.getElementById('wc-video');
+  const skelCV=document.getElementById('wc-skeleton');
+  const skelCTX=skelCV.getContext('2d');
+  mpHands=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+  mpHands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:0.7,minTrackingConfidence:0.6});
+  mpHands.onResults(results=>{
+    skelCV.width=video.videoWidth||220;skelCV.height=video.videoHeight||180;
+    skelCTX.clearRect(0,0,skelCV.width,skelCV.height);
+    if(!results.multiHandLandmarks||results.multiHandLandmarks.length===0){
+      document.getElementById('wc-gtext').textContent='손이 감지되지 않습니다';
+      document.getElementById('wcdot').classList.remove('on');
+      return;
+    }
+    document.getElementById('wcdot').classList.add('on');
+    const lm=results.multiHandLandmarks[0];
+    drawSkeleton(skelCTX,lm,skelCV.width,skelCV.height);
+    const thumb=lm[4],index=lm[8],middle=lm[12],ring=lm[16],pinky=lm[20];
+    const hx=1-index.x;const hy=index.y;
+    S.handPos={x:hx,y:hy};
+    const wrist=lm[0],palm=lm[9];
+    const handSize=Math.hypot(wrist.x-palm.x,wrist.y-palm.y)||0.001;
+    const pDist=Math.hypot(thumb.x-index.x,thumb.y-index.y);
+    const wasPinch=S.pinchActive;
+    // 핀치 판정: 기존 절대거리(0.06) 기준에 더해, 손 크기 대비 비율 기준도 인정 (카메라와의
+    // 거리·손 크기가 다른 학생도 인식되도록 러프하게 완화)
+    S.pinchActive=pDist<0.06||(pDist/handSize)<0.5;
+    const isFist=[index,middle,ring,pinky].every(tip=>tip.y>lm[9].y);
+    const wasFist=S.wasFist||false;
+    // 펼침(놓기) 판정: 예전엔 "손가락 4개가 전부 손바닥 기준선보다 위로 곧게 펴져야만"
+    // 인식돼서, 손 각도가 조금만 달라도 안 놓아지는 문제가 있었음. 이제는
+    // "핀치 중도 아니고 주먹도 아니면" 놓으려는 동작으로 넉넉하게 인정.
+    const isOpen=!S.pinchActive&&!isFist;
+    if(S.gestureCooldown>0){S.gestureCooldown--;S.wasFist=isFist;return;}
+    let gLabel='',gEmoji='';
+    if((S.pinchActive&&!wasPinch)||(isFist&&!wasFist&&!S.holding)){
+      // 정밀 핀치 또는 (아무것도 안 잡고 있을 때) 다섯 손가락으로 움켜쥐기 — 둘 다 "집기"로 인정
+      gLabel='집기';gEmoji='🤌';
+      gesture('pinch');S.gestureCooldown=20;
+    } else if(isOpen&&S.holding){
+      gLabel='펼침 — 투하';gEmoji='🖐';
+      gesture('open');S.gestureCooldown=25;
+    } else if(isFist&&S.holding){
+      gLabel='주먹 — 정지';gEmoji='✊';
+      if(S.lastGesture!=='fist'){gesture('fist');S.gestureCooldown=30;}
+    }
+    S.wasFist=isFist;
+    if(gLabel){
+      document.getElementById('wc-gbar').querySelector('.wc-gesture-icon').textContent=gEmoji;
+      document.getElementById('wc-gtext').textContent=gLabel;
+      S.lastGesture=isFist?'fist':S.pinchActive?'pinch':isOpen?'open':'';
+    } else {
+      const pPct=Math.round((1-Math.min(pDist/0.12,1))*100);
+      document.getElementById('wc-gbar').querySelector('.wc-gesture-icon').textContent=S.pinchActive?'🤌':'✋';
+      document.getElementById('wc-gtext').textContent=S.pinchActive?'핀치 감지중...':isFist?'주먹 감지':'손 감지 중... 핀치:'+pPct+'%';
+    }
+    drawAll();
+  });
+  mpCam=new Camera(video,{
+    onFrame:async()=>{if(mpHands)await mpHands.send({image:video});},
+    width:220,height:180
+  });
+  await mpCam.start();
+  document.getElementById('wcstat').textContent='인식중';
+  document.getElementById('wclbl').textContent='✅ 인식중';
+}
+
+function drawSkeleton(ctx,lm,w,h){
+  const CONNECTIONS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+  ctx.strokeStyle='rgba(249,115,22,0.7)';ctx.lineWidth=2;
+  CONNECTIONS.forEach(([a,b])=>{
+    const p1=lm[a],p2=lm[b];
+    ctx.beginPath();
+    ctx.moveTo((1-p1.x)*w,p1.y*h);ctx.lineTo((1-p2.x)*w,p2.y*h);
+    ctx.stroke();
+  });
+  lm.forEach((p,i)=>{
+    const isFingerTip=[4,8,12,16,20].includes(i);
+    ctx.beginPath();ctx.arc((1-p.x)*w,p.y*h,isFingerTip?5:3,0,Math.PI*2);
+    ctx.fillStyle=isFingerTip?'#f97316':'rgba(255,255,255,0.8)';ctx.fill();
+  });
+  const t=lm[4],idx=lm[8];
+  const dist=Math.hypot(t.x-idx.x,t.y-idx.y);
+  if(dist<0.1){
+    ctx.strokeStyle=dist<0.06?'#f97316':'rgba(255,200,100,0.6)';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo((1-t.x)*w,t.y*h);ctx.lineTo((1-idx.x)*w,idx.y*h);ctx.stroke();
+    if(dist<0.06){
+      const mx=(1-(t.x+idx.x)/2)*w,my=(t.y+idx.y)/2*h;
+      ctx.beginPath();ctx.arc(mx,my,10,0,Math.PI*2);
+      ctx.fillStyle='rgba(249,115,22,0.4)';ctx.fill();
+      ctx.strokeStyle='#f97316';ctx.lineWidth=2;ctx.stroke();
+    }
+  }
+}
+
+async function toggleWC(){
+  const f=document.getElementById('wcf');
+  if(f.classList.contains('show')){
+    f.classList.remove('show');
+    if(mpCam){try{await mpCam.stop();}catch(e){}}
+    if(S.wcStream){S.wcStream.getTracks().forEach(t=>t.stop());S.wcStream=null;}
+    mpHands=null;mpCam=null;S.wcOn=false;
+    document.getElementById('wclbl').textContent='대기중';
+    document.getElementById('wcstat').textContent='대기';
+  } else {
+    f.classList.add('show');S.wcOn=true;
+    try{
+      S.wcStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:220,height:180}});
+      document.getElementById('wc-video').srcObject=S.wcStream;
+      await startMediaPipe();
+    } catch(e){
+      document.getElementById('wcstat').textContent='카메라 오류';
+      toast('웹캠 권한을 허용하거나 버튼으로 조작하세요 (P/O/F)');
+      S.wcOn=false;
+    }
+  }
+}
+
+(function(){
+  const el=document.getElementById('wcf');const hd=document.getElementById('wcf-head');
+  let drag=false,ox=0,oy=0;
+  hd.addEventListener('mousedown',e=>{drag=true;ox=e.clientX-el.offsetLeft;oy=e.clientY-el.offsetTop;});
+  document.addEventListener('mousemove',e=>{if(!drag)return;el.style.left=e.clientX-ox+'px';el.style.right='auto';el.style.bottom='auto';el.style.top=e.clientY-oy+'px';});
+  document.addEventListener('mouseup',()=>drag=false);
+})();
+
+// ══════════════════════════════════════════
+// STEP 4: META FLOW+ 문해력 진단 (강화 채점)
+// ══════════════════════════════════════════
+function prep4(){S.mfStep=0;S.mfAns=[];S.mfScores=[];renderMF();}
+
+function getRubric(){
+  return PISA_RUBRIC[S.expType];
+}
+
+function renderMF(){
+  const rubric=getRubric();
+  const q=rubric[S.mfStep];
+  document.querySelectorAll('.mfs').forEach((s,i)=>{
+    s.classList.toggle('active',i===S.mfStep);
+    s.classList.toggle('done',i<S.mfStep);
+  });
+  document.getElementById('mfbody').innerHTML=`
+    <div class="mfq">
+      <div class="mfbdg ${q.lv}">${q.lt}</div>
+      <span class="pisa-badge pisa-${S.mfStep+1}">${q.pisaLevel}</span>
+      <br><br>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px;padding:6px 10px;background:var(--bg4);border-radius:6px;line-height:1.6">
+        📌 <b>학습목표:</b> ${q.learningGoal}
+      </div>
+      ${q.q}
+    </div>
+    <textarea class="mfta" id="mfans" placeholder="${q.ph}" rows="4"></textarea>`;
+  document.getElementById('mfhint').className='mfhint';
+  document.getElementById('mfsc').className='mfsc';
+  document.getElementById('submitQBtn').disabled=false;
+  document.getElementById('submitQBtn').textContent='✍️ 제출 & AI 채점';
+}
+
+function showHint(){
+  const q=getRubric()[S.mfStep];
+  const h=document.getElementById('mfhint');
+  h.innerHTML='💡 '+q.hint;
+  h.classList.add('show');
+}
+
+// ── 강화된 AI 채점 프롬프트 ──
+async function submitQ(){
+  const ans=document.getElementById('mfans').value.trim();
+  if(!ans){toast('답변을 입력하세요');return;}
+
+  const btn=document.getElementById('submitQBtn');
+  btn.disabled=true;
+  btn.textContent='🤖 AI 채점 중...';
+
+  S.mfAns.push(ans);
+  const se=document.getElementById('mfsc');
+  se.innerHTML='⏳ PISA 기준으로 채점 중...';
+  se.classList.add('show');
+
+  const rubric=getRubric();
+  const q=rubric[S.mfStep];
+
+  // 키워드 기반 사전 분석
+  const foundKeywords=q.keywords.filter(kw=>ans.includes(kw));
+  const kwCount=foundKeywords.length;
+  const hasMinKeywords=kwCount>=q.minKeywords;
+
+  try{
+    const prompt=`당신은 한국 중학교 과학 교사로서 PISA 2025 과학 문해력 기준에 따라 엄격하게 채점합니다.
+
+【실험 주제】${S.expType==='alkali'?'알칼리 금속(Li, Na, K) 물과의 반응성 비교':'할로겐(F, Cl, Br) 반응성 비교'} 실험
+
+【평가 단계】${q.lt} — ${q.pisaLevel}
+
+【학습목표】${q.learningGoal}
+
+【질문】${q.q}
+
+【채점 기준 — 이 기준을 반드시 적용하세요】
+• 만점(9~10점): ${q.scoringCriteria.full}
+• 부분점수(5~8점): ${q.scoringCriteria.partial}
+• 미흡(1~4점): ${q.scoringCriteria.insufficient}
+• 0점: 무관한 내용이거나 "모르겠다" 수준
+
+【필수 키워드 확인】
+이 단계에서 반드시 포함되어야 할 핵심 용어: ${q.keywords.join(', ')}
+학생 답변에서 발견된 키워드(${kwCount}/${q.minKeywords}개 이상 필요): ${foundKeywords.join(', ')||'없음'}
+
+【학생 답변】"${ans}"
+
+【채점 지침】
+1. 키워드 수가 ${q.minKeywords}개 미만이면 점수는 6점 이하
+2. 인과관계 없이 현상만 나열하면 1~2단계는 부분점수, 3~4단계는 미흡
+3. 과학 개념 오류가 있으면 최대 5점
+4. 단순히 "잘 모르겠다"고만 쓰면 1~2점
+5. 절대 관대하게 채점하지 말고, 기준에 맞지 않으면 낮은 점수를 주세요
+
+다음 JSON 형식으로만 응답 (다른 텍스트 없이):
+{"score":0-10,"pisaLevel":"달성 PISA 레벨명","achieved":true또는false,"feedback":"구체적 피드백 2-3문장 (잘된 점 + 부족한 점 명시)","missingPoints":"빠진 핵심 내용 (없으면 '없음')","nextHint":"다음 단계 준비를 위한 1문장 힌트"}`;
+
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:500,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const d=await res.json();
+    const text=d.content[0].text.replace(/```json|```/g,'').trim();
+    const r=JSON.parse(text);
+
+    S.mfScores.push(r.score);
+
+    const scoreColor=r.score>=8?'var(--green)':r.score>=6?'var(--yellow)':r.score>=4?'var(--accent)':'var(--red)';
+    const pisaBadgeClass=`pisa-${S.mfStep+1}`;
+
+    se.innerHTML=`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span class="scn" style="color:${scoreColor}">${r.score}/10</span>
+        <span class="pisa-badge ${pisaBadgeClass}">${r.pisaLevel||q.pisaLevel}</span>
+        <span style="font-size:11px;color:${r.achieved?'var(--green)':'var(--yellow)'};font-weight:700">
+          ${r.achieved?'✅ 달성':'📝 미달성'}
+        </span>
+      </div>
+      <div style="font-size:12px;line-height:1.7;margin-bottom:8px">${r.feedback}</div>
+      ${r.missingPoints&&r.missingPoints!=='없음'?`
+      <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:var(--red)">
+        ⚠️ <b>빠진 내용:</b> ${r.missingPoints}
+      </div>`:''}
+      ${r.nextHint?`<div style="font-size:11px;color:var(--muted);font-style:italic">💡 ${r.nextHint}</div>`:''}
+      <div style="font-size:10px;color:var(--muted);margin-top:8px">
+        키워드 달성: ${foundKeywords.join(' · ')||'없음'} (${kwCount}/${q.minKeywords}개)
+      </div>`;
+
+  } catch(e){
+    // fallback: 키워드 기반 자동 채점
+    let fallbackScore;
+    if(kwCount>=q.minKeywords && ans.length>30) fallbackScore=Math.min(7, 4+kwCount);
+    else if(kwCount>0) fallbackScore=3+kwCount;
+    else fallbackScore=2;
+
+    S.mfScores.push(fallbackScore);
+    se.innerHTML=`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span class="scn">${fallbackScore}/10</span>
+        <span style="font-size:11px;color:var(--muted)">(AI 연결 실패 — 키워드 기반 채점)</span>
+      </div>
+      <div style="font-size:12px">키워드 ${kwCount}/${q.minKeywords}개 달성. ${hasMinKeywords?'핵심 용어를 잘 포함했습니다.':'핵심 용어를 더 사용해보세요: '+q.keywords.slice(0,3).join(', ')}</div>`;
+  }
+
+  // 다음 단계 버튼 생성
+  setTimeout(()=>{
+    btn.disabled=false;
+    S.mfStep++;
+    if(S.mfStep>=4){
+      btn.textContent='✅ 결과 보기';
+      btn.onclick=showResult;
+    } else {
+      btn.textContent=`▶ ${S.mfStep+1}단계로 (${getRubric()[S.mfStep].pisaLevel.split(' ')[0]})`;
+      btn.onclick=()=>{
+        btn.onclick=submitQ; // 다음 단계 제출 연결 복원
+        renderMF();
+      };
+    }
+  }, 2800);
+}
+
+function skipQ(){
+  S.mfAns.push('(건너뜀)');
+  S.mfScores.push(0);
+  S.mfStep++;
+  if(S.mfStep>=4) showResult();
+  else renderMF();
+}
+
+function showResult(){
+  const rb=document.getElementById('rbox');rb.style.display='block';
+  const done=Object.keys(S.expDone).filter(k=>S.expDone[k]);
+  const avgScore=S.mfScores.length>0
+    ? Math.round(S.mfScores.reduce((a,b)=>a+b,0)/S.mfScores.length*10)/10
+    : 0;
+  const pisaLevels=['Basic','Proficient','Advanced','Excellent'];
+  const bestStepIdx=S.mfScores.indexOf(Math.max(...S.mfScores));
+  const totalScore=S.mfScores.reduce((a,b)=>a+b,0);
+
+  // PISA 종합 레벨 산정
+  let overallLevel='Basic';
+  if(totalScore>=32) overallLevel='Excellent';
+  else if(totalScore>=24) overallLevel='Advanced';
+  else if(totalScore>=16) overallLevel='Proficient';
+
+  document.getElementById('rgrid').innerHTML=`
+    <div class="ri"><div class="ril">학생</div><div class="riv">${S.stu.name} (${S.stu.id})</div></div>
+    <div class="ri"><div class="ril">실험 유형</div><div class="riv">${S.expType==='alkali'?'알칼리 금속 (1족)':'할로겐 (17족)'}</div></div>
+    <div class="ri"><div class="ril">반응 원소</div><div class="riv">${done.join(', ')||'없음'}</div></div>
+    <div class="ri"><div class="ril">문해력 단계</div><div class="riv" style="color:var(--accent)">${overallLevel}</div></div>
+    <div class="ri"><div class="ril">평균 점수</div><div class="riv">${avgScore}/10</div></div>
+    <div class="ri"><div class="ril">총점 (40점 만점)</div><div class="riv" style="color:var(--green)">${totalScore}점</div></div>
+    ${S.mfScores.map((sc,i)=>`
+    <div class="ri"><div class="ril">${i+1}단계 (${pisaLevels[i]})</div>
+    <div class="riv" style="color:${sc>=8?'var(--green)':sc>=6?'var(--yellow)':'var(--accent)'}">${sc}/10</div></div>`).join('')}`;
+
+  rb.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ══════════════════════════════════════════
+// Firebase 저장 — index.html 학생 앱과 호환되는 구조
+// ══════════════════════════════════════════
+async function saveFB(){
+  if(!db){toast('Firebase 미연결');return;}
+
+  const btn=document.getElementById('saveBtn');
+  btn.disabled=true;btn.textContent='⏳ 저장 중...';
+
+  const done=Object.keys(S.expDone).filter(k=>S.expDone[k]);
+  const totalScore=S.mfScores.reduce((a,b)=>a+b,0);
+  const avgScore=S.mfScores.length>0
+    ? Math.round(totalScore/S.mfScores.length*10)/10 : 0;
+
+  // PISA 레벨
+  let overallLevel=1;
+  if(totalScore>=32) overallLevel=4;
+  else if(totalScore>=24) overallLevel=3;
+  else if(totalScore>=16) overallLevel=2;
+
+  // 과학 용어 카운트 (키워드 기반)
+  const allText=S.mfAns.join(' ');
+  const sciTerms=['전자 껍질','이온화 에너지','원자가 전자','전기음성도','전자 친화도','원자 반지름',
+    'H₂','OH⁻','HF','HCl','HBr','이온','반응성','알칼리','할로겐','Li','Na','K','F','Cl','Br'];
+  const termCount=sciTerms.filter(t=>allText.includes(t)).length;
+  const causalWords=['때문에','따라서','그러므로','이므로','의해','결과적으로'];
+  const causalCount=causalWords.filter(w=>allText.includes(w)).length;
+
+  try{
+    // ★ index.html(학생 앱) / teacher-dashboard 모두와 호환되는 필드 구조
+    await db.collection('element-group').add({
+      // 학생 앱 조회용 (index.html에서 student.id로 조회)
+      student: {
+        id: S.stu.id,
+        name: S.stu.name,
+        cls: S.stu.cls
+      },
+      // teacher-dashboard 조회용 (studentId, studentName 필드도 함께 저장)
+      studentId: S.stu.id,
+      studentName: S.stu.name,
+      studentClass: S.stu.cls,
+      schoolCode: S.stu.schoolCode||normalizeSchoolCode(localStorage.getItem('mf_schoolCode'))||'',
+
+      // 실험 정보
+      expType: S.expType,
+      experimentName: S.expType==='alkali'?'동족 원소 유사성 — 알칼리 금속':'동족 원소 유사성 — 할로겐',
+      elements: S.selElems,
+      reactedElements: done,
+
+      // META FLOW+ 문해력 데이터 (index.html 앱에서 표시되는 필드들)
+      mfAnswers: S.mfAns,           // 4단계 답변 배열
+      mfScores: S.mfScores,         // 4단계 점수 배열
+      level: overallLevel,           // PISA 레벨 (1~4)
+      terms: termCount,              // 과학 용어 수
+      causal: causalCount,           // 인과관계 표현 수
+      sentences: S.mfAns.filter(a=>a&&a!=='(건너뜀)').length,
+      feedback: `${['Basic','Proficient','Advanced','Excellent'][overallLevel-1]} 달성 (${totalScore}/40점)`,
+      answer: S.mfAns[0]||'',       // 첫 번째 답변 (index.html 호환)
+
+      // 비교 서술 답변
+      compareAnswers: S.compareAnswers||null,
+
+      // 타임스탬프
+      ts: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    document.getElementById('save-status').innerHTML=
+      `<span style="color:var(--green)">✅ META FLOW+ 저장 완료! 학생 앱에서 확인하세요.</span>`;
+    toast('🎯 META FLOW+ 저장 완료!');
+    btn.textContent='✅ 저장됨';
+
+  } catch(e){
+    console.error('Firebase 저장 오류:',e);
+    document.getElementById('save-status').innerHTML=
+      `<span style="color:var(--red)">❌ 저장 실패: ${e.message}</span>`;
+    btn.disabled=false;
+    btn.textContent='🎯 META FLOW+ 저장';
+    toast('저장 실패: '+e.message);
+  }
+}
+
+function nextStu(){
+  S.stu={id:'',name:'',cls:'',schoolCode:''};
+  S.mfAns=[];S.mfScores=[];S.mfStep=0;S.expDone={};
+  S.compareAnswers=null;
+  document.getElementById('smodal').classList.add('show');
+  prefillSchoolCode();
+  goStep(1);
+}
+
+// 유틸
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200);}
+window.addEventListener('resize',()=>{if(S.step===3)initCanvas();});
+document.addEventListener('keydown',e=>{
+  if(S.step!==3)return;
+  if(e.key==='p'||e.key==='P')gesture('pinch');
+  if(e.key==='o'||e.key==='O')gesture('open');
+  if(e.key==='f'||e.key==='F')gesture('fist');
+});
+</script>
+
+
+</body></html>
