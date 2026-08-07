@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기체 분자 운동 시뮬레이터</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a2744 0%, #0d1117 100%);
+    border-bottom: 1px solid #21262d;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-logo {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 900; color: white;
+  }
+  .header-title { font-size: 16px; font-weight: 700; color: #e6edf3; }
+  .header-sub { font-size: 12px; color: #7d8590; margin-top: 1px; }
+  .header-badge {
+    margin-left: auto;
+    background: #1f3a6e;
+    border: 1px solid #2563eb;
+    color: #7eb3ff;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    background: #161b22;
+    border-bottom: 1px solid #21262d;
+    padding: 0 24px;
+    gap: 0;
+  }
+  .tab {
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #7d8590;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .tab:hover { color: #e6edf3; }
+  .tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+  .tab-icon { margin-right: 6px; font-size: 14px; }
+
+  /* Main layout */
+  .main { display: flex; height: calc(100vh - 110px); }
+
+  /* Left panel - webcam */
+  .panel-cam {
+    width: 320px;
+    background: #161b22;
+    border-right: 1px solid #21262d;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .cam-title { font-size: 12px; font-weight: 700; color: #7d8590; text-transform: uppercase; letter-spacing: 1px; }
+  .cam-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #0d1117;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #21262d;
+  }
+  #webcam-0, #webcam-1 {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    transform: scaleX(-1); display: block;
+  }
+  #cam-canvas-0, #cam-canvas-1 {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    transform: scaleX(-1);
+  }
+  .cam-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #7d8590; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #da3633; transition: background 0.3s; }
+  .status-dot.active { background: #3fb950; box-shadow: 0 0 6px #3fb950; }
+  .status-dot.detecting { background: #f0883e; box-shadow: 0 0 6px #f0883e; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+
+  .gesture-guide { background: #0d1117; border-radius: 8px; border: 1px solid #21262d; padding: 12px; }
+  .gesture-guide-title { font-size: 11px; font-weight: 700; color: #58a6ff; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+  .gesture-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #21262d; font-size: 12px; color: #8b949e; }
+  .gesture-item:last-child { border-bottom: none; }
+  .gesture-icon { width: 28px; height: 28px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+
+  .sensor-panel { background: #0d1117; border-radius: 8px; border: 1px solid #21262d; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .sensor-row { display: flex; justify-content: space-between; align-items: center; }
+  .sensor-label { font-size: 11px; color: #7d8590; text-transform: uppercase; letter-spacing: .5px; }
+  .sensor-value { font-size: 14px; font-weight: 700; color: #58a6ff; font-family: 'SF Mono','Courier New',monospace; }
+  .sensor-bar { height: 3px; background: #21262d; border-radius: 2px; overflow: hidden; }
+  .sensor-bar-fill { height: 100%; background: linear-gradient(90deg,#2563eb,#58a6ff); border-radius: 2px; transition: width .1s; }
+
+  .btn-start { width: 100%; padding: 10px; background: linear-gradient(135deg,#2563eb,#1d4ed8); border: none; border-radius: 8px; color: white; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s; }
+  .btn-start:hover { transform: translateY(-1px); filter: brightness(1.1); }
+  .btn-start:active { transform: translateY(0); }
+  .btn-start.danger { background: linear-gradient(135deg,#da3633,#b91c1c); }
+
+  /* Center - simulation */
+  .panel-sim { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+  .sim-card { background: #161b22; border: 1px solid #21262d; border-radius: 12px; overflow: hidden; flex: 1; display: flex; flex-direction: column; }
+  .sim-card-header { padding: 12px 16px; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 8px; background: #1c2128; }
+  .sim-card-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .sim-card-title { font-size: 13px; font-weight: 600; color: #e6edf3; }
+  .sim-card-sub { font-size: 11px; color: #7d8590; margin-left: auto; }
+  #sim-canvas-0, #sim-canvas-1 { flex: 1; display: block; width: 100%; min-height: 300px; }
+
+  /* Right panel */
+  .panel-data { width: 260px; background: #161b22; border-left: 1px solid #21262d; display: flex; flex-direction: column; padding: 16px; gap: 12px; flex-shrink: 0; overflow-y: auto; }
+  .data-section-title { font-size: 11px; font-weight: 700; color: #7d8590; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+
+  .var-card { background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .var-card-label { font-size: 10px; color: #7d8590; text-transform: uppercase; letter-spacing: .5px; }
+  .var-card-val { font-size: 22px; font-weight: 800; font-family: 'SF Mono',monospace; }
+  .var-card-unit { font-size: 11px; color: #7d8590; }
+  .var-card-change { font-size: 10px; margin-top: 2px; }
+  .up { color: #f0883e; } .down { color: #58a6ff; } .same { color: #3fb950; }
+  .var-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .desc-box { background: #0d1117; border: 1px solid #21262d; border-left: 3px solid #58a6ff; border-radius: 0 8px 8px 0; padding: 10px 12px; font-size: 12px; color: #8b949e; line-height: 1.7; flex: 1; }
+  .desc-box .highlight { color: #e6edf3; font-weight: 600; }
+
+  .divider { height: 1px; background: #21262d; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: flex; width: 100%; height: 100%; }
+
+  .nfc-badge { display: inline-flex; align-items: center; gap: 5px; background: #1f2a1f; border: 1px solid #3fb950; color: #3fb950; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: .5px; }
+  .nfc-dot { width: 5px; height: 5px; border-radius: 50%; background: #3fb950; animation: pulse 1.5s infinite; }
+
+  .btn-reset { width: 100%; padding: 8px; background: transparent; border: 1px solid #30363d; border-radius: 6px; color: #7d8590; font-size: 12px; cursor: pointer; transition: all .2s; }
+  .btn-reset:hover { border-color: #58a6ff; color: #58a6ff; }
+
+  .loading-overlay { position: fixed; top:0;left:0;right:0;bottom:0; background: rgba(13,17,23,.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; gap: 16px; }
+  .loading-spinner { width: 40px; height: 40px; border: 3px solid #21262d; border-top-color: #58a6ff; border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: #7d8590; }
+
+  .page { display: none; width: 100%; height: 100%; }
+  .page.show { display: flex; }
+</style>
+</head>
+<body>
+
+<div id="loading-overlay" class="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">MediaPipe 로딩 중...</div>
+</div>
+
+<div class="header">
+  <div class="header-logo">M</div>
+  <div>
+    <div class="header-title">META FLOW+ · 기체 분자 운동</div>
+    <div class="header-sub">웹캠 제스처 실험 시뮬레이터</div>
+  </div>
+  <div class="header-badge">중학교 / 고등학교</div>
+  <div id="student-badge" style="margin-left:8px;background:#1f2a1f;border:1px solid #3fb950;color:#3fb950;font-size:11px;padding:3px 10px;border-radius:20px;cursor:pointer;display:none;" onclick="changeStudentId()" title="클릭해서 학번 변경">👤 <span id="student-badge-text"></span></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(0)"><span class="tab-icon">🔵</span>실험 1 — 압력과 부피</div>
+  <div class="tab" onclick="switchTab(1)"><span class="tab-icon">🔴</span>실험 2 — 온도와 부피</div>
+  <div class="tab" onclick="switchTab(2)"><span class="tab-icon">🟣</span>고등 — 이상기체방정식으로 기체 종류 확인</div>
+</div>
+
+<div class="main">
+
+  <!-- ===== PAGE 0: 압력↔부피 ===== -->
+  <div id="page-0" class="page show">
+    <div class="panel-cam">
+      <div class="cam-title">📷 웹캠</div>
+      <div class="cam-wrapper">
+        <video id="webcam-0" autoplay playsinline muted></video>
+        <canvas id="cam-canvas-0"></canvas>
+      </div>
+      <div class="cam-status">
+        <div class="status-dot" id="cam-dot-0"></div>
+        <span id="cam-text-0">카메라 꺼짐</span>
+        <div class="nfc-badge" style="margin-left:auto"><div class="nfc-dot"></div>NFC</div>
+      </div>
+      <div class="gesture-guide">
+        <div class="gesture-guide-title">🖐 제스처 가이드</div>
+        <div class="gesture-item"><div class="gesture-icon">👈</div><div>손바닥을 오른쪽→왼쪽으로 밀기<br><span style="color:#e6edf3;font-size:11px">피스톤이 눌려요</span></div></div>
+        <div class="gesture-item"><div class="gesture-icon">👉</div><div>손을 왼쪽→오른쪽으로 빼기<br><span style="color:#e6edf3;font-size:11px">피스톤이 복원돼요</span></div></div>
+        <div class="gesture-item"><div class="gesture-icon">✊</div><div>주먹 쥐기<br><span style="color:#e6edf3;font-size:11px">피스톤 고정</span></div></div>
+      </div>
+      <div class="sensor-panel">
+        <div class="sensor-label">손 위치 감지</div>
+        <div class="sensor-row"><span style="font-size:12px;color:#7d8590">X 위치</span><span class="sensor-value" id="hand-x-0">—</span></div>
+        <div class="sensor-bar"><div class="sensor-bar-fill" id="hand-bar-0" style="width:50%"></div></div>
+        <div class="sensor-row" style="margin-top:4px"><span style="font-size:12px;color:#7d8590">손 감지</span><span class="sensor-value" id="hand-detected-0" style="color:#da3633">없음</span></div>
+      </div>
+      <button class="btn-start" id="cam-btn-0" onclick="toggleCam(0)">📷 카메라 시작</button>
+      <button class="btn-reset" onclick="resetSim(0)">↺ 초기화</button>
+    </div>
+
+    <div class="panel-sim">
+      <div class="sim-card">
+        <div class="sim-card-header">
+          <div class="sim-card-dot" style="background:#58a6ff"></div>
+          <div class="sim-card-title">압력 ↔ 부피 관계 시뮬레이터</div>
+          <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+            <span style="background:rgba(240,136,62,.15);border:1px solid rgba(240,136,62,.4);color:#f0883e;font-size:10px;padding:2px 8px;border-radius:12px;font-weight:700;">🌡 온도 일정</span>
+            <span style="background:rgba(63,185,80,.15);border:1px solid rgba(63,185,80,.4);color:#3fb950;font-size:10px;padding:2px 8px;border-radius:12px;font-weight:700;">⚗ 입자 수 일정</span>
+            <div class="sim-card-sub">입자 크기·속도 일정</div>
+          </div>
+        </div>
+        <canvas id="sim-canvas-0"></canvas>
+      </div>
+    </div>
+
+    <div class="panel-data">
+      <div class="data-section-title">📊 실험 변수</div>
+      <div class="var-grid">
+        <div class="var-card">
+          <div class="var-card-label">부피</div>
+          <div class="var-card-val" id="vol-0" style="color:#58a6ff">100</div>
+          <div class="var-card-unit">상대값 (%)</div>
+          <div class="var-card-change" id="vol-change-0"></div>
+        </div>
+        <div class="var-card">
+          <div class="var-card-label">압력</div>
+          <div class="var-card-val" id="pres-0" style="color:#f0883e">1.0</div>
+          <div class="var-card-unit">상대 기압</div>
+          <div class="var-card-change" id="pres-change-0"></div>
+        </div>
+        <div class="var-card" style="grid-column:span 2">
+          <div class="var-card-label">입자 수</div>
+          <div class="var-card-val" id="count-0" style="color:#3fb950">20</div>
+          <div class="var-card-unit">개 (변하지 않음)</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="data-section-title">📈 P-V 그래프</div>
+      <canvas id="graph-canvas-0" style="width:100%;height:110px;"></canvas>
+      <div class="divider"></div>
+      <div class="data-section-title">💡 관찰 내용</div>
+      <div class="desc-box" id="desc-0">손바닥으로 피스톤을 밀어보세요.<br><br><span class="highlight">압력이 커지면</span> 어떤 변화가 일어나나요?</div>
+      <div class="divider"></div>
+      <button onclick="openLiteracyModal(0)" style="width:100%;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;color:white;font-size:12px;font-weight:700;cursor:pointer;">📝 문해력 진단 시작 (4단계)</button>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 1: 온도↔부피 ===== -->
+  <div id="page-1" class="page">
+    <div class="panel-cam">
+      <div class="cam-title">📷 웹캠</div>
+      <div class="cam-wrapper">
+        <video id="webcam-1" autoplay playsinline muted></video>
+        <canvas id="cam-canvas-1"></canvas>
+      </div>
+      <div class="cam-status">
+        <div class="status-dot" id="cam-dot-1"></div>
+        <span id="cam-text-1">카메라 꺼짐</span>
+        <div class="nfc-badge" style="margin-left:auto"><div class="nfc-dot"></div>NFC</div>
+      </div>
+      <div class="gesture-guide">
+        <div class="gesture-guide-title">🖐 제스처 가이드</div>
+        <div class="gesture-item"><div class="gesture-icon">🌬</div><div>손을 빠르게 좌우로 흔들기<br><span style="color:#e6edf3;font-size:11px">부채질 → 온도 올라감</span></div></div>
+        <div class="gesture-item"><div class="gesture-icon">🧊</div><div>손 가만히 있기<br><span style="color:#e6edf3;font-size:11px">온도 천천히 내려감</span></div></div>
+      </div>
+      <div class="sensor-panel">
+        <div class="sensor-label">흔들기 감지</div>
+        <div class="sensor-row"><span style="font-size:12px;color:#7d8590">흔들기 속도</span><span class="sensor-value" id="wave-speed-1">—</span></div>
+        <div class="sensor-bar"><div class="sensor-bar-fill" id="wave-bar-1" style="width:0%;background:linear-gradient(90deg,#f0883e,#fbbf24)"></div></div>
+        <div class="sensor-row" style="margin-top:4px"><span style="font-size:12px;color:#7d8590">부채질</span><span class="sensor-value" id="wave-detected-1" style="color:#da3633">없음</span></div>
+      </div>
+      <button class="btn-start" id="cam-btn-1" onclick="toggleCam(1)">📷 카메라 시작</button>
+      <button class="btn-reset" onclick="resetSim(1)">↺ 초기화</button>
+    </div>
+
+    <div class="panel-sim">
+      <div class="sim-card">
+        <div class="sim-card-header">
+          <div class="sim-card-dot" style="background:#f0883e"></div>
+          <div class="sim-card-title">온도 ↔ 부피 관계 시뮬레이터</div>
+          <div class="sim-card-sub">압력 일정 · 입자 수 일정</div>
+        </div>
+        <canvas id="sim-canvas-1"></canvas>
+      </div>
+    </div>
+
+    <div class="panel-data">
+      <div class="data-section-title">📊 실험 변수</div>
+      <div class="var-grid">
+        <div class="var-card">
+          <div class="var-card-label">온도</div>
+          <div class="var-card-val" id="temp-1" style="color:#f0883e">25</div>
+          <div class="var-card-unit">°C</div>
+          <div class="var-card-change" id="temp-change-1"></div>
+        </div>
+        <div class="var-card">
+          <div class="var-card-label">부피</div>
+          <div class="var-card-val" id="vol-1" style="color:#58a6ff">100</div>
+          <div class="var-card-unit">상대값 (%)</div>
+          <div class="var-card-change" id="vol-change-1"></div>
+        </div>
+        <div class="var-card" style="grid-column:span 2">
+          <div class="var-card-label">입자 속도</div>
+          <div class="var-card-val" id="speed-1" style="color:#d2a8ff">보통</div>
+          <div class="var-card-unit">온도에 따라 변함</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="data-section-title">📈 T-V 그래프</div>
+      <canvas id="graph-canvas-1" style="width:100%;height:110px;"></canvas>
+      <div class="divider"></div>
+      <div class="data-section-title">💡 관찰 내용</div>
+      <div class="desc-box" id="desc-1">손을 흔들어 부채질해 보세요.<br><br><span class="highlight">온도가 올라가면</span> 입자는 어떻게 움직이나요?</div>
+      <div class="divider"></div>
+      <button onclick="openLiteracyModal(1)" style="width:100%;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;color:white;font-size:12px;font-weight:700;cursor:pointer;">📝 문해력 진단 시작 (4단계)</button>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 2: 고등 이상기체방정식 ===== -->
+  <div id="page-2" class="page">
+    <div class="panel-cam">
+      <div class="cam-title">📷 웹캠</div>
+      <div class="cam-wrapper">
+        <video id="webcam-2" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1);"></video>
+        <canvas id="cam-canvas-2" style="position:absolute;top:0;left:0;width:100%;height:100%;transform:scaleX(-1);"></canvas>
+      </div>
+      <div class="cam-status">
+        <div class="status-dot" id="cam-dot-2"></div>
+        <span id="cam-text-2">카메라 꺼짐</span>
+      </div>
+      <div class="gesture-guide">
+        <div class="gesture-guide-title" id="h-gesture-title">🖐 제스처 안내</div>
+        <div id="h-gesture-items">
+          <div class="gesture-item"><div class="gesture-icon">✋</div><div>손바닥 펴기<br><span style="color:#e6edf3;font-size:11px">용기 올림 → 질량 표시</span></div></div>
+          <div class="gesture-item"><div class="gesture-icon">✊</div><div>주먹 쥐기<br><span style="color:#e6edf3;font-size:11px">측정값 고정</span></div></div>
+        </div>
+      </div>
+      <div id="h-balance-panel" style="background:#0a1628;border:2px solid #1a3050;border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:9px;color:#4a7aaa;letter-spacing:2px;margin-bottom:4px;">ELECTRONIC BALANCE</div>
+        <div style="font-size:32px;font-weight:900;color:#00e5b0;font-family:'SF Mono',monospace;" id="balance-display">0.00</div>
+        <div style="font-size:11px;color:#00e5b0;opacity:.7;">g</div>
+        <div style="font-size:10px;color:#4a7aaa;margin-top:3px;line-height:1.5;" id="balance-status">카메라를 켜고<br>손에 용기를 들어보세요</div>
+      </div>
+      <button class="btn-start" id="cam-btn-2" onclick="toggleCam2()">📷 카메라 시작</button>
+      <button class="btn-reset" onclick="resetHigh()" style="margin-top:4px;">↺ 처음부터</button>
+    </div>
+
+    <div class="panel-sim" style="position:relative;overflow:hidden;">
+
+      <!-- 0단계: 기체 선택 -->
+      <div id="h-stage-0" class="h-stage" style="display:flex;flex-direction:column;gap:14px;height:100%;">
+        <div style="background:#1c2128;border:1px solid #21262d;border-radius:12px;padding:14px 18px;">
+          <div style="font-size:14px;font-weight:700;color:#a78bfa;">🟣 이상기체방정식을 활용하여 기체 종류 확인하기</div>
+          <div style="font-size:11px;color:#7d8590;margin-top:4px;">M = mRT/PV 로 미지 기체의 몰질량을 구하고 종류를 판별합니다</div>
+        </div>
+        <div style="background:#161b22;border:1px solid #21262d;border-radius:12px;padding:24px;text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+          <div style="font-size:13px;color:#7d8590;font-weight:600;">실험할 미지 기체 용기를 선택하세요</div>
+          <div style="display:flex;gap:24px;justify-content:center;">
+            <div id="gas-card-A" onclick="highSelectGasKey('A')" style="width:170px;padding:24px 16px;background:#0d1117;border:2px solid #30363d;border-radius:14px;cursor:pointer;transition:.2s;text-align:center;">
+              <div style="font-size:44px;margin-bottom:10px;">🔴</div>
+              <div style="font-size:17px;font-weight:700;color:#e6edf3;">용기 A</div>
+              <div style="font-size:11px;color:#7d8590;margin-top:6px;line-height:1.5;">미지 기체 A<br>종류 미확인</div>
+            </div>
+            <div id="gas-card-B" onclick="highSelectGasKey('B')" style="width:170px;padding:24px 16px;background:#0d1117;border:2px solid #30363d;border-radius:14px;cursor:pointer;transition:.2s;text-align:center;">
+              <div style="font-size:44px;margin-bottom:10px;">🔵</div>
+              <div style="font-size:17px;font-weight:700;color:#e6edf3;">용기 B</div>
+              <div style="font-size:11px;color:#7d8590;margin-top:6px;line-height:1.5;">미지 기체 B<br>종류 미확인</div>
+            </div>
+          </div>
+          <div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:14px 20px;font-size:12px;color:#8b949e;line-height:2;max-width:400px;">
+            <div style="color:#a78bfa;font-weight:700;margin-bottom:4px;">📋 실험 순서</div>
+            1단계 — 포집 전 용기 질량 측정 (웹캠 저울)<br>
+            2단계 — 수상치환으로 기체 포집 (누름판 클릭)<br>
+            3단계 — 포집 후 용기 질량 측정 (웹캠 저울)<br>
+            4단계 — M = mRT/PV 계산 → 기체 종류 판별<br>
+            5단계 — 4단계 문해력 진단 + 최종 제출
+          </div>
+        </div>
+      </div>
+
+      <!-- 1단계: 포집 전 질량 -->
+      <div id="h-stage-1" class="h-stage" style="display:none;flex-direction:column;gap:10px;height:100%;">
+        <div style="background:#1c2128;border:1px solid #21262d;border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <span style="background:rgba(240,136,62,.2);color:#f0883e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;">1단계</span>
+          <span style="font-size:13px;font-weight:700;">포집 전 — 용기의 질량을 측정하세요</span>
+          <span id="h-stage1-done-badge" style="display:none;margin-left:auto;background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3);font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;">✅ 완료</span>
+        </div>
+        <canvas id="h-canvas-1" style="flex:1;display:block;width:100%;border-radius:10px;background:#0d1117;min-height:0;"></canvas>
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:9px 14px;font-size:12px;color:#7d8590;flex-shrink:0;">✋ 손 펼침 → 저울 작동 &nbsp;|&nbsp; ✊ 주먹 → 값 고정 저장</div>
+        <button id="h-btn-1" onclick="highNextStage(2)" disabled style="padding:11px;background:linear-gradient(135deg,#f0883e,#ea7c1a);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;opacity:.4;flex-shrink:0;">✅ 포집 전 질량 확정 → 2단계</button>
+      </div>
+
+      <!-- 2단계: 수상치환 포집 -->
+      <div id="h-stage-2" class="h-stage" style="display:none;flex-direction:column;gap:10px;height:100%;">
+        <div style="background:#1c2128;border:1px solid #21262d;border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <span style="background:rgba(88,166,255,.2);color:#58a6ff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;">2단계</span>
+          <span style="font-size:13px;font-weight:700;">수상치환으로 기체를 포집하세요</span>
+          <span id="h-stage2-done-badge" style="display:none;margin-left:auto;background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3);font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;">✅ 완료</span>
+        </div>
+        <canvas id="h-canvas-2" style="flex:1;display:block;width:100%;border-radius:10px;background:#0d1117;min-height:0;cursor:pointer;"></canvas>
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:9px 14px;display:flex;align-items:center;gap:12px;flex-shrink:0;">
+          <span style="font-size:12px;color:#7d8590;">포집량</span>
+          <div style="flex:1;height:7px;background:#21262d;border-radius:4px;overflow:hidden;"><div id="h-collect-bar" style="height:100%;background:linear-gradient(90deg,#58a6ff,#a78bfa);border-radius:4px;width:0%;transition:width .2s;"></div></div>
+          <span id="h-collect-pct" style="font-size:12px;font-weight:700;color:#58a6ff;font-family:monospace;min-width:36px;">0%</span>
+          <span id="h-collect-vol" style="font-size:12px;color:#7d8590;font-family:monospace;min-width:52px;">0 mL</span>
+        </div>
+        <button id="h-btn-2" onclick="highNextStage(3)" disabled style="padding:11px;background:linear-gradient(135deg,#58a6ff,#2563eb);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;opacity:.4;flex-shrink:0;">✅ 기체 포집 완료 → 3단계</button>
+      </div>
+
+      <!-- 3단계: 포집 후 질량 -->
+      <div id="h-stage-3" class="h-stage" style="display:none;flex-direction:column;gap:10px;height:100%;">
+        <div style="background:#1c2128;border:1px solid #21262d;border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <span style="background:rgba(63,185,80,.2);color:#3fb950;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;">3단계</span>
+          <span style="font-size:13px;font-weight:700;">포집 후 — 용기의 질량을 측정하세요</span>
+          <span id="h-stage3-done-badge" style="display:none;margin-left:auto;background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3);font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;">✅ 완료</span>
+        </div>
+        <canvas id="h-canvas-3" style="flex:1;display:block;width:100%;border-radius:10px;background:#0d1117;min-height:0;"></canvas>
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:9px 14px;display:flex;gap:16px;font-size:12px;flex-shrink:0;">
+          <span style="color:#7d8590;">포집 전 <strong style="color:#f0883e;font-family:monospace;" id="h-show-before">—</strong> g</span>
+          <span style="color:#7d8590;">포집 후 <strong style="color:#58a6ff;font-family:monospace;" id="h-show-after">—</strong> g</span>
+          <span style="color:#7d8590;">기체 질량 <strong style="color:#3fb950;font-family:monospace;" id="h-show-gasmass">—</strong> g</span>
+        </div>
+        <button id="h-btn-3" onclick="highNextStage(4)" disabled style="padding:11px;background:linear-gradient(135deg,#3fb950,#2ea043);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;opacity:.4;flex-shrink:0;">✅ 포집 후 질량 확정 → 4단계</button>
+      </div>
+
+      <!-- 4단계: 계산 -->
+      <div id="h-stage-4" class="h-stage" style="display:none;flex-direction:column;gap:10px;height:100%;overflow-y:auto;">
+        <div style="background:#1c2128;border:1px solid #21262d;border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <span style="background:rgba(124,58,237,.2);color:#a78bfa;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;">4단계</span>
+          <span style="font-size:13px;font-weight:700;">M = mRT/PV 계산 → 기체 종류 판별</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;flex-shrink:0;">
+          <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:9px;color:#7d8590;margin-bottom:4px;">질량 m</div><div style="font-size:18px;font-weight:800;color:#f0883e;font-family:monospace;" id="h-calc-m">—</div><div style="font-size:10px;color:#7d8590;">g</div></div>
+          <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:9px;color:#7d8590;margin-bottom:4px;">부피 V</div><div style="font-size:18px;font-weight:800;color:#58a6ff;font-family:monospace;" id="h-calc-v">—</div><div style="font-size:10px;color:#7d8590;">mL</div></div>
+          <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:9px;color:#7d8590;margin-bottom:4px;">온도 T</div><div style="font-size:18px;font-weight:800;color:#f0883e;font-family:monospace;" id="h-calc-T">—</div><div style="font-size:10px;color:#7d8590;">K</div></div>
+          <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:9px;color:#7d8590;margin-bottom:4px;">압력 P</div><div style="font-size:18px;font-weight:800;color:#58a6ff;font-family:monospace;" id="h-calc-P">—</div><div style="font-size:10px;color:#7d8590;">atm</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0;">
+          <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px 12px;"><div style="font-size:10px;color:#7d8590;margin-bottom:4px;">실험실 온도 (°C)</div><input id="h-temp" type="number" value="20" style="width:100%;background:transparent;border:none;border-bottom:1px solid #30363d;color:#f0883e;font-size:20px;font-weight:700;font-family:monospace;outline:none;" oninput="updateHighCalc4()"></div>
+          <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px 12px;"><div style="font-size:10px;color:#7d8590;margin-bottom:4px;">대기압 (atm)</div><input id="h-pres" type="number" value="1.00" step="0.01" style="width:100%;background:transparent;border:none;border-bottom:1px solid #30363d;color:#58a6ff;font-size:20px;font-weight:700;font-family:monospace;outline:none;" oninput="updateHighCalc4()"></div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:12px;flex-shrink:0;">
+          <div style="text-align:center;color:#a78bfa;font-family:monospace;font-size:13px;margin-bottom:10px;font-weight:700;">M = mRT / PV &nbsp; (R = 0.082 atm·L/mol·K)</div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;">
+            <div style="display:flex;justify-content:space-between;"><span style="color:#7d8590;">m × R × T</span><span style="color:#e6edf3;font-family:monospace;font-weight:700;" id="h-mrt">—</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#7d8590;">P × V (L)</span><span style="color:#e6edf3;font-family:monospace;font-weight:700;" id="h-pv">—</span></div>
+            <div style="height:1px;background:#21262d;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-weight:700;color:#e6edf3;">M =</span><span style="color:#3fb950;font-size:22px;font-weight:900;font-family:monospace;" id="h-M-result">— g/mol</span></div>
+          </div>
+        </div>
+        <button onclick="highCalculate()" style="padding:11px;background:linear-gradient(135deg,#a78bfa,#7c3aed);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;">🔢 몰질량 계산하기</button>
+        <div id="h-result-box" style="display:none;background:#0d1117;border-radius:10px;padding:14px;text-align:center;flex-shrink:0;">
+          <div style="font-size:11px;color:#7d8590;margin-bottom:4px;">판별된 기체</div>
+          <div style="font-size:26px;font-weight:900;margin:6px 0;" id="h-gas-name">—</div>
+          <div style="font-size:11px;color:#7d8590;line-height:1.8;" id="h-gas-reason">—</div>
+        </div>
+        <button id="h-final-submit" onclick="openHighFinalSubmit()" disabled style="padding:13px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;color:white;font-size:14px;font-weight:700;cursor:pointer;opacity:.4;flex-shrink:0;">📝 5단계 — 문해력 진단 + 최종 제출</button>
+      </div>
+
+      <!-- 5단계: 문해력 진단 (인라인) -->
+      <div id="h-stage-5" class="h-stage" style="display:none;flex-direction:column;gap:10px;height:100%;overflow-y:auto;">
+        <div style="background:#1c2128;border:1px solid #21262d;border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <span style="background:rgba(124,58,237,.2);color:#a78bfa;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;">5단계</span>
+          <span style="font-size:13px;font-weight:700;">문해력 진단 (4단계)</span>
+        </div>
+        <div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:8px;padding:10px 14px;font-size:12px;flex-shrink:0;" id="h-exp-summary-box">실험 결과가 여기에 표시됩니다</div>
+        <div style="display:flex;gap:5px;flex-shrink:0;" id="h-lm-pills">
+          <div id="h-lm-p1" style="flex:1;padding:5px;text-align:center;border-radius:6px;font-size:10px;font-weight:700;border:1px solid #30363d;color:#7d8590;">1단계</div>
+          <div id="h-lm-p2" style="flex:1;padding:5px;text-align:center;border-radius:6px;font-size:10px;font-weight:700;border:1px solid #30363d;color:#7d8590;">2단계</div>
+          <div id="h-lm-p3" style="flex:1;padding:5px;text-align:center;border-radius:6px;font-size:10px;font-weight:700;border:1px solid #30363d;color:#7d8590;">3단계</div>
+          <div id="h-lm-p4" style="flex:1;padding:5px;text-align:center;border-radius:6px;font-size:10px;font-weight:700;border:1px solid #30363d;color:#7d8590;">4단계</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <div id="h-lm-badge" style="padding:3px 12px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(255,71,87,.15);color:#ff4757;border:1px solid rgba(255,71,87,.3);">● Basic</div>
+          <div id="h-lm-level-desc" style="font-size:11px;color:#7d8590;">관찰한 현상을 그대로 서술해요</div>
+        </div>
+        <div style="background:#0d1117;border-left:3px solid #a78bfa;border-radius:0 8px 8px 0;padding:11px 13px;font-size:13px;color:#e6edf3;line-height:1.7;flex-shrink:0;" id="h-lm-question">질문 로딩 중...</div>
+        <div id="h-lm-hint" style="display:none;background:rgba(63,185,80,.07);border:1px solid rgba(63,185,80,.2);border-radius:8px;padding:9px 12px;font-size:12px;color:#3fb950;line-height:1.6;flex-shrink:0;"></div>
+        <textarea id="h-lm-answer" style="background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;padding:10px 12px;font-size:13px;font-family:inherit;resize:vertical;outline:none;min-height:90px;flex-shrink:0;" placeholder="여기에 답변을 작성하세요..." oninput="document.getElementById('h-lm-cc').textContent=this.value.length+'자';this.style.borderColor='#a78bfa'"></textarea>
+        <div style="font-size:10px;color:#7d8590;text-align:right;flex-shrink:0;" id="h-lm-cc">0자</div>
+        <div id="h-lm-feedback" style="display:none;background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:11px;font-size:12px;color:#8b949e;line-height:1.7;flex-shrink:0;"></div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <button onclick="showHighHint()" style="padding:9px 13px;background:transparent;border:1px solid #30363d;border-radius:8px;color:#7d8590;font-size:12px;cursor:pointer;">💡 힌트</button>
+          <button id="h-lm-submit" onclick="submitHighLM()" style="flex:1;padding:9px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;">✍ 제출하기</button>
+          <button onclick="skipHighLM()" style="padding:9px 13px;background:transparent;border:1px solid #30363d;border-radius:8px;color:#7d8590;font-size:12px;cursor:pointer;">건너뛰기</button>
+        </div>
+        <button id="h-lm-next" style="display:none;padding:10px;background:linear-gradient(135deg,#3fb950,#2ea043);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;" onclick="nextHighLM()">다음 단계 →</button>
+        <button id="h-lm-save" style="display:none;padding:12px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;color:white;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;" onclick="doHighSave()">🚀 META FLOW+에 최종 저장하기</button>
+      </div>
+
+    </div><!-- end panel-sim -->
+
+    <!-- Right: 진행 현황 -->
+    <div class="panel-data">
+      <div class="data-section-title">📋 실험 진행</div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <div id="h-prog-0" style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px;border:1px solid rgba(124,58,237,.4);font-size:11px;background:rgba(124,58,237,.1);color:#a78bfa;"><span id="h-prog-0-icon">🟣</span><span style="flex:1;">기체 선택</span><span id="h-prog-0-s" style="font-size:10px;">진행중</span></div>
+        <div id="h-prog-1" style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px;border:1px solid #21262d;font-size:11px;color:#7d8590;"><span id="h-prog-1-icon">⬜</span><span style="flex:1;">포집 전 질량</span><span id="h-prog-1-s" style="font-size:10px;">대기</span></div>
+        <div id="h-prog-2" style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px;border:1px solid #21262d;font-size:11px;color:#7d8590;"><span id="h-prog-2-icon">⬜</span><span style="flex:1;">기체 포집</span><span id="h-prog-2-s" style="font-size:10px;">대기</span></div>
+        <div id="h-prog-3" style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px;border:1px solid #21262d;font-size:11px;color:#7d8590;"><span id="h-prog-3-icon">⬜</span><span style="flex:1;">포집 후 질량</span><span id="h-prog-3-s" style="font-size:10px;">대기</span></div>
+        <div id="h-prog-4" style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px;border:1px solid #21262d;font-size:11px;color:#7d8590;"><span id="h-prog-4-icon">⬜</span><span style="flex:1;">계산 + 판별</span><span id="h-prog-4-s" style="font-size:10px;">대기</span></div>
+        <div id="h-prog-5" style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px;border:1px solid #21262d;font-size:11px;color:#7d8590;"><span id="h-prog-5-icon">⬜</span><span style="flex:1;">문해력 진단</span><span id="h-prog-5-s" style="font-size:10px;">대기</span></div>
+      </div>
+      <div class="divider"></div>
+      <div class="data-section-title">📊 측정 기록</div>
+      <div class="var-card"><div class="var-card-label">선택 기체</div><div class="var-card-val" id="h-rec-gas" style="color:#a78bfa;font-size:16px;">—</div></div>
+      <div class="var-grid">
+        <div class="var-card"><div class="var-card-label">포집 전 (g)</div><div class="var-card-val" id="h-rec-before" style="color:#f0883e;font-size:15px;">—</div></div>
+        <div class="var-card"><div class="var-card-label">포집 후 (g)</div><div class="var-card-val" id="h-rec-after" style="color:#58a6ff;font-size:15px;">—</div></div>
+        <div class="var-card"><div class="var-card-label">기체 질량</div><div class="var-card-val" id="h-rec-gasmass" style="color:#3fb950;font-size:15px;">—</div><div class="var-card-unit">g</div></div>
+        <div class="var-card"><div class="var-card-label">부피 (mL)</div><div class="var-card-val" id="h-rec-vol" style="color:#58a6ff;font-size:15px;">—</div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="data-section-title">🧮 결과</div>
+      <div class="var-card"><div class="var-card-label">몰질량 M</div><div class="var-card-val" id="h-rec-M" style="color:#3fb950;font-size:18px;">—</div><div class="var-card-unit">g/mol</div></div>
+      <div class="var-card"><div class="var-card-label">기체 판별</div><div class="var-card-val" id="h-rec-result" style="color:#a78bfa;font-size:13px;word-break:break-all;">—</div></div>
+    </div>
+
+  </div><!-- end page-2 -->
+
+</div><!-- end main -->
+
+
+<!-- ========== 4단계 문해력 모달 (실험1·2) ========== -->
+<div id="literacy-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:16px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:24px;position:relative;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:white;flex-shrink:0;">M</div>
+      <div>
+        <div style="font-size:10px;letter-spacing:2px;color:#58a6ff;font-weight:700;">META FLOW+ · 문해력 진단</div>
+        <div style="font-size:14px;font-weight:700;color:#e6edf3;" id="lm-title">실험 결과를 설명해보세요</div>
+      </div>
+      <button onclick="closeLiteracyModal()" style="margin-left:auto;background:none;border:none;color:#7d8590;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:14px;" id="lm-steps">
+      <div id="lm-pill-1" style="flex:1;padding:6px;text-align:center;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #30363d;color:#7d8590;">1단계</div>
+      <div id="lm-pill-2" style="flex:1;padding:6px;text-align:center;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #30363d;color:#7d8590;">2단계</div>
+      <div id="lm-pill-3" style="flex:1;padding:6px;text-align:center;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #30363d;color:#7d8590;">3단계</div>
+      <div id="lm-pill-4" style="flex:1;padding:6px;text-align:center;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #30363d;color:#7d8590;">4단계</div>
+    </div>
+    <div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:11px;color:#8b949e;" id="lm-exp-summary"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div id="lm-level-badge" style="padding:4px 14px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:1px;background:rgba(255,71,87,.15);color:#ff4757;border:1px solid rgba(255,71,87,.3);">● Basic</div>
+      <div id="lm-level-desc" style="font-size:11px;color:#7d8590;">관찰한 현상을 그대로 서술해요</div>
+    </div>
+    <div style="background:#0d1117;border-left:3px solid #58a6ff;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#e6edf3;line-height:1.7;" id="lm-question">질문 로딩 중...</div>
+    <div id="lm-hint-box" style="display:none;background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.2);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#3fb950;line-height:1.6;"></div>
+    <textarea id="lm-answer" style="width:100%;min-height:100px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;padding:10px 12px;font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;" placeholder="여기에 답변을 작성하세요..." oninput="document.getElementById('lm-charcount').textContent=this.value.length+'자';this.style.borderColor='#58a6ff'"></textarea>
+    <div style="font-size:10px;color:#7d8590;text-align:right;margin-top:4px;" id="lm-charcount">0자</div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button onclick="showHint()" style="padding:9px 16px;background:transparent;border:1px solid #30363d;border-radius:8px;color:#7d8590;font-size:12px;cursor:pointer;">💡 힌트</button>
+      <button id="lm-submit-btn" onclick="submitLiteracy()" style="flex:1;padding:9px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;">✍ 제출하기</button>
+      <button onclick="skipLiteracy()" style="padding:9px 16px;background:transparent;border:1px solid #30363d;border-radius:8px;color:#7d8590;font-size:12px;cursor:pointer;">건너뛰기 →</button>
+    </div>
+    <div id="lm-feedback" style="display:none;margin-top:14px;background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:12px;font-size:12px;color:#8b949e;line-height:1.7;"></div>
+    <button id="lm-next-btn" style="display:none;width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,#3fb950,#2ea043);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;" onclick="nextLiteracyStep()">다음 단계 →</button>
+    <button id="lm-save-btn" style="display:none;width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;" onclick="saveLiteracyToFirebase()">🚀 META FLOW+에 저장하기</button>
+  </div>
+</div>
+
+<!-- ========== 학생 ID 입력 모달 ========== -->
+<div id="student-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:16px;width:380px;padding:28px;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:white;margin:0 auto 12px;">M</div>
+      <div style="font-size:10px;letter-spacing:2px;color:#58a6ff;font-weight:700;margin-bottom:4px;">META FLOW+</div>
+      <div style="font-size:16px;font-weight:700;color:#e6edf3;">학생 정보를 입력해주세요</div>
+      <div style="font-size:12px;color:#7d8590;margin-top:6px;">실험 기록이 Firebase에 저장돼요</div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="font-size:11px;color:#7d8590;margin-bottom:5px;font-weight:600;">학교 코드</div>
+      <input id="student-school-input" type="text" placeholder="예: GN01 (모르면 JOINT01)" style="width:100%;padding:11px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;outline:none;box-sizing:border-box;text-transform:uppercase;" maxlength="10" onkeydown="if(event.key==='Enter')document.getElementById('student-name-input').focus()">
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="font-size:11px;color:#7d8590;margin-bottom:5px;font-weight:600;">이름</div>
+      <input id="student-name-input" type="text" placeholder="예: 홍길동" style="width:100%;padding:11px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')document.getElementById('student-id-input').focus()">
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:#7d8590;margin-bottom:5px;font-weight:600;">학번</div>
+      <input id="student-id-input" type="text" placeholder="예: 20301 (학년+반+번호)" style="width:100%;padding:11px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;outline:none;box-sizing:border-box;letter-spacing:2px;" onkeydown="if(event.key==='Enter')confirmStudentId()">
+    </div>
+    <button onclick="confirmStudentId()" style="width:100%;padding:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:8px;color:white;font-size:14px;font-weight:700;cursor:pointer;">✅ 시작하기</button>
+  </div>
+</div>
+
+
+<!-- ========== Firebase SDK ========== -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+<!-- ========== MediaPipe ========== -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+<script>
+// ============================================================
+// FIREBASE
+// ============================================================
+const fbConfig = {
+  apiKey: "AIzaSyBX-BE14JViw82xAiA3Gts6p-SC6gVBjG8",
+  authDomain: "student-literacy.firebaseapp.com",
+  projectId: "student-literacy",
+  storageBucket: "student-literacy.firebasestorage.app",
+  messagingSenderId: "66926306937",
+  appId: "1:66926306937:web:5204bff44a4cc5d62d16a8",
+};
+let db = null;
+
+function initFirebase() {
+  try {
+    if (typeof firebase === 'undefined') throw new Error('firebase SDK not loaded');
+    if (!firebase.apps.length) firebase.initializeApp(fbConfig);
+    db = firebase.firestore();
+    console.log('✅ Firebase connected');
+  } catch(e) {
+    console.warn('Firebase init failed:', e.message);
+    setTimeout(() => {
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(fbConfig);
+        db = firebase.firestore();
+        console.log('✅ Firebase connected (retry)');
+      } catch(e2) { console.warn('Firebase retry failed:', e2.message); }
+    }, 3000);
+  }
+}
+
+// ============================================================
+// GLOBAL SIM STATE
+// ============================================================
+const state = {
+  0: { camActive:false, hands:null, camera:null, pistonX:0.7, targetPistonX:0.7, particles:[], graphData:[], prevHandX:null, handDetected:false, volume:100, pressure:1.0 },
+  1: { camActive:false, hands:null, camera:null, temperature:25, targetTemperature:25, pistonY:0.6, targetPistonY:0.6, particles:[], graphData:[], prevHandX:null, handDetected:false, waveIntensity:0, lastHandXHistory:[] }
+};
+let currentTab = 0;
+let animFrames = {};
+
+// ============================================================
+// LITERACY STATE
+// ============================================================
+const lmState = {
+  tab: 0,
+  step: 1,
+  answers: {},
+  scores:  {},   // {1:점수, 2:점수, 3:점수, 4:점수}  0~10
+  pisaLevels: {}, // {1:'Insufficient'|'Basic'|'Proficient'|'Advanced'|'Excellent'}
+  pendingSave: null,   // 'literacy' | 'high' | null
+  studentId:   localStorage.getItem('metaflow_student_id')   || null,
+  studentName: localStorage.getItem('metaflow_student_name') || null,
+  schoolCode:  localStorage.getItem('mf_schoolCode') || null,
+};
+
+function normalizeSchoolCode(v){
+  return (v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10);
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(n) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===n));
+  document.getElementById('page-0').classList.toggle('show', n===0);
+  document.getElementById('page-1').classList.toggle('show', n===1);
+  document.getElementById('page-2').classList.toggle('show', n===2);
+  currentTab = n;
+  if (n === 2) initHighPage();
+  setTimeout(() => { if(n<2) resizeCanvas(n); }, 50);
+}
+
+function resizeCanvas(tab) {
+  const canvas = document.getElementById('sim-canvas-'+tab);
+  if (!canvas) return;
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+
+// ============================================================
+// PARTICLES
+// ============================================================
+function initParticles(tab) {
+  const s = state[tab];
+  s.particles = [];
+  for (let i=0;i<20;i++) {
+    const angle = Math.random()*Math.PI*2;
+    const speed = 0.0025+Math.random()*0.0015;
+    if (tab===0) {
+      s.particles.push({x:Math.random()*0.45+0.06,y:Math.random()*0.55+0.22,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:7,hue:200+Math.random()*40});
+    } else {
+      s.particles.push({x:Math.random()*0.52+0.24,y:Math.random()*0.18+0.68,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:7,hue:200,baseSpeed:speed});
+    }
+  }
+}
+
+// ============================================================
+// CAMERA TOGGLE (실험1·2)
+// ============================================================
+async function toggleCam(tab) {
+  const s = state[tab];
+  const btn  = document.getElementById('cam-btn-'+tab);
+  const dot  = document.getElementById('cam-dot-'+tab);
+  const text = document.getElementById('cam-text-'+tab);
+
+  if (s.camActive) {
+    if(s.camera) s.camera.stop();
+    s.camActive=false;
+    btn.textContent='📷 카메라 시작'; btn.classList.remove('danger');
+    dot.className='status-dot'; text.textContent='카메라 꺼짐'; return;
+  }
+  dot.className='status-dot detecting'; text.textContent='카메라 초기화 중...';
+
+  const video    = document.getElementById('webcam-'+tab);
+  const camCanvas= document.getElementById('cam-canvas-'+tab);
+  const camCtx   = camCanvas.getContext('2d');
+
+  const hands = new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+  hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:.7,minTrackingConfidence:.5});
+  hands.onResults(results=>{
+    camCanvas.width =video.videoWidth ||320;
+    camCanvas.height=video.videoHeight||240;
+    camCtx.clearRect(0,0,camCanvas.width,camCanvas.height);
+    if (results.multiHandLandmarks?.length) {
+      const lm=results.multiHandLandmarks[0];
+      drawConnectors(camCtx,lm,HAND_CONNECTIONS,{color:'#58a6ff',lineWidth:2});
+      drawLandmarks(camCtx,lm,{color:'#fff',lineWidth:1,radius:3});
+      const palmX=[0,5,9,13,17].reduce((s,i)=>s+lm[i].x,0)/5;
+      if(tab===0) handlePressureGesture(palmX,lm);
+      else        handleTemperatureGesture(palmX,lm);
+    } else {
+      if(tab===0){state[0].handDetected=false;document.getElementById('hand-detected-0').textContent='없음';document.getElementById('hand-detected-0').style.color='#da3633';}
+      else{state[1].handDetected=false;state[1].waveIntensity=Math.max(0,state[1].waveIntensity-0.03);document.getElementById('wave-detected-1').textContent='없음';document.getElementById('wave-detected-1').style.color='#da3633';}
+    }
+  });
+  s.hands=hands;
+  const camera=new Camera(video,{onFrame:async()=>{await hands.send({image:video});},width:320,height:240});
+  try {
+    await camera.start();
+    s.camera=camera; s.camActive=true;
+    btn.textContent='⏹ 카메라 중지'; btn.classList.add('danger');
+    dot.className='status-dot active'; text.textContent='감지 중...';
+  } catch(e) {
+    dot.className='status-dot'; text.textContent='카메라 오류: '+e.message;
+  }
+}
+
+function handlePressureGesture(palmX,landmarks){
+  const s=state[0]; s.handDetected=true;
+  const screenX=1-palmX;
+  s.handOverlayX=screenX; s.handOverlayY=landmarks[9].y;
+  document.getElementById('hand-x-0').textContent=screenX.toFixed(2);
+  document.getElementById('hand-bar-0').style.width=(screenX*100)+'%';
+  document.getElementById('hand-detected-0').textContent='감지됨';
+  document.getElementById('hand-detected-0').style.color='#3fb950';
+  s.targetPistonX=Math.max(0.2,Math.min(0.85,screenX*0.9+0.1));
+}
+function handleTemperatureGesture(palmX,landmarks){
+  const s=state[1]; s.handDetected=true;
+  const screenX=1-palmX;
+  s.handOverlayX=screenX; s.handOverlayY=landmarks[9].y;
+  s.lastHandXHistory.push(screenX);
+  if(s.lastHandXHistory.length>10) s.lastHandXHistory.shift();
+  let td=0;
+  for(let i=1;i<s.lastHandXHistory.length;i++) td+=Math.abs(s.lastHandXHistory[i]-s.lastHandXHistory[i-1]);
+  s.waveIntensity=Math.min(1,td/(s.lastHandXHistory.length-1)*30);
+  document.getElementById('wave-speed-1').textContent=s.waveIntensity.toFixed(2);
+  document.getElementById('wave-bar-1').style.width=(s.waveIntensity*100)+'%';
+  if(s.waveIntensity>0.15){document.getElementById('wave-detected-1').textContent='부채질 감지!';document.getElementById('wave-detected-1').style.color='#f0883e';}
+  else{document.getElementById('wave-detected-1').textContent='감지 중...';document.getElementById('wave-detected-1').style.color='#7d8590';}
+}
+
+// ============================================================
+// SIM 0 — 압력↔부피
+// ============================================================
+function drawSim0(){
+  const canvas=document.getElementById('sim-canvas-0');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d'); const W=canvas.width; const H=canvas.height;
+  if(!W||!H){animFrames[0]=requestAnimationFrame(drawSim0);return;}
+  const s=state[0];
+  s.pistonX+=(s.targetPistonX-s.pistonX)*0.08;
+  const margin=40,cL=margin,cR=W-margin,cT=H*0.15,cB=H*0.85;
+  const cW=cR-cL,cH=cB-cT;
+  const pistonAbsX=cL+cW*s.pistonX;
+  ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(37,99,235,.06)'; ctx.fillRect(cL,cT,pistonAbsX-cL,cH);
+  ctx.strokeStyle='#30363d'; ctx.lineWidth=3; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(cL,cT); ctx.lineTo(pistonAbsX,cT); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cL,cB); ctx.lineTo(pistonAbsX,cB); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cL,cT); ctx.lineTo(cL,cB); ctx.stroke();
+  ctx.strokeStyle='#21262d'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(pistonAbsX,cT); ctx.lineTo(cR,cT); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pistonAbsX,cB); ctx.lineTo(cR,cB); ctx.stroke();
+  ctx.setLineDash([]);
+  const pistonW=18;
+  ctx.fillStyle='#58a6ff'; ctx.shadowColor='#58a6ff'; ctx.shadowBlur=12;
+  ctx.fillRect(pistonAbsX-pistonW/2,cT,pistonW,cH); ctx.shadowBlur=0;
+  ctx.strokeStyle='#58a6ff'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(pistonAbsX+pistonW/2,cT+cH*.5); ctx.lineTo(pistonAbsX+pistonW/2+60,cT+cH*.5); ctx.stroke();
+  s.particles.forEach(p=>{
+    const maxX=(pistonAbsX-cL)/W, minX=cL/W, minY=cT/H, maxY=cB/H;
+    if(p.x<=minX||p.x>=maxX){p.vx*=-1;p.x=Math.max(minX+.01,Math.min(maxX-.01,p.x));}
+    if(p.y<=minY||p.y>=maxY){p.vy*=-1;p.y=Math.max(minY+.01,Math.min(maxY-.01,p.y));}
+    p.x+=p.vx; p.y+=p.vy;
+    ctx.beginPath(); ctx.arc(p.x*W,p.y*H,p.r,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${p.hue},80%,70%,.9)`; ctx.shadowColor=`hsla(${p.hue},80%,70%,.5)`; ctx.shadowBlur=6; ctx.fill(); ctx.shadowBlur=0;
+    if(Math.abs(p.x*W-pistonAbsX)<15){ctx.beginPath();ctx.arc(p.x*W,p.y*H,p.r+4,0,Math.PI*2);ctx.strokeStyle='rgba(255,100,50,.8)';ctx.lineWidth=2;ctx.stroke();}
+  });
+  ctx.fillStyle='#7d8590'; ctx.font='11px monospace';
+  ctx.fillText('← 닫힌 끝',cL+4,cT-8); ctx.fillText('피스톤',pistonAbsX-18,cT-8);
+  const volPct=Math.round((s.pistonX/0.85)*100);
+  s.volume=volPct; s.pressure=parseFloat((100/Math.max(volPct,1)*1.0).toFixed(2));
+  ctx.fillStyle='#21262d'; ctx.fillRect(cL,cB+12,cW,6);
+  ctx.fillStyle='#58a6ff'; ctx.fillRect(cL,cB+12,cW*s.pistonX,6);
+  ctx.fillStyle='#8b949e'; ctx.font='11px monospace';
+  ctx.fillText('부피: '+volPct+'%',cL,cB+30);
+  ctx.fillText('압력: '+s.pressure.toFixed(1)+' 상대기압',cL+cW*.4,cB+30);
+  document.getElementById('vol-0').textContent=volPct;
+  document.getElementById('pres-0').textContent=s.pressure.toFixed(1);
+  const vc=document.getElementById('vol-change-0'),pc=document.getElementById('pres-change-0');
+  if(s.pistonX<0.55){vc.textContent='▼ 감소';vc.className='var-card-change down';pc.textContent='▲ 증가';pc.className='var-card-change up';document.getElementById('desc-0').innerHTML='<span class="highlight">압력이 커졌어요!</span><br><br>입자 수는 <span class="highlight">그대로</span>이지만,<br>공간이 좁아져서 입자들이<br>벽에 더 <span class="highlight">자주 충돌</span>해요.<br><br>→ 부피 ↓ / 압력 ↑';}
+  else if(s.pistonX>0.75){vc.textContent='▲ 증가';vc.className='var-card-change up';pc.textContent='▼ 감소';pc.className='var-card-change down';document.getElementById('desc-0').innerHTML='<span class="highlight">압력이 작아졌어요!</span><br><br>공간이 넓어져서 입자들이<br>벽에 더 <span class="highlight">드물게 충돌</span>해요.<br><br>→ 부피 ↑ / 압력 ↓';}
+  else{document.getElementById('desc-0').innerHTML='손바닥으로 피스톤을 밀어보세요.<br><br><span class="highlight">압력이 커지면</span> 어떤 변화가 일어나나요?';}
+  if(s.graphData.length===0||Math.abs(s.graphData[s.graphData.length-1].v-volPct)>1){s.graphData.push({v:volPct,p:s.pressure});if(s.graphData.length>50)s.graphData.shift();}
+  drawGraph0();
+  if(s.handDetected&&s.handOverlayX!==undefined){
+    const hx=s.handOverlayX*W,hy=s.handOverlayY*H;
+    ctx.beginPath();ctx.arc(hx,hy,22,0,Math.PI*2);ctx.fillStyle='rgba(88,166,255,.15)';ctx.fill();ctx.strokeStyle='rgba(88,166,255,.8)';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#f0883e';ctx.strokeStyle='#f0883e';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(hx-35,hy);ctx.lineTo(hx-15,hy);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(hx-35,hy);ctx.lineTo(hx-25,hy-7);ctx.lineTo(hx-25,hy+7);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(88,166,255,.9)';ctx.font='11px monospace';ctx.fillText('손',hx-8,hy+36);
+  }
+  animFrames[0]=requestAnimationFrame(drawSim0);
+}
+
+function drawGraph0(){
+  const canvas=document.getElementById('graph-canvas-0');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d'); const W=canvas.offsetWidth; const H=110;
+  canvas.width=W; canvas.height=H;
+  ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#21262d'; ctx.lineWidth=.5;
+  for(let i=0;i<5;i++){const y=10+i*(H-20)/4;ctx.beginPath();ctx.moveTo(30,y);ctx.lineTo(W-5,y);ctx.stroke();}
+  ctx.fillStyle='#7d8590'; ctx.font='9px monospace';
+  ctx.fillText('P',4,14); ctx.fillText('↑',4,22); ctx.fillText('V →',W-24,H-4);
+  ctx.strokeStyle='#21262d'; ctx.lineWidth=1; ctx.beginPath();
+  for(let v=20;v<=100;v++){const p=100/v,x=30+(v-20)/(100-20)*(W-35),y=(H-10)-(p-1)/(3-1)*(H-20);if(v===20)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+  ctx.stroke();
+  const s=state[0];
+  if(s.graphData.length>0){const last=s.graphData[s.graphData.length-1];const x=30+(last.v-20)/(100-20)*(W-35),y=(H-10)-(last.p-1)/(3-1)*(H-20);ctx.beginPath();ctx.arc(Math.max(30,Math.min(W-5,x)),Math.max(5,Math.min(H-5,y)),5,0,Math.PI*2);ctx.fillStyle='#f0883e';ctx.shadowColor='#f0883e';ctx.shadowBlur=8;ctx.fill();ctx.shadowBlur=0;}
+}
+
+// ============================================================
+// SIM 1 — 온도↔부피
+// ============================================================
+function drawSim1(){
+  const canvas=document.getElementById('sim-canvas-1');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d'); const W=canvas.width; const H=canvas.height;
+  if(!W||!H){animFrames[1]=requestAnimationFrame(drawSim1);return;}
+  const s=state[1];
+  if(s.waveIntensity>0.15) s.targetTemperature=Math.min(200,s.targetTemperature+s.waveIntensity*1.5);
+  else s.targetTemperature=Math.max(25,s.targetTemperature-0.3);
+  s.temperature+=(s.targetTemperature-s.temperature)*0.05;
+  s.waveIntensity=Math.max(0,s.waveIntensity-0.01);
+  const tempRatio=(s.temperature-25)/(200-25);
+  s.targetPistonY=0.65-tempRatio*0.3;
+  s.pistonY+=(s.targetPistonY-s.pistonY)*0.05;
+  const speedMultiplier=1+tempRatio*3;
+  const cL=W*0.2,cR=W*0.8,cT=H*s.pistonY,cB=H*0.9,cW=cR-cL,cH=cB-cT;
+  ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,W,H);
+  if(tempRatio>0.1){const g=ctx.createRadialGradient(W/2,cB,10,W/2,cB,cH);g.addColorStop(0,`rgba(240,136,62,${tempRatio*.15})`);g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
+  ctx.fillStyle=`rgba(${Math.round(37+tempRatio*200)},${Math.round(99-tempRatio*50)},${Math.round(235-tempRatio*200)},.06)`;
+  ctx.fillRect(cL,cT,cW,cH);
+  ctx.strokeStyle='#30363d'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(cL,cT); ctx.lineTo(cL,cB); ctx.lineTo(cR,cB); ctx.lineTo(cR,cT); ctx.stroke();
+  const pistonH=14,pistonColor=`hsl(${200+tempRatio*-160},70%,65%)`;
+  ctx.fillStyle=pistonColor; ctx.shadowColor=pistonColor; ctx.shadowBlur=10;
+  ctx.fillRect(cL,cT-pistonH/2,cW,pistonH); ctx.shadowBlur=0;
+  ctx.strokeStyle=pistonColor; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(W/2,cT-pistonH/2); ctx.lineTo(W/2,cT-50); ctx.stroke();
+  if(tempRatio>0.05){for(let f=0;f<5;f++){const fx=cL+cW*(0.15+f*0.18),fH=20+tempRatio*20;ctx.strokeStyle=`rgba(240,136,62,${.4+tempRatio*.6})`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(fx,cB+5);ctx.quadraticCurveTo(fx+8,cB-fH/2,fx,cB-fH+Math.sin(Date.now()/200+f)*5);ctx.stroke();}}
+  s.particles.forEach(p=>{
+    const speed=p.baseSpeed*speedMultiplier;
+    const cs=Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+    if(cs>0){p.vx=(p.vx/cs)*speed;p.vy=(p.vy/cs)*speed;}
+    const aMinX=cL/W,aMaxX=(cR-2)/W,aMinY=(cT+8)/H,aMaxY=(cB-2)/H;
+    if(p.x<aMinX){p.x=aMinX+.005;p.vx=Math.abs(p.vx);}
+    if(p.x>aMaxX){p.x=aMaxX-.005;p.vx=-Math.abs(p.vx);}
+    if(p.y<aMinY){p.y=aMinY+.005;p.vy=Math.abs(p.vy);}
+    if(p.y>aMaxY){p.y=aMaxY-.005;p.vy=-Math.abs(p.vy);}
+    p.x+=p.vx; p.y+=p.vy;
+    const eH=Math.round(200-tempRatio*160);
+    ctx.beginPath();ctx.arc(p.x*W,p.y*H,p.r,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${eH},80%,70%,.9)`;ctx.shadowColor=`hsla(${eH},80%,70%,.5)`;ctx.shadowBlur=6;ctx.fill();ctx.shadowBlur=0;
+    if(speedMultiplier>2){ctx.beginPath();ctx.moveTo(p.x*W,p.y*H);ctx.lineTo(p.x*W-p.vx*W*8,p.y*H-p.vy*H*8);ctx.strokeStyle=`hsla(${eH},80%,70%,.2)`;ctx.lineWidth=2;ctx.stroke();}
+  });
+  const tX=cL-30,tTop=H*.1,tBot=H*.9,tH=tBot-tTop;
+  ctx.strokeStyle='#30363d';ctx.lineWidth=2;
+  ctx.beginPath();ctx.roundRect(tX-6,tTop,12,tH-15,6);ctx.stroke();
+  ctx.beginPath();ctx.arc(tX,tBot-8,9,0,Math.PI*2);ctx.stroke();
+  const tFH=(s.temperature-25)/(200-25)*(tH-25),tC=`hsl(${Math.round(240-tempRatio*240)},80%,60%)`;
+  ctx.fillStyle=tC;ctx.shadowColor=tC;ctx.shadowBlur=6;ctx.beginPath();ctx.arc(tX,tBot-8,7,0,Math.PI*2);ctx.fill();
+  if(tFH>0) ctx.fillRect(tX-3,tBot-8-tFH-12,6,tFH);
+  ctx.shadowBlur=0;ctx.fillStyle='#8b949e';ctx.font='11px monospace';ctx.fillText(Math.round(s.temperature)+'°',tX-14,tBot+20);
+  ctx.fillStyle='#7d8590';ctx.font='11px monospace';
+  ctx.fillText('피스톤',W/2-18,cT-20);
+  ctx.fillText('↑ 부피 팽창',cR+8,(cT+cB)/2);
+  ctx.fillText('일정 압력',cR+8,(cT+cB)/2+14);
+  const tempVal=Math.round(s.temperature),volVal=Math.round(100+tempRatio*50);
+  document.getElementById('temp-1').textContent=tempVal;
+  document.getElementById('vol-1').textContent=volVal;
+  document.getElementById('speed-1').textContent=tempRatio<.2?'느림':tempRatio<.5?'보통':tempRatio<.8?'빠름':'매우 빠름';
+  const tc=document.getElementById('temp-change-1'),vc=document.getElementById('vol-change-1');
+  if(tempRatio>0.3){tc.textContent='▲ 상승';tc.className='var-card-change up';vc.textContent='▲ 팽창';vc.className='var-card-change up';document.getElementById('desc-1').innerHTML='<span class="highlight">온도가 올라갔어요!</span><br><br>입자들이 더 <span class="highlight">빠르게</span> 움직이면서<br>벽을 더 <span class="highlight">세게 밀어요.</span><br><br>압력이 일정하게 유지되려면<br>부피가 <span class="highlight">커져야 해요!</span><br><br>→ 온도 ↑ / 부피 ↑';}
+  else{tc.textContent='→ 보통';tc.className='var-card-change same';vc.textContent='→ 보통';vc.className='var-card-change same';document.getElementById('desc-1').innerHTML='손을 흔들어 부채질해 보세요.<br><br><span class="highlight">온도가 올라가면</span> 입자는 어떻게 움직이나요?';}
+  if(s.graphData.length===0||Math.abs(s.graphData[s.graphData.length-1].t-tempVal)>2){s.graphData.push({t:tempVal,v:volVal});if(s.graphData.length>50)s.graphData.shift();}
+  drawGraph1();
+  if(s.handDetected&&s.handOverlayX!==undefined){
+    const hx=s.handOverlayX*W,hy=s.handOverlayY*H,waving=s.waveIntensity>0.15;
+    ctx.beginPath();ctx.arc(hx,hy,22,0,Math.PI*2);ctx.fillStyle=waving?'rgba(240,136,62,.2)':'rgba(88,166,255,.1)';ctx.fill();ctx.strokeStyle=waving?'rgba(240,136,62,.9)':'rgba(88,166,255,.5)';ctx.lineWidth=2;ctx.stroke();
+    if(waving){ctx.fillStyle='#f0883e';ctx.font='bold 20px sans-serif';ctx.fillText('〈〉',hx-14,hy+7);ctx.beginPath();ctx.arc(hx,hy,28+s.waveIntensity*10,0,Math.PI*2);ctx.strokeStyle=`rgba(240,136,62,${s.waveIntensity*.5})`;ctx.lineWidth=2;ctx.stroke();}
+    ctx.fillStyle=waving?'rgba(240,136,62,.9)':'rgba(88,166,255,.7)';ctx.font='11px monospace';ctx.fillText(waving?'🌬부채질!':'손',hx-10,hy+40);
+  }
+  animFrames[1]=requestAnimationFrame(drawSim1);
+}
+
+function drawGraph1(){
+  const canvas=document.getElementById('graph-canvas-1');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d'); const W=canvas.offsetWidth; const H=110;
+  canvas.width=W; canvas.height=H;
+  ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#21262d'; ctx.lineWidth=.5;
+  for(let i=0;i<5;i++){const y=10+i*(H-20)/4;ctx.beginPath();ctx.moveTo(30,y);ctx.lineTo(W-5,y);ctx.stroke();}
+  ctx.fillStyle='#7d8590';ctx.font='9px monospace';ctx.fillText('V',4,14);ctx.fillText('↑',4,22);ctx.fillText('T →',W-24,H-4);
+  ctx.strokeStyle='#21262d';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(30,H-10);ctx.lineTo(W-5,10);ctx.stroke();
+  const s=state[1];
+  if(s.graphData.length>1){ctx.beginPath();s.graphData.forEach((d,i)=>{const x=30+(d.t-25)/(200-25)*(W-35),y=(H-10)-(d.v-100)/(150-100)*(H-20);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.strokeStyle='#f0883e';ctx.lineWidth=2;ctx.stroke();}
+  if(s.graphData.length>0){const last=s.graphData[s.graphData.length-1];const x=30+(last.t-25)/(200-25)*(W-35),y=(H-10)-(last.v-100)/(150-100)*(H-20);ctx.beginPath();ctx.arc(Math.max(30,Math.min(W-5,x)),Math.max(5,Math.min(H-5,y)),5,0,Math.PI*2);ctx.fillStyle='#f0883e';ctx.shadowColor='#f0883e';ctx.shadowBlur=8;ctx.fill();ctx.shadowBlur=0;}
+}
+
+function resetSim(tab) {
+  if(tab===0){state[0].pistonX=0.7;state[0].targetPistonX=0.7;state[0].graphData=[];initParticles(0);}
+  else{state[1].temperature=25;state[1].targetTemperature=25;state[1].pistonY=0.65;state[1].targetPistonY=0.65;state[1].graphData=[];state[1].waveIntensity=0;initParticles(1);}
+}
+
+// ============================================================
+// LITERACY (실험1·2 모달)
+// ============================================================
+const STEPS = {
+  0:[
+    {level:'Basic',      color:'#ff4757',desc:'관찰한 현상을 그대로 서술해요',   q:'피스톤을 눌렀을 때 용기 안 입자들은 어떻게 되었나요? 관찰한 것을 그대로 써보세요.'},
+    {level:'Proficient', color:'#f0883e',desc:'원인과 결과를 연결해요',          q:'피스톤을 눌러 부피가 줄어들면 압력이 커지는 이유는 무엇인가요? 입자의 충돌과 연결해서 설명해보세요.'},
+    {level:'Advanced',   color:'#58a6ff',desc:'개념을 과학적으로 설명해요',      q:'압력과 부피가 반비례하는 이유를 입자 수, 운동 속도, 충돌 횟수 개념을 모두 사용해서 설명해보세요. (온도가 일정하다는 조건도 포함해서)'},
+    {level:'Excellent',  color:'#3fb950',desc:'실생활과 연결해 사고해요',        q:'압력과 부피의 반비례 관계가 실생활에서 활용되는 예를 하나 제시하고, 오늘 실험과 연결해서 설명해보세요.'},
+  ],
+  1:[
+    {level:'Basic',      color:'#ff4757',desc:'관찰한 현상을 그대로 서술해요',   q:'손을 흔들어 온도를 높였을 때 피스톤과 입자는 어떻게 변했나요? 눈에 보인 것을 그대로 써보세요.'},
+    {level:'Proficient', color:'#f0883e',desc:'원인과 결과를 연결해요',          q:'온도가 올라가면 부피가 커지는 이유는 무엇인가요? 입자의 운동 속도와 벽을 미는 힘을 연결해서 설명해보세요.'},
+    {level:'Advanced',   color:'#58a6ff',desc:'개념을 과학적으로 설명해요',      q:'온도와 부피가 비례하는 이유를 입자 운동 에너지, 벽에 가하는 힘, 압력이 일정하게 유지되는 조건을 모두 포함해서 설명해보세요.'},
+    {level:'Excellent',  color:'#3fb950',desc:'실생활과 연결해 사고해요',        q:'온도가 오르면 부피가 커지는 성질이 실생활에서 어떻게 활용되나요? 예를 하나 들고 오늘 실험과 연결해 설명해보세요.'},
+  ],
+};
+const HINTS = {
+  0:['💡 입자의 수는 변하지 않았어요. 공간이 좁아지면 입자들이 얼마나 자주 벽에 부딪힐까요?','💡 충돌 횟수가 많아지면 벽에 가하는 힘(압력)이 어떻게 될까요?','💡 온도가 일정하다는 건 입자의 운동 속도가 변하지 않는다는 뜻이에요.','💡 주사기, 자동차 에어백, 잠수함 밸러스트 탱크 등을 생각해보세요.'],
+  1:['💡 온도가 오르면 입자들이 더 빠르게 움직여요. 벽에 부딪히는 세기는 어떨까요?','💡 압력이 일정하게 유지되려면 부피가 어떻게 변해야 할까요?','💡 온도(절대온도)와 부피는 비례해요. 운동 에너지 관점에서 생각해보세요.','💡 열기구, 빵이 오븐에서 부풀어 오르는 현상을 생각해보세요.'],
+};
+
+function openLiteracyModal(tab) {
+  lmState.tab=tab; lmState.step=1; lmState.answers={}; lmState.scores={}; lmState.pisaLevels={};
+  document.getElementById('lm-exp-summary').textContent=tab===0?'실험 조건: 온도 일정 · 입자 수 일정 · 피스톤으로 부피 조절':'실험 조건: 압력 일정 · 입자 수 일정 · 부채질로 온도 변화';
+  renderLiteracyStep();
+  document.getElementById('literacy-modal').style.display='flex';
+  document.getElementById('lm-answer').value='';
+  document.getElementById('lm-charcount').textContent='0자';
+}
+function closeLiteracyModal(){document.getElementById('literacy-modal').style.display='none';}
+
+function renderLiteracyStep(){
+  const step=lmState.step, info=STEPS[lmState.tab][step-1];
+  for(let i=1;i<=4;i++){
+    const p=document.getElementById('lm-pill-'+i);
+    if(i<step){p.style.background='rgba(63,185,80,.15)';p.style.borderColor='rgba(63,185,80,.4)';p.style.color='#3fb950';}
+    else if(i===step){p.style.background='rgba(37,99,235,.2)';p.style.borderColor='#2563eb';p.style.color='#58a6ff';}
+    else{p.style.background='transparent';p.style.borderColor='#30363d';p.style.color='#7d8590';}
+  }
+  const badge=document.getElementById('lm-level-badge');
+  badge.textContent='● '+info.level; badge.style.color=info.color; badge.style.borderColor=info.color+'55'; badge.style.background=info.color+'22';
+  document.getElementById('lm-level-desc').textContent=info.desc;
+  document.getElementById('lm-question').textContent=info.q;
+  document.getElementById('lm-title').textContent=step+'단계 질문';
+  document.getElementById('lm-answer').value=lmState.answers[step]||'';
+  document.getElementById('lm-charcount').textContent=(lmState.answers[step]||'').length+'자';
+  document.getElementById('lm-hint-box').style.display='none';
+  document.getElementById('lm-feedback').style.display='none';
+  document.getElementById('lm-next-btn').style.display='none';
+  document.getElementById('lm-save-btn').style.display='none';
+  document.getElementById('lm-submit-btn').style.display='block';
+  document.getElementById('lm-submit-btn').textContent='✍ 제출하기';
+  document.getElementById('lm-submit-btn').disabled=false;
+}
+
+function showHint(){
+  const box=document.getElementById('lm-hint-box');
+  box.textContent=HINTS[lmState.tab][lmState.step-1];
+  box.style.display='block';
+}
+
+// ============================================================
+// PISA 채점 공통 함수
+// ============================================================
+const SCORING_SYSTEM = `
+당신은 PISA 2025 과학 문해력 기준으로 학생 답변을 채점하는 평가 전문가입니다.
+중학교·고등학교 학생 수준에 맞게 공정하게 채점하세요. 너무 짜게도, 너무 후하게도 채점하지 마세요.
+
+## PISA 레벨별 채점 기준 (10점 만점)
+
+### Insufficient (0~2점) — 다음 중 하나면 해당
+- "모르겠다", "잘 모르겠어", "모름" 등 사실상 무응답
+- 질문과 전혀 관련 없는 내용
+- 의미 있는 내용이 한 단어·단순 반복에 불과한 경우
+
+### Basic (3~5점) — 관찰 사실을 자신의 말로 서술
+- 실험에서 일어난 현상을 하나 이상 정확하게 묘사했다면 최소 3점
+- 여러 현상을 구체적으로 서술하면 4~5점
+- 과학 용어 없어도 됨, 인과관계 없어도 됨
+- 예) "입자 사이의 거리가 가까워졌어요" → 3~4점
+
+### Proficient (5~7점) — 원인-결과 연결
+- 왜 그런 현상이 일어났는지 인과관계를 설명하면 5점 이상
+- 과학 용어(충돌, 압력, 입자, 온도 등)를 1~2개 사용하면 6~7점
+
+### Advanced (7~9점) — 과학 개념으로 설명
+- 핵심 과학 개념(보일 법칙, 충돌 횟수, 운동 에너지 등)을 명확히 사용
+- 인과관계가 논리적으로 연결됨
+
+### Excellent (9~10점) — 개념 적용 + 전이
+- 과학 개념을 완벽히 적용하고 실생활 예시까지 연결
+
+## 채점 시 유의사항
+- 학생이 뭔가 관찰하고 서술했다면 Insufficient는 아닙니다 → 최소 3점
+- 답변이 짧아도 내용이 맞으면 점수를 줘야 합니다
+- 완벽하지 않아도 방향이 맞으면 중간 점수를 부여하세요
+- 피드백은 잘한 점을 먼저 언급하고, 더 높은 점수를 위해 무엇을 추가하면 좋은지 알려주세요
+
+## 반드시 JSON만 반환 (마크다운 코드블록 없이)
+{"score":점수(0~10정수),"pisaLevel":"Insufficient|Basic|Proficient|Advanced|Excellent","feedback":"2~3문장 피드백","reason":"채점 근거 1문장"}
+`;
+
+function scoreColor(score) {
+  if(score<=2) return '#da3633';
+  if(score<=4) return '#ff4757';
+  if(score<=6) return '#f0883e';
+  if(score<=8) return '#58a6ff';
+  return '#3fb950';
+}
+function scoreBg(score) {
+  if(score<=2) return 'rgba(218,54,51,.15)';
+  if(score<=4) return 'rgba(255,71,87,.15)';
+  if(score<=6) return 'rgba(240,136,62,.15)';
+  if(score<=8) return 'rgba(88,166,255,.15)';
+  return 'rgba(63,185,80,.15)';
+}
+function pisaKor(level) {
+  return {Insufficient:'미달',Basic:'기초',Proficient:'보통',Advanced:'우수',Excellent:'최우수'}[level]||level;
+}
+
+async function callScoringAPI(systemPrompt, userContent) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST', headers:{
+  'Content-Type':'application/json',
+  'x-api-key': localStorage.getItem('mf_api_key')||'',
+  'anthropic-version': '2023-06-01',
+  'anthropic-dangerous-direct-browser-access': 'true'
+},
+    body: JSON.stringify({
+      model:'claude-sonnet-4-20250514', max_tokens:600,
+      system: systemPrompt,
+      messages:[{role:'user', content: userContent}]
+    })
+  });
+  const data = await res.json();
+  const raw = data.content?.[0]?.text||'{}';
+  // JSON 추출 — 코드블록 안에 있어도, 텍스트 중간에 있어도 파싱
+ // 가장 바깥쪽 { } 전체를 탐욕적으로 추출
+   console.log('API raw response:', raw);
+  const match = raw.match(/\{[\s\S]*\}/);
+  if(!match) throw new Error('JSON not found: '+raw.slice(0,200));
+  try {
+    return JSON.parse(match[0]);
+  } catch(e) {
+    // 파싱 실패 시 원문 콘솔에 찍고 재throw
+    console.warn('JSON parse fail, raw:', raw);
+    throw e;
+  }
+}
+
+// 답변 내용으로 기본 점수 추정 (API 오류 대비)
+function estimateScoreFallback(answer) {
+  const noAnswer = ['모르겠','잘 모르','모름','모르겠어','모르겠습니다','몰라요','모르겠음'];
+  if(noAnswer.some(k=>answer.includes(k)) && answer.length < 20){
+    return {score:0, pisaLevel:'Insufficient', feedback:'답변을 작성하지 못했어요. 실험에서 관찰한 내용을 떠올려 다시 도전해보세요!', reason:'무응답/모름으로 판단'};
+  }
+  // 뭔가 썼으면 일단 Basic 중간
+  return {score:4, pisaLevel:'Basic', feedback:'답변을 작성했어요! AI 채점에 일시적 오류가 있어 임시 점수(4점)로 처리됩니다. 저장 후 선생님께 확인받으세요.', reason:'API 오류로 기본값 적용'};
+}
+
+// ============================================================
+// submitLiteracy — 실험1·2 PISA 채점
+// ============================================================
+async function submitLiteracy(){
+  const answer=document.getElementById('lm-answer').value.trim();
+  if(answer.length<5){alert('답변을 입력해주세요!');return;}
+  lmState.answers[lmState.step]=answer;
+  const btn=document.getElementById('lm-submit-btn');
+  btn.textContent='⏳ AI 채점 중...'; btn.disabled=true;
+  const info=STEPS[lmState.tab][lmState.step-1];
+
+  let result={score:4,pisaLevel:'Basic',feedback:'AI 채점에 일시적 오류가 발생했어요. 임시 점수로 처리됩니다.',reason:'API 오류'};
+  try{
+    const userContent =
+      `[문제 단계: ${info.level}]\n[질문]: ${info.q}\n[학생 답변]: ${answer}\n\n위 답변을 채점하세요.`;
+    result = await callScoringAPI(SCORING_SYSTEM, userContent);
+  }catch(e){
+    console.warn('Scoring API error:', e);
+    result = estimateScoreFallback(answer);
+  }
+
+  // 점수 저장
+  lmState.scores[lmState.step]=result.score;
+  lmState.pisaLevels[lmState.step]=result.pisaLevel;
+
+  // 피드백 UI 렌더
+  const sc=result.score, lv=result.pisaLevel;
+  const feedbackHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div style="background:${scoreBg(sc)};border:1.5px solid ${scoreColor(sc)};border-radius:10px;padding:6px 14px;text-align:center;min-width:56px;">
+        <div style="font-size:22px;font-weight:900;color:${scoreColor(sc)};font-family:monospace;line-height:1;">${sc}<span style="font-size:12px;">/10</span></div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:${scoreColor(sc)};">PISA ${lv} <span style="color:#7d8590;font-weight:400;">(${pisaKor(lv)})</span></div>
+        <div style="font-size:10px;color:#7d8590;margin-top:2px;">📌 ${result.reason||''}</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:${sc<=4?'#f0883e':'#8b949e'};line-height:1.8;border-top:1px solid #21262d;padding-top:8px;">
+      🤖 ${result.feedback}
+    </div>`;
+
+  document.getElementById('lm-feedback').innerHTML=feedbackHTML;
+  document.getElementById('lm-feedback').style.display='block';
+  btn.style.display='none';
+
+  if(lmState.step<4){
+    document.getElementById('lm-next-btn').textContent=`${lmState.step}단계 완료 (${sc}점) → ${lmState.step+1}단계`;
+    document.getElementById('lm-next-btn').style.display='block';
+  } else {
+    // 최종 점수 요약 표시
+    const total = [1,2,3,4].reduce((s,i)=>(lmState.scores[i]||0)+s,0);
+    const avg = (total/4).toFixed(1);
+    const topLevel = Object.values(lmState.pisaLevels).reduce((best,cur)=>{
+      const order=['Insufficient','Basic','Proficient','Advanced','Excellent'];
+      return order.indexOf(cur)>order.indexOf(best)?cur:best;
+    },'Insufficient');
+    document.getElementById('lm-feedback').innerHTML += `
+      <div style="margin-top:12px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);border-radius:8px;padding:10px 14px;">
+        <div style="font-size:11px;font-weight:700;color:#a78bfa;margin-bottom:6px;">📊 4단계 종합 결과</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          ${[1,2,3,4].map(i=>`<div style="text-align:center;flex:1;background:#0d1117;border-radius:6px;padding:6px 4px;border:1px solid ${scoreColor(lmState.scores[i]||0)}40;">
+            <div style="font-size:9px;color:#7d8590;">${i}단계</div>
+            <div style="font-size:16px;font-weight:800;color:${scoreColor(lmState.scores[i]||0)};font-family:monospace;">${lmState.scores[i]??'—'}</div>
+          </div>`).join('')}
+          <div style="text-align:center;flex:1;background:#0d1117;border-radius:6px;padding:6px 4px;border:1px solid #a78bfa40;">
+            <div style="font-size:9px;color:#7d8590;">평균</div>
+            <div style="font-size:16px;font-weight:800;color:#a78bfa;font-family:monospace;">${avg}</div>
+          </div>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:${scoreColor(lmState.scores[4]||0)};">최고 달성 레벨: ${topLevel} (${pisaKor(topLevel)})</div>
+      </div>`;
+    document.getElementById('lm-save-btn').style.display='block';
+  }
+}
+function nextLiteracyStep(){lmState.step++;renderLiteracyStep();}
+function skipLiteracy(){if(lmState.step<4){lmState.step++;renderLiteracyStep();}else closeLiteracyModal();}
+
+// ★ 수정: pendingSave 플래그로 학생 모달 후 자동 저장 트리거
+async function saveLiteracyToFirebase(){
+  if(!lmState.studentId){
+    lmState.pendingSave='literacy';
+    document.getElementById('student-modal').style.display='flex';
+    return;
+  }
+  doSave();
+}
+
+async function doSave(){
+  const btn=document.getElementById('lm-save-btn');
+  if(btn){btn.textContent='⏳ 저장 중...'; btn.disabled=true;}
+  const expName=lmState.tab===0?'기체_압력부피':'기체_온도부피';
+  const mfAnswers=[1,2,3,4].map(i=>lmState.answers[i]||'(건너뜀)');
+  const mfScores =[1,2,3,4].map(i=>lmState.scores[i]??null);
+  const mfLevels =[1,2,3,4].map(i=>lmState.pisaLevels[i]||null);
+  const completedCount=mfAnswers.filter(a=>a!=='(건너뜀)').length;
+  const totalScore=mfScores.reduce((s,v)=>s+(v??0),0);
+  const avgScore=completedCount>0?+(totalScore/completedCount).toFixed(1):0;
+  // 최고 도달 PISA 레벨 판별
+  const order=['Insufficient','Basic','Proficient','Advanced','Excellent'];
+  const topLevel=mfLevels.filter(Boolean).reduce((best,cur)=>order.indexOf(cur)>order.indexOf(best)?cur:best,'Insufficient');
+  // level 필드: 인덱스(0~4)로 저장 — index.html/dashboard 호환
+  const levelIndex=order.indexOf(topLevel);
+  const data={
+    studentId:   lmState.studentId,
+    studentName: lmState.studentName||'',
+    studentClass:localStorage.getItem('metaflow_student_class')||'',
+    schoolCode:  lmState.schoolCode||normalizeSchoolCode(localStorage.getItem('mf_schoolCode'))||'',
+    experimentName: expName,
+    subject: '기체 분자 운동',
+    mfAnswers,
+    mfScores,
+    mfLevels,
+    level: levelIndex,          // 0~4 (PISA 레벨 인덱스)
+    avgScore,
+    totalScore,
+    pisaLevel: topLevel,
+    terms:0, causal:0, sentences:0,
+    feedback: `평균 ${avgScore}점 / 최고 레벨: ${topLevel}(${pisaKor(topLevel)})`,
+    answer: mfAnswers.find(a=>a!=='(건너뜀)')||'',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+  try{
+    if(db){
+      await db.collection('sessions').add(data);
+      if(btn){btn.textContent='✅ META FLOW+에 저장 완료!';btn.style.background='linear-gradient(135deg,#3fb950,#2ea043)';}
+      setTimeout(()=>closeLiteracyModal(),2000);
+    } else throw new Error('DB 연결 없음');
+  }catch(e){
+    console.error('Save error:',e);
+    localStorage.setItem('metaflow_'+Date.now(),JSON.stringify({...data,createdAt:new Date().toISOString()}));
+    if(btn){btn.textContent='⚠ Firebase 실패 → 로컬 저장됨';btn.disabled=false;}
+  }
+}
+
+// ============================================================
+// 학생 정보 모달
+// ============================================================
+function confirmStudentId(){
+  const school=normalizeSchoolCode(document.getElementById('student-school-input').value);
+  const name=document.getElementById('student-name-input').value.trim();
+  const id=document.getElementById('student-id-input').value.trim();
+  if(!school){alert('학교 코드를 입력해주세요! (모르면 JOINT01)');document.getElementById('student-school-input').focus();return;}
+  if(!name){alert('이름을 입력해주세요!');document.getElementById('student-name-input').focus();return;}
+  if(!id){alert('학번을 입력해주세요!');document.getElementById('student-id-input').focus();return;}
+  lmState.studentId=id; lmState.studentName=name; lmState.schoolCode=school;
+  localStorage.setItem('metaflow_student_id',id);
+  localStorage.setItem('metaflow_student_name',name);
+  localStorage.setItem('mf_schoolCode',school);
+  document.getElementById('student-modal').style.display='none';
+  updateStudentBadge();
+
+  // ★ 수정: pendingSave 플래그로 정확한 저장 함수 호출
+  if(lmState.pendingSave==='literacy'){
+    lmState.pendingSave=null;
+    doSave();
+  } else if(lmState.pendingSave==='high'){
+    lmState.pendingSave=null;
+    _doHighSave();
+  }
+}
+
+function updateStudentBadge(){
+  const id=lmState.studentId, name=lmState.studentName, school=lmState.schoolCode;
+  if(!id) return;
+  document.getElementById('student-badge').style.display='inline-flex';
+  document.getElementById('student-badge-text').textContent=(name?name+' · ':'')+id+'번'+(school?' · 🏫'+school:'');
+}
+function changeStudentId(){
+  document.getElementById('student-school-input').value=lmState.schoolCode||'';
+  document.getElementById('student-name-input').value=lmState.studentName||'';
+  document.getElementById('student-id-input').value=lmState.studentId||'';
+  document.getElementById('student-modal').style.display='flex';
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load',()=>{
+  initFirebase();
+  document.getElementById('loading-overlay').style.display='none';
+  initParticles(0); initParticles(1);
+  const W=Math.max(400,window.innerWidth-320-260-40);
+  const H=Math.max(300,window.innerHeight-110-60);
+  const c0=document.getElementById('sim-canvas-0');
+  const c1=document.getElementById('sim-canvas-1');
+  c0.width=W; c0.height=H; c1.width=W; c1.height=H;
+  drawSim0(); drawSim1();
+  if(!localStorage.getItem('metaflow_student_id')){
+    setTimeout(()=>{
+      const se=document.getElementById('student-school-input');
+      if(se) se.value=localStorage.getItem('mf_schoolCode')||'';
+      document.getElementById('student-modal').style.display='flex';
+    },800);
+  } else {
+    lmState.studentId=localStorage.getItem('metaflow_student_id');
+    lmState.studentName=localStorage.getItem('metaflow_student_name')||'';
+    lmState.schoolCode=localStorage.getItem('mf_schoolCode')||'';
+    updateStudentBadge();
+  }
+});
+window.addEventListener('resize',()=>{
+  const W=Math.max(400,window.innerWidth-320-260-40);
+  const H=Math.max(300,window.innerHeight-110-60);
+  document.getElementById('sim-canvas-0').width=W; document.getElementById('sim-canvas-0').height=H;
+  document.getElementById('sim-canvas-1').width=W; document.getElementById('sim-canvas-1').height=H;
+});
+</script>
+
+<!-- ============================================================
+     고등 탭 — 이상기체방정식
+============================================================ -->
+<script>
+const HIGH_GAS = {
+  A:{label:'용기 A',emoji:'🔴',color:'#f0883e',trueM:32,trueName:'O₂ (산소)',  massBefore:125.48,massAfter:124.90,volume:440},
+  B:{label:'용기 B',emoji:'🔵',color:'#58a6ff',trueM:4, trueName:'He (헬륨)', massBefore:98.32, massAfter:98.22, volume:460},
+};
+
+const HIGH_LM=[
+  {level:'Basic',     color:'#ff4757',desc:'관찰값을 그대로 서술해요',
+   q:(d)=>`측정 결과를 기록해보세요. 포집 전 질량 ${d.before}g, 포집 후 질량 ${d.after}g, 부피 ${d.vol}mL 입니다. 기체의 질량은 얼마이며, 이 값들로 무엇을 구할 수 있나요?`,
+   hint:'💡 기체 질량 = 포집 전 - 포집 후. m, V, T, P 네 값을 M=mRT/PV에 대입하면 몰질량을 구할 수 있어요.'},
+  {level:'Proficient',color:'#f0883e',desc:'원인과 결과를 연결해요',
+   q:(d)=>`계산된 몰질량 ${d.M} g/mol을 근거로, 이 기체가 O₂(32 g/mol)인지 He(4 g/mol)인지 어떻게 판단할 수 있나요? 오차가 생기는 이유도 설명해보세요.`,
+   hint:'💡 측정 오차의 원인: 수증기압 보정 미적용, 질량 측정 오차, 기체 누출 등이 있어요.'},
+  {level:'Advanced',  color:'#58a6ff',desc:'개념을 과학적으로 설명해요',
+   q:(d)=>`PV=nRT에서 M=mRT/PV 식이 어떻게 유도되는지, n과 M의 관계를 이용해 단계별로 설명하고, 보일·샤를·아보가드로 법칙이 이 식에 어떻게 녹아 있는지 서술하세요.`,
+   hint:'💡 n=m/M → PV=(m/M)RT → M=mRT/PV. 보일:T·n 일정→PV=상수, 샤를:P·n 일정→V/T=상수'},
+  {level:'Excellent', color:'#3fb950',desc:'실생활과 연결해 사고해요',
+   q:(d)=>`이 실험 방법으로 기체를 판별할 수 없는 경우를 제시하고, 실생활에서 기체 종류 확인이 필요한 상황을 예를 들어 이상기체방정식과 연결해 설명하세요.`,
+   hint:'💡 N₂(28)와 CO(28)는 몰질량이 같아 구별 불가. 실생활: 의료용 산소 확인, 소화기 가스 점검 등'},
+];
+
+const HS2={
+  stage:0,selectedGas:null,massBefore:null,massAfter:null,massGas:null,
+  volume:null,M:null,collectProgress:0,
+  camActive:false,hands2:null,camera2:null,
+  fistLock:false,handOpen:false,
+  handOverlayX:undefined,handOverlayY:undefined,
+  lmStep:1,lmAnswers:{},lmScores:{},lmPisaLevels:{},
+  animFrames:{},bubbles:[],pressing:false,
+};
+let highInit2=false;
+
+function initHighPage(){
+  if(highInit2) return;
+  highInit2=true;
+  highShowStage(0);
+}
+
+function highShowStage(n){
+  document.querySelectorAll('.h-stage').forEach(el=>el.style.display='none');
+  const el=document.getElementById('h-stage-'+n);
+  if(el) el.style.display='flex';
+  HS2.stage=n;
+  updateHighProgress(n);
+  Object.keys(HS2.animFrames).forEach(k=>{cancelAnimationFrame(HS2.animFrames[k]);delete HS2.animFrames[k];});
+  if(n===1) setTimeout(()=>drawBalanceCanvas(1,'before'),50);
+  if(n===2) setTimeout(()=>drawCollectCanvas(),50);
+  if(n===3) setTimeout(()=>drawBalanceCanvas(3,'after'),50);
+  if(n===4) fillStage4();
+  if(n===5) renderHighLMStage();
+}
+
+function updateHighProgress(active){
+  for(let i=0;i<=5;i++){
+    const el=document.getElementById('h-prog-'+i);
+    const ic=document.getElementById('h-prog-'+i+'-icon');
+    const st=document.getElementById('h-prog-'+i+'-s');
+    if(!el) continue;
+    if(i<active){el.style.cssText='display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px;border:1px solid rgba(63,185,80,.3);font-size:11px;background:rgba(63,185,80,.08);color:#3fb950;';if(ic)ic.textContent='✅';if(st){st.textContent='완료';st.style.color='#3fb950';}}
+    else if(i===active){el.style.cssText='display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px;border:1px solid rgba(124,58,237,.4);font-size:11px;background:rgba(124,58,237,.1);color:#a78bfa;';if(ic)ic.textContent='🟣';if(st){st.textContent='진행중';st.style.color='#a78bfa';}}
+    else{el.style.cssText='display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px;border:1px solid #21262d;font-size:11px;color:#7d8590;';if(ic)ic.textContent='⬜';if(st){st.textContent='대기';st.style.color='#7d8590';}}
+  }
+}
+
+function highSelectGasKey(key){
+  HS2.selectedGas=key;
+  const gas=HIGH_GAS[key];
+  ['A','B'].forEach(k=>{
+    const c=document.getElementById('gas-card-'+k); if(!c) return;
+    c.style.borderColor=k===key?gas.color:'#30363d';
+    c.style.background=k===key?gas.color+'18':'#0d1117';
+    c.style.transform=k===key?'scale(1.04)':'scale(1)';
+  });
+  document.getElementById('h-rec-gas').textContent=gas.label;
+  setTimeout(()=>highShowStage(1),500);
+}
+
+function drawBalanceCanvas(stageNum,when){
+  const c=document.getElementById('h-canvas-'+stageNum);
+  if(!c) return;
+  const parent=c.parentElement;
+  c.width=parent?(parent.offsetWidth||600):600;
+  c.height=parent?(parent.offsetHeight||380):380;
+  if(!c.width||!c.height){c.width=600;c.height=380;}
+
+  function draw(){
+    const W=c.width,H=c.height;
+    const ctx=c.getContext('2d');
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,W,H);
+    const gas=HS2.selectedGas?HIGH_GAS[HS2.selectedGas]:null;
+    const isDone=when==='before'?!!HS2.massBefore:!!HS2.massAfter;
+    const isOn=HS2.handOpen||isDone;
+    const bx=W*.06,by=H*.08,bw=W*.56,bh=H*.84;
+    ctx.fillStyle='#090f09';ctx.strokeStyle='#1e3c1e';ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(bx-10,by+bh*.9,bw+20,bh*.09,4);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#0c160c'; ctx.fillRect(bx+bw*.43,by+bh*.62,bw*.14,bh*.3);
+    ctx.fillStyle='#091309';ctx.strokeStyle='#1e421e';ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(bx,by+bh*.53,bw,bh*.36,8);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#040a04';ctx.strokeStyle='#163a16';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(bx+bw*.07,by+bh*.57,bw*.86,bh*.22,4);ctx.fill();ctx.stroke();
+    const dispVal=document.getElementById('balance-display')?.textContent||'0.00';
+    ctx.fillStyle='#00e5b0';ctx.font='bold '+Math.floor(bh*.13)+'px "SF Mono","Courier New",monospace';ctx.textAlign='center';
+    ctx.fillText(dispVal+' g',bx+bw*.5,by+bh*.735);
+    ctx.font=Math.floor(H*.018)+'px monospace';ctx.fillStyle='#1e6e1e';ctx.fillText('ELECTRONIC BALANCE',bx+bw*.5,by+bh*.575);
+    const px=bx+bw*.05,py=by+bh*.06,pw=bw*.9,ph=bh*.44;
+    ctx.fillStyle='#0c200c';ctx.strokeStyle='#2a6a2a';ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(px,py,pw,ph,6);ctx.fill();ctx.stroke();
+    ctx.strokeStyle='#163016';ctx.lineWidth=.5;
+    for(let i=1;i<5;i++){const gx=px+pw/5*i;ctx.beginPath();ctx.moveTo(gx,py);ctx.lineTo(gx,py+ph);ctx.stroke();}
+    for(let i=1;i<3;i++){const gy=py+ph/3*i;ctx.beginPath();ctx.moveTo(px,gy);ctx.lineTo(px+pw,gy);ctx.stroke();}
+    if(gas){
+      const isCollected=when==='after';
+      if(isOn){
+        const vx=bx+bw*.25,vy=py+ph*.04,vw=bw*.5,vh=ph*.88;
+        ctx.fillStyle=isDone?gas.color+'28':gas.color+'14';ctx.strokeStyle=gas.color;ctx.lineWidth=isDone?2.5:2;
+        ctx.shadowColor=isDone?gas.color:'transparent';ctx.shadowBlur=isDone?14:0;
+        ctx.beginPath();ctx.roundRect(vx,vy+vh*.06,vw,vh*.87,7);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+        ctx.fillStyle=gas.color+'50';ctx.strokeStyle=gas.color+'90';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.roundRect(vx+vw*.36,vy,vw*.28,vh*.1,3);ctx.fill();ctx.stroke();
+        ctx.fillStyle=gas.color;ctx.font='bold '+Math.floor(vh*.18)+'px monospace';ctx.textAlign='center';ctx.fillText(gas.label,vx+vw*.5,vy+vh*.44);
+        if(isCollected){ctx.font=Math.floor(vh*.16)+'px sans-serif';ctx.fillText('💧포집완료',vx+vw*.5,vy+vh*.64);}
+        if(isDone){const val=when==='before'?HS2.massBefore:HS2.massAfter;ctx.font='bold '+Math.floor(vh*.15)+'px monospace';ctx.fillStyle='#3fb950';ctx.fillText(val.toFixed(2)+'g ✅',vx+vw*.5,vy+vh*.82);}
+      } else {
+        const vx=bx+bw*1.04,vy=by+bh*.04,vw=bw*.36,vh=bh*.46;
+        ctx.fillStyle='#101a10';ctx.strokeStyle=gas.color+'80';ctx.lineWidth=2;
+        ctx.beginPath();ctx.roundRect(vx,vy+vh*.06,vw,vh*.87,7);ctx.fill();ctx.stroke();
+        ctx.fillStyle=gas.color+'55';ctx.strokeStyle=gas.color+'80';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.roundRect(vx+vw*.36,vy,vw*.28,vh*.1,3);ctx.fill();ctx.stroke();
+        ctx.fillStyle=gas.color;ctx.font='bold '+Math.floor(vh*.19)+'px monospace';ctx.textAlign='center';ctx.fillText(gas.label,vx+vw*.5,vy+vh*.44);
+        if(isCollected){ctx.font=Math.floor(vh*.14)+'px sans-serif';ctx.fillStyle='#58a6ff';ctx.fillText('💧포집완료',vx+vw*.5,vy+vh*.62);}
+        ctx.fillStyle='#7d8590';ctx.font=Math.floor(vh*.12)+'px Noto Sans KR,sans-serif';ctx.fillText('(미지 기체)',vx+vw*.5,vy+vh*.78);
+        ctx.strokeStyle=gas.color+'80';ctx.lineWidth=2.5;ctx.setLineDash([6,4]);
+        ctx.beginPath();ctx.moveTo(vx-6,vy+vh*.38);ctx.lineTo(bx+bw*.98,vy+vh*.38);ctx.stroke();ctx.setLineDash([]);
+        ctx.fillStyle=gas.color;ctx.beginPath();ctx.moveTo(bx+bw*.99,vy+vh*.38-8);ctx.lineTo(bx+bw*.99+12,vy+vh*.38);ctx.lineTo(bx+bw*.99,vy+vh*.38+8);ctx.closePath();ctx.fill();
+      }
+    }
+    ctx.textAlign='center';ctx.font=Math.floor(H*.03)+'px Noto Sans KR,sans-serif';
+    if(isDone){ctx.fillStyle='#3fb950';const val=when==='before'?HS2.massBefore:HS2.massAfter;ctx.fillText('✅ 측정 완료 ('+val.toFixed(2)+'g) — 다음 단계 버튼을 누르세요',W*.38,H*.96);}
+    else if(HS2.handOpen){ctx.fillStyle='#a78bfa';ctx.fillText('✊ 주먹을 쥐면 값이 고정돼요!',W*.38,H*.96);}
+    else{ctx.fillStyle='#7d8590';ctx.fillText('✋ 손바닥을 펴서 카메라에 보여주세요',W*.38,H*.96);}
+    if(HS2.handOverlayX!==undefined&&HS2.stage===stageNum){
+      const hx=HS2.handOverlayX*W*.72,hy=HS2.handOverlayY*H*.9+H*.04;
+      ctx.beginPath();ctx.arc(hx,hy,24,0,Math.PI*2);ctx.fillStyle=HS2.handOpen?'rgba(167,139,250,.22)':'rgba(63,185,80,.28)';ctx.fill();
+      ctx.strokeStyle=HS2.handOpen?'#a78bfa':'#3fb950';ctx.lineWidth=2.5;ctx.stroke();
+      ctx.fillStyle=HS2.handOpen?'#a78bfa':'#3fb950';ctx.font='bold '+Math.floor(H*.03)+'px sans-serif';ctx.textAlign='center';ctx.fillText(HS2.handOpen?'✋':'✊',hx,hy+7);
+    }
+    HS2.animFrames[stageNum]=requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function drawCollectCanvas(){
+  const c=document.getElementById('h-canvas-2');
+  if(!c) return;
+  const parent=c.parentElement;
+  c.width=parent?(parent.offsetWidth||700):700;
+  c.height=parent?(parent.offsetHeight||420):420;
+  if(!c.width||!c.height){c.width=700;c.height=420;}
+  HS2.collectProgress=HS2.collectProgress||0;
+  HS2.bubbles=[];
+  let plungerArea={x:0,y:0,w:0,h:0};
+  let plungerPush=0;
+  c.onmousedown=c.ontouchstart=(e)=>{
+    e.preventDefault();
+    const rect=c.getBoundingClientRect();
+    const scaleX=c.width/rect.width,scaleY=c.height/rect.height;
+    const ex=((e.touches?.[0]?.clientX??e.clientX)-rect.left)*scaleX;
+    const ey=((e.touches?.[0]?.clientY??e.clientY)-rect.top)*scaleY;
+    if(ex>plungerArea.x-20&&ex<plungerArea.x+plungerArea.w+20&&ey>plungerArea.y-20&&ey<plungerArea.y+plungerArea.h+30) HS2.pressing=true;
+  };
+  c.onmouseup=c.ontouchend=()=>{HS2.pressing=false;};
+  c.onmouseleave=()=>{HS2.pressing=false;};
+  function draw(){
+    const W=c.width,H=c.height;
+    if(!W||!H){HS2.animFrames[2]=requestAnimationFrame(draw);return;}
+    const ctx=c.getContext('2d');
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1117';ctx.fillRect(0,0,W,H);
+    const gas=HS2.selectedGas?HIGH_GAS[HS2.selectedGas]:null;
+    if(HS2.pressing&&HS2.collectProgress<100){
+      plungerPush=Math.min(plungerPush+1.4,26);
+      HS2.collectProgress=Math.min(100,HS2.collectProgress+0.65);
+      if(gas) HS2.volume=Math.round((HS2.collectProgress/100)*gas.volume);
+      document.getElementById('h-collect-bar').style.width=HS2.collectProgress+'%';
+      document.getElementById('h-collect-pct').textContent=Math.round(HS2.collectProgress)+'%';
+      document.getElementById('h-collect-vol').textContent=(HS2.volume||0)+' mL';
+      document.getElementById('h-rec-vol').textContent=HS2.volume||0;
+      if(Math.random()<.35) HS2.bubbles.push({x:W*.22+(Math.random()-.5)*W*.1,y:H*.76,r:3+Math.random()*5,vy:-(1.2+Math.random()*1.5),vx:(Math.random()-.5)*.6,alpha:.8});
+      if(HS2.collectProgress>=100){
+        if(gas) HS2.volume=gas.volume;
+        document.getElementById('h-collect-bar').style.width='100%';
+        document.getElementById('h-collect-pct').textContent='100%';
+        document.getElementById('h-collect-vol').textContent=HS2.volume+' mL';
+        const btn=document.getElementById('h-btn-2');btn.disabled=false;btn.style.opacity='1';
+      }
+    } else plungerPush=Math.max(0,plungerPush-1.8);
+    HS2.bubbles=HS2.bubbles.filter(b=>b.alpha>.05);
+    HS2.bubbles.forEach(b=>{b.x+=b.vx;b.y+=b.vy;b.alpha-=.012;});
+    const tx=W*.06,ty=H*.5,tw=W*.48,th=H*.42;
+    ctx.fillStyle='#0d2a4a';ctx.strokeStyle='#1a4a7a';ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(tx,ty,tw,th,5);ctx.fill();ctx.stroke();
+    const waterY=ty+th*.12,waterH=th*.86;
+    ctx.fillStyle='rgba(20,80,180,.28)';ctx.fillRect(tx+2,waterY,tw-4,waterH);
+    ctx.fillStyle='rgba(60,120,220,.18)';ctx.fillRect(tx+2,waterY,tw-4,8);
+    ctx.fillStyle='#2a5a9a';ctx.font='11px monospace';ctx.textAlign='center';ctx.fillText('수 조',tx+tw/2,ty+th*.95);
+    const cylX=tx+tw*.26,cylY=ty-H*.44,cylW=50,cylH=H*.6;
+    ctx.fillStyle='rgba(7,18,40,.9)';ctx.strokeStyle='#1a4a7a';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(cylX,cylY,cylW,cylH,4);ctx.fill();ctx.stroke();
+    const gasH=(HS2.collectProgress/100)*cylH*.84;
+    if(gasH>0&&gas){
+      ctx.fillStyle=gas.color+'2a';ctx.fillRect(cylX+2,cylY+cylH*.04,cylW-4,gasH);
+      ctx.strokeStyle=gas.color+'60';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+      ctx.beginPath();ctx.moveTo(cylX,cylY+cylH*.04+gasH);ctx.lineTo(cylX+cylW,cylY+cylH*.04+gasH);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=gas.color;ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.fillText((HS2.volume||0)+' mL',cylX+cylW/2,cylY+cylH*.04+gasH-7);
+    }
+    ctx.setLineDash([]);
+    for(let i=0;i<=6;i++){const gy=cylY+cylH*.06+i*(cylH*.13);ctx.strokeStyle='#2a5a8a';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cylX+cylW,gy);ctx.lineTo(cylX+cylW+(i%2===0?11:6),gy);ctx.stroke();if(i%2===0){ctx.fillStyle='#3a6aaa';ctx.font='8px monospace';ctx.textAlign='left';ctx.fillText((6-i)*100+'',cylX+cylW+13,gy+3);}}
+    ctx.fillStyle='#3a6aaa';ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText('눈금실린더',cylX+cylW/2,cylY-6);
+    HS2.bubbles.forEach(b=>{ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle=`rgba(100,180,255,${b.alpha*.5})`;ctx.fill();ctx.strokeStyle=`rgba(140,200,255,${b.alpha})`;ctx.lineWidth=1;ctx.stroke();});
+    ctx.strokeStyle='#2a5a2a';ctx.lineWidth=4;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(cylX+cylW/2,cylY+cylH);ctx.quadraticCurveTo(cylX+cylW/2,ty+th*.06,tx+tw*.5,ty+th*.02);ctx.quadraticCurveTo(tx+tw*.74,ty,W*.66,ty+th*.42);ctx.lineTo(W*.66,ty+th*.58);ctx.stroke();
+    if(gas){
+      const gx=W*.63,gy2=ty+th*.04,gw=64,gh=88;
+      ctx.fillStyle='#0d1a0d';ctx.strokeStyle=gas.color+'90';ctx.lineWidth=2;
+      ctx.beginPath();ctx.roundRect(gx,gy2,gw,gh,7);ctx.fill();ctx.stroke();
+      const ppx=gx+7,ppy=gy2-14+plungerPush,ppw=gw-14,pph=15;
+      plungerArea={x:ppx,y:ppy,w:ppw,h:pph};
+      ctx.fillStyle=HS2.pressing?gas.color+'aa':gas.color+'50';ctx.strokeStyle=gas.color;ctx.lineWidth=2;
+      ctx.shadowColor=HS2.pressing?gas.color:'transparent';ctx.shadowBlur=HS2.pressing?12:0;
+      ctx.beginPath();ctx.roundRect(ppx,ppy,ppw,pph,4);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+      ctx.fillStyle=HS2.pressing?gas.color:'#7d8590';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.fillText('▼',gx+gw/2,gy2-22);
+      if(!HS2.pressing&&HS2.collectProgress<100){ctx.fillStyle=gas.color+'cc';ctx.font='bold 11px Noto Sans KR,sans-serif';ctx.textAlign='center';ctx.fillText('👆 클릭!',gx+gw/2,gy2-34);}
+      ctx.fillStyle=gas.color;ctx.font='bold 12px monospace';ctx.textAlign='center';ctx.fillText(gas.label,gx+gw/2,gy2+gh/2+4);
+      ctx.fillStyle='#7d8590';ctx.font='10px Noto Sans KR,sans-serif';ctx.textAlign='center';ctx.fillText('(미지 기체)',gx+gw/2,gy2+gh-12);
+      ctx.fillStyle='#2a5a2a';ctx.beginPath();ctx.arc(W*.66,ty+th*.5,5,0,Math.PI*2);ctx.fill();
+    }
+    ctx.textAlign='center';
+    if(HS2.collectProgress>=100){ctx.fillStyle='#3fb950';ctx.font='bold 13px Noto Sans KR,sans-serif';ctx.fillText('✅ 포집 완료! 아래 버튼을 눌러주세요',W*.38,H*.97);}
+    else{ctx.fillStyle='#7d8590';ctx.font='12px Noto Sans KR,sans-serif';ctx.fillText('👇 누름판을 클릭하고 누르고 있으면 기체가 뽀글뽀글 포집돼요',W*.38,H*.97);}
+    HS2.animFrames[2]=requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function highNextStage(n){
+  if(n===3&&HS2.collectProgress<100) return;
+  if(n===4){
+    document.getElementById('h-show-after').textContent=HS2.massAfter?.toFixed(2)||'—';
+    document.getElementById('h-show-gasmass').textContent=HS2.massGas?.toFixed(2)||'—';
+    document.getElementById('h-rec-after').textContent=HS2.massAfter?.toFixed(2)||'—';
+    document.getElementById('h-rec-gasmass').textContent=HS2.massGas?.toFixed(2)||'—';
+    document.getElementById('h-stage3-done-badge').style.display='inline-block';
+  }
+  if(n===3) document.getElementById('h-stage2-done-badge').style.display='inline-block';
+  if(n===2) document.getElementById('h-stage1-done-badge').style.display='inline-block';
+  highShowStage(n);
+}
+
+async function toggleCam2(){
+  const btn=document.getElementById('cam-btn-2');
+  const dot=document.getElementById('cam-dot-2');
+  const txt=document.getElementById('cam-text-2');
+  if(HS2.camActive){if(HS2.camera2)HS2.camera2.stop();HS2.camActive=false;btn.textContent='📷 카메라 시작';btn.classList.remove('danger');dot.className='status-dot';txt.textContent='카메라 꺼짐';return;}
+  dot.className='status-dot detecting';txt.textContent='초기화 중...';
+  const video=document.getElementById('webcam-2');
+  const camCvs=document.getElementById('cam-canvas-2');
+  const camCtx=camCvs.getContext('2d');
+  const hands=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+  hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:.65,minTrackingConfidence:.5});
+  hands.onResults(results=>{
+    camCvs.width=video.videoWidth||320;camCvs.height=video.videoHeight||240;camCtx.clearRect(0,0,camCvs.width,camCvs.height);
+    if(results.multiHandLandmarks?.length){
+      const lm=results.multiHandLandmarks[0];
+      drawConnectors(camCtx,lm,HAND_CONNECTIONS,{color:'#a78bfa',lineWidth:2});
+      drawLandmarks(camCtx,lm,{color:'#fff',lineWidth:1,radius:3});
+      const tips=[8,12,16,20];
+      const openCount=tips.filter(i=>lm[i].y<lm[i-2].y).length;
+      const isOpen=openCount>=3,isFist=openCount<=1;
+      const palmX=[0,5,9,13,17].reduce((s,i)=>s+lm[i].x,0)/5;
+      const palmY=[0,5,9,13,17].reduce((s,i)=>s+lm[i].y,0)/5;
+      const hx=palmX*camCvs.width,hy=palmY*camCvs.height;
+      camCtx.beginPath();camCtx.arc(hx,hy,26,0,Math.PI*2);
+      camCtx.fillStyle=isOpen?'rgba(167,139,250,.22)':isFist?'rgba(63,185,80,.3)':'rgba(255,255,255,.08)';camCtx.fill();
+      camCtx.strokeStyle=isOpen?'#a78bfa':isFist?'#3fb950':'#30363d';camCtx.lineWidth=2.5;camCtx.stroke();
+      camCtx.fillStyle=isOpen?'#a78bfa':isFist?'#3fb950':'#7d8590';camCtx.font='bold 12px monospace';camCtx.textAlign='center';camCtx.fillText(isOpen?'✋':isFist?'✊':'·',hx,hy+37);
+      HS2.handOpen=isOpen;HS2.handOverlayX=1-palmX;HS2.handOverlayY=palmY;
+      const st=HS2.stage;
+      if((st===1||st===3)&&HS2.selectedGas){
+        const gas=HIGH_GAS[HS2.selectedGas];
+        const base=st===3?gas.massAfter:gas.massBefore;
+        if(isOpen){const noise=(Math.random()-.5)*.06;document.getElementById('balance-display').textContent=(base+noise).toFixed(2);document.getElementById('balance-status').textContent='⚖ 측정 중 — 주먹을 쥐면 고정!';}
+        if(isFist&&!HS2.fistLock){
+          HS2.fistLock=true;
+          document.getElementById('balance-display').textContent=base.toFixed(2);
+          document.getElementById('balance-status').textContent='✅ 고정!';
+          if(st===1&&!HS2.massBefore){
+            HS2.massBefore=base;
+            document.getElementById('h-rec-before').textContent=base.toFixed(2);
+            document.getElementById('h-show-before').textContent=base.toFixed(2);
+            const b1=document.getElementById('h-btn-1');b1.disabled=false;b1.style.opacity='1';
+          } else if(st===3&&!HS2.massAfter){
+            HS2.massAfter=base;
+            HS2.massGas=+(HS2.massBefore-base).toFixed(2);
+            document.getElementById('h-rec-after').textContent=base.toFixed(2);
+            document.getElementById('h-rec-gasmass').textContent=HS2.massGas.toFixed(2);
+            document.getElementById('h-show-after').textContent=base.toFixed(2);
+            document.getElementById('h-show-gasmass').textContent=HS2.massGas.toFixed(2);
+            const b3=document.getElementById('h-btn-3');b3.disabled=false;b3.style.opacity='1';
+          }
+          setTimeout(()=>{HS2.fistLock=false;},2500);
+        }
+      }
+    } else {HS2.handOpen=false;HS2.handOverlayX=undefined;HS2.handOverlayY=undefined;}
+  });
+  HS2.hands2=hands;
+  const camera=new Camera(video,{onFrame:async()=>{await hands.send({image:video});},width:320,height:240});
+  try{
+    await camera.start();HS2.camera2=camera;HS2.camActive=true;
+    btn.textContent='⏹ 카메라 중지';btn.classList.add('danger');dot.className='status-dot active';txt.textContent='감지 중...';
+  }catch(e){dot.className='status-dot';txt.textContent='오류: '+e.message;}
+}
+
+function fillStage4(){
+  const T=(parseFloat(document.getElementById('h-temp')?.value)||20)+273;
+  const P=parseFloat(document.getElementById('h-pres')?.value)||1.00;
+  const el_m=document.getElementById('h-calc-m');if(el_m)el_m.textContent=HS2.massGas?.toFixed(2)||'—';
+  const el_v=document.getElementById('h-calc-v');if(el_v)el_v.textContent=HS2.volume||'—';
+  const el_T=document.getElementById('h-calc-T');if(el_T)el_T.textContent=T;
+  const el_P=document.getElementById('h-calc-P');if(el_P)el_P.textContent=P.toFixed(2);
+}
+function updateHighCalc4(){fillStage4();}
+
+function highCalculate(){
+  const T=(parseFloat(document.getElementById('h-temp').value)||20)+273;
+  const P=parseFloat(document.getElementById('h-pres').value)||1.00;
+  const R=0.082,m=HS2.massGas,V=(HS2.volume||0)/1000;
+  if(!m||!V) return;
+  const mRT=+(m*R*T).toFixed(4),PV=+(P*V).toFixed(4);
+  HS2.M=+(mRT/PV).toFixed(1);
+  document.getElementById('h-mrt').textContent=mRT;
+  document.getElementById('h-pv').textContent=PV;
+  document.getElementById('h-M-result').textContent=HS2.M+' g/mol';
+  document.getElementById('h-rec-M').textContent=HS2.M;
+  let name,reason,color;
+  if(HS2.M<=8){name='💨 He (헬륨)';color='#58a6ff';reason=`M≈${HS2.M} g/mol → He(4 g/mol)\n단원자 비활성 기체`;}
+  else if(HS2.M>=28&&HS2.M<=36){name='🌬 O₂ (산소)';color='#f0883e';reason=`M≈${HS2.M} g/mol → O₂(32 g/mol)\n이원자 산소 기체`;}
+  else{name='❓ 미확인';color='#ff4757';reason=`M≈${HS2.M} g/mol — 일치하는 기체 없음`;}
+  const box=document.getElementById('h-result-box');box.style.display='block';box.style.borderColor=color+'50';
+  document.getElementById('h-gas-name').textContent=name;document.getElementById('h-gas-name').style.color=color;
+  document.getElementById('h-gas-reason').textContent=reason;document.getElementById('h-rec-result').textContent=name;
+  const fb=document.getElementById('h-final-submit');fb.disabled=false;fb.style.opacity='1';
+  updateHighProgress(4);
+}
+
+// ★ 수정: 실제 측정값을 d에 담아 질문 생성
+function openHighFinalSubmit(){
+  highShowStage(5);
+  HS2.lmStep=1;HS2.lmAnswers={};HS2.lmScores={};HS2.lmPisaLevels={};
+  const d={
+    before: HS2.massBefore?.toFixed(2)||'—',
+    after:  HS2.massAfter?.toFixed(2)||'—',
+    gas:    HS2.massGas?.toFixed(2)||'—',
+    vol:    HS2.volume||'—',
+    M:      HS2.M||'—',
+  };
+  document.getElementById('h-exp-summary-box').innerHTML=
+    `실험 기체: <b style="color:#a78bfa">${HS2.selectedGas?HIGH_GAS[HS2.selectedGas].label:'—'}</b>&nbsp;|&nbsp;`+
+    `포집전: <b style="color:#f0883e">${d.before}g</b>&nbsp;|&nbsp;`+
+    `포집후: <b style="color:#58a6ff">${d.after}g</b>&nbsp;|&nbsp;`+
+    `기체질량: <b style="color:#3fb950">${d.gas}g</b>&nbsp;|&nbsp;`+
+    `부피: <b style="color:#58a6ff">${d.vol}mL</b>&nbsp;|&nbsp;`+
+    `M = <b style="color:#3fb950">${d.M} g/mol</b>`;
+  renderHighLMStage();
+}
+
+function renderHighLMStage(){
+  const step=HS2.lmStep;
+  const d={
+    before: HS2.massBefore?.toFixed(2)||'—',
+    after:  HS2.massAfter?.toFixed(2)||'—',
+    gas:    HS2.massGas?.toFixed(2)||'—',
+    vol:    HS2.volume||'—',
+    M:      HS2.M||'—',
+  };
+  const info=HIGH_LM[step-1];
+  for(let i=1;i<=4;i++){
+    const p=document.getElementById('h-lm-p'+i);if(!p) continue;
+    p.style.background =i<step?'rgba(63,185,80,.15)':i===step?'rgba(37,99,235,.2)':'transparent';
+    p.style.borderColor=i<step?'rgba(63,185,80,.4)' :i===step?'#2563eb'            :'#30363d';
+    p.style.color      =i<step?'#3fb950'             :i===step?'#58a6ff'            :'#7d8590';
+  }
+  const badge=document.getElementById('h-lm-badge');
+  badge.textContent='● '+info.level;badge.style.color=info.color;badge.style.borderColor=info.color+'55';badge.style.background=info.color+'22';
+  document.getElementById('h-lm-level-desc').textContent=info.desc;
+  // ★ 수정: 실제 측정값 d를 전달하여 질문 생성
+  document.getElementById('h-lm-question').textContent=typeof info.q==='function'?info.q(d):info.q;
+  document.getElementById('h-lm-answer').value=HS2.lmAnswers[step]||'';
+  document.getElementById('h-lm-cc').textContent=(HS2.lmAnswers[step]||'').length+'자';
+  document.getElementById('h-lm-hint').style.display='none';
+  document.getElementById('h-lm-hint').textContent=info.hint;
+  document.getElementById('h-lm-feedback').style.display='none';
+  document.getElementById('h-lm-next').style.display='none';
+  document.getElementById('h-lm-save').style.display='none';
+  const sb=document.getElementById('h-lm-submit');sb.style.display='block';sb.disabled=false;sb.textContent='✍ 제출하기';
+}
+
+function showHighHint(){
+  const box=document.getElementById('h-lm-hint');
+  box.textContent=HIGH_LM[HS2.lmStep-1].hint;
+  box.style.display='block';
+}
+
+async function submitHighLM(){
+  const answer=document.getElementById('h-lm-answer').value.trim();
+  if(answer.length<5){alert('답변을 입력해주세요!');return;}
+  HS2.lmAnswers[HS2.lmStep]=answer;
+  const sb=document.getElementById('h-lm-submit');sb.textContent='⏳ AI 채점 중...';sb.disabled=true;
+  const info=HIGH_LM[HS2.lmStep-1];
+  const d={before:HS2.massBefore?.toFixed(2)||'—',after:HS2.massAfter?.toFixed(2)||'—',gas:HS2.massGas?.toFixed(2)||'—',vol:HS2.volume||'—',M:HS2.M||'—'};
+
+  let result={score:4,pisaLevel:'Basic',feedback:'AI 채점에 일시적 오류가 발생했어요. 임시 점수로 처리됩니다.',reason:'API 오류'};
+  try{
+    const question=typeof info.q==='function'?info.q(d):info.q;
+    const userContent=`[문제 단계: ${info.level}]\n[질문]: ${question}\n[학생 답변]: ${answer}\n\n위 답변을 채점하세요.`;
+    result=await callScoringAPI(SCORING_SYSTEM,userContent);
+  }catch(e){
+    console.warn('High scoring error:',e);
+    result=estimateScoreFallback(answer);
+  }
+
+  HS2.lmScores[HS2.lmStep]=result.score;
+  HS2.lmPisaLevels[HS2.lmStep]=result.pisaLevel;
+
+  const sc=result.score,lv=result.pisaLevel;
+  const feedbackHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div style="background:${scoreBg(sc)};border:1.5px solid ${scoreColor(sc)};border-radius:10px;padding:6px 14px;text-align:center;min-width:56px;">
+        <div style="font-size:22px;font-weight:900;color:${scoreColor(sc)};font-family:monospace;line-height:1;">${sc}<span style="font-size:12px;">/10</span></div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:${scoreColor(sc)};">PISA ${lv} <span style="color:#7d8590;font-weight:400;">(${pisaKor(lv)})</span></div>
+        <div style="font-size:10px;color:#7d8590;margin-top:2px;">📌 ${result.reason||''}</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:${sc<=4?'#f0883e':'#8b949e'};line-height:1.8;border-top:1px solid #21262d;padding-top:8px;">
+      🤖 ${result.feedback}
+    </div>`;
+  document.getElementById('h-lm-feedback').innerHTML=feedbackHTML;
+  document.getElementById('h-lm-feedback').style.display='block';
+  sb.style.display='none';
+
+  if(HS2.lmStep<4){
+    const nb=document.getElementById('h-lm-next');
+    nb.textContent=`${HS2.lmStep}단계 완료 (${sc}점) → ${HS2.lmStep+1}단계`;
+    nb.style.display='block';
+  } else {
+    // 종합 결과 표시
+    const total=[1,2,3,4].reduce((s,i)=>(HS2.lmScores[i]||0)+s,0);
+    const avg=(total/4).toFixed(1);
+    const order=['Insufficient','Basic','Proficient','Advanced','Excellent'];
+    const topLevel=Object.values(HS2.lmPisaLevels).filter(Boolean).reduce((best,cur)=>order.indexOf(cur)>order.indexOf(best)?cur:best,'Insufficient');
+    document.getElementById('h-lm-feedback').innerHTML+=`
+      <div style="margin-top:12px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);border-radius:8px;padding:10px 14px;">
+        <div style="font-size:11px;font-weight:700;color:#a78bfa;margin-bottom:6px;">📊 4단계 종합 결과</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          ${[1,2,3,4].map(i=>`<div style="text-align:center;flex:1;background:#0d1117;border-radius:6px;padding:6px 4px;border:1px solid ${scoreColor(HS2.lmScores[i]||0)}40;">
+            <div style="font-size:9px;color:#7d8590;">${i}단계</div>
+            <div style="font-size:16px;font-weight:800;color:${scoreColor(HS2.lmScores[i]||0)};font-family:monospace;">${HS2.lmScores[i]??'—'}</div>
+          </div>`).join('')}
+          <div style="text-align:center;flex:1;background:#0d1117;border-radius:6px;padding:6px 4px;border:1px solid #a78bfa40;">
+            <div style="font-size:9px;color:#7d8590;">평균</div>
+            <div style="font-size:16px;font-weight:800;color:#a78bfa;font-family:monospace;">${avg}</div>
+          </div>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:${scoreColor(HS2.lmScores[4]||0)};">최고 달성 레벨: ${topLevel} (${pisaKor(topLevel)})</div>
+      </div>`;
+    document.getElementById('h-lm-save').style.display='block';
+    updateHighProgress(5);
+  }
+}
+
+function nextHighLM(){HS2.lmStep++;renderHighLMStage();document.getElementById('h-lm-answer').scrollIntoView({behavior:'smooth'});}
+function skipHighLM(){HS2.lmAnswers[HS2.lmStep]=HS2.lmAnswers[HS2.lmStep]||'(건너뜀)';if(HS2.lmStep<4){HS2.lmStep++;renderHighLMStage();}else{document.getElementById('h-lm-save').style.display='block';}}
+
+// ★ 수정: pendingSave 패턴으로 통일
+async function doHighSave(){
+  if(!lmState.studentId){
+    lmState.pendingSave='high';
+    document.getElementById('student-modal').style.display='flex';
+    return;
+  }
+  _doHighSave();
+}
+
+async function _doHighSave(){
+  const btn=document.getElementById('h-lm-save');
+  if(btn){btn.textContent='⏳ 저장 중...';btn.disabled=true;}
+  const mfAnswers=[1,2,3,4].map(i=>HS2.lmAnswers[i]||'(건너뜀)');
+  const mfScores =[1,2,3,4].map(i=>HS2.lmScores[i]??null);
+  const mfLevels =[1,2,3,4].map(i=>HS2.lmPisaLevels[i]||null);
+  const completedCount=mfAnswers.filter(a=>a!=='(건너뜀)').length;
+  const totalScore=mfScores.reduce((s,v)=>s+(v??0),0);
+  const avgScore=completedCount>0?+(totalScore/completedCount).toFixed(1):0;
+  const order=['Insufficient','Basic','Proficient','Advanced','Excellent'];
+  const topLevel=mfLevels.filter(Boolean).reduce((best,cur)=>order.indexOf(cur)>order.indexOf(best)?cur:best,'Insufficient');
+  const levelIndex=order.indexOf(topLevel);
+  const data={
+    studentId:   lmState.studentId,
+    studentName: lmState.studentName||'',
+    studentClass:localStorage.getItem('metaflow_student_class')||'',
+    schoolCode:  lmState.schoolCode||normalizeSchoolCode(localStorage.getItem('mf_schoolCode'))||'',
+    experimentName:'이상기체방정식_기체종류확인_'+(HS2.selectedGas||''),
+    subject:'기체 분자 운동',
+    mfAnswers,
+    mfScores,
+    mfLevels,
+    level: levelIndex,
+    avgScore,
+    totalScore,
+    pisaLevel: topLevel,
+    answer: mfAnswers.find(a=>a!=='(건너뜀)')||'',
+    terms:0,causal:0,sentences:0,
+    feedback:`평균 ${avgScore}점 / 최고 레벨: ${topLevel}(${pisaKor(topLevel)})`,
+    expData:{gas:HS2.selectedGas,massBefore:HS2.massBefore,massAfter:HS2.massAfter,massGas:HS2.massGas,volume:HS2.volume,M:HS2.M},
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+  try{
+    if(db){
+      await db.collection('sessions').add(data);
+      if(btn){btn.textContent='✅ META FLOW+에 저장 완료!';btn.style.background='linear-gradient(135deg,#3fb950,#2ea043)';}
+    } else throw new Error('DB 없음');
+  }catch(e){
+    localStorage.setItem('metaflow_'+Date.now(),JSON.stringify({...data,createdAt:new Date().toISOString()}));
+    if(btn){btn.textContent='✅ 로컬 저장 완료';btn.disabled=false;}
+  }
+}
+
+function resetHigh(){
+  Object.assign(HS2,{stage:0,selectedGas:null,massBefore:null,massAfter:null,massGas:null,volume:null,M:null,collectProgress:0,handOpen:false,fistLock:false,handOverlayX:undefined,handOverlayY:undefined,lmStep:1,lmAnswers:{},lmScores:{},lmPisaLevels:{},pressing:false,bubbles:[]});
+  Object.keys(HS2.animFrames).forEach(k=>cancelAnimationFrame(HS2.animFrames[k]));
+  HS2.animFrames={};
+  document.getElementById('balance-display').textContent='0.00';
+  document.getElementById('balance-status').textContent='카메라를 켜고 손에 용기를 들어보세요';
+  ['gas','before','after','gasmass','vol','M','result'].forEach(k=>{const el=document.getElementById('h-rec-'+k);if(el)el.textContent='—';});
+  ['before','after','gasmass'].forEach(k=>{const el=document.getElementById('h-show-'+k);if(el)el.textContent='—';});
+  const cb=document.getElementById('h-collect-bar');if(cb)cb.style.width='0%';
+  const rb=document.getElementById('h-result-box');if(rb)rb.style.display='none';
+  document.getElementById('h-collect-pct').textContent='0%';
+  document.getElementById('h-collect-vol').textContent='0 mL';
+  ['A','B'].forEach(k=>{const c=document.getElementById('gas-card-'+k);if(c){c.style.borderColor='#30363d';c.style.background='#0d1117';c.style.transform='scale(1)';}});
+  ['1','2','3'].forEach(n=>{const b=document.getElementById('h-stage'+n+'-done-badge');if(b)b.style.display='none';const btn=document.getElementById('h-btn-'+n);if(btn){btn.disabled=true;btn.style.opacity='.4';}});
+  const ff=document.getElementById('h-final-submit');if(ff){ff.disabled=true;ff.style.opacity='.4';}
+  highShowStage(0);
+}
+</script>
+</body>
+</html>
