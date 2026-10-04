@@ -1,0 +1,16 @@
+{
+  "name": "META FLOW+ 나의 문해력 성장 리포트",
+  "short_name": "META FLOW+",
+  "description": "과학 실험 기록과 문해력 성장을 확인하는 학생용 앱",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#050a16",
+  "theme_color": "#050c18",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
