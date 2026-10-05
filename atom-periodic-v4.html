@@ -3068,11 +3068,53 @@ window.addEventListener('resize',()=>{
     if (MS.pos.length > e) MS.pos.length = e;
     while (MS.pos.length < e) MS.pos.push({ a: Math.random() * 6.283, f: 0.15 + Math.random() * 0.75, ph: Math.random() * 6.283 });
   }
-  function msXY(o, t) {
+   function msXY(o, t) {
     var cx = AW / 2, cy = AH / 2 + 10, R = msRadii();
-    var a = o.a + Math.sin(t * 0.9 + o.ph) * 0.25 + t * 0.12;            // 원자핵 주위를 천천히 맴돌며
-    var r = R.inner + (R.outer - R.inner) * clamp(o.f + Math.sin(t * 1.7 + o.ph * 2) * 0.06, 0.03, 0.97);   // 안팎으로 살짝 흔들림
+    var a = o.a + t * 0.12;   // 모든 전자가 함께 원자핵 주위를 천천히 맴돎 (각자의 흔들림·간격은 msRelax에서 처리)
+    var r = R.inner + (R.outer - R.inner) * clamp(o.f, 0.03, 0.97);
     return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r, a: a, r: r };
+  }
+  // 전자끼리 반발: 서로 너무 가까우면 밀어내서 겹치지 않게 함 (매 프레임 조금씩 → 부드럽게 밀려남)
+  function msRelax(t) {
+    var n = MS.pos.length;
+    var dt = MS.lastT ? clamp(t - MS.lastT, 0, 0.05) : 0; MS.lastT = t;
+    if (!n) return;
+    var R = msRadii(), span = Math.max(1, R.outer - R.inner), sc = Math.max(1, AH / 320);
+    var area = Math.PI * (R.outer * R.outer - R.inner * R.inner);
+    var minD = clamp(Math.sqrt(area / n) * 0.85, 16 * sc, 80 * sc);   // 전자 수에 맞춘 최소 간격
+    var i, j, o, it;
+    // 1) 각 전자가 살짝 움직임 (흔들림)
+    for (i = 0; i < n; i++) {
+      o = MS.pos[i];
+      o.a += Math.cos(t * 0.9 + o.ph) * 0.2 * dt;
+      o.f = clamp(o.f + Math.cos(t * 1.7 + o.ph * 2) * 0.1 * dt, 0.05, 0.95);
+    }
+    if (n < 2) return;
+    // 2) 너무 가까운 전자끼리 서로 밀어냄
+    for (it = 0; it < 3; it++) {
+      var xy = [], moved = false;
+      for (i = 0; i < n; i++) { o = MS.pos[i]; var rr = R.inner + span * o.f; xy.push({ x: Math.cos(o.a) * rr, y: Math.sin(o.a) * rr }); }
+      for (i = 0; i < n; i++) {
+        for (j = i + 1; j < n; j++) {
+          var dx = xy[j].x - xy[i].x, dy = xy[j].y - xy[i].y, d = Math.sqrt(dx * dx + dy * dy), ux, uy;
+          if (d >= minD) continue;
+          if (d < 0.001) { var ra = Math.random() * 6.283; ux = Math.cos(ra); uy = Math.sin(ra); d = 0; }
+          else { ux = dx / d; uy = dy / d; }
+          var push = (minD - d) * 0.5 * 0.25;
+          xy[i].x -= ux * push; xy[i].y -= uy * push;
+          xy[j].x += ux * push; xy[j].y += uy * push;
+          moved = true;
+        }
+      }
+      if (!moved) break;
+      for (i = 0; i < n; i++) {
+        var nx = xy[i].x, ny = xy[i].y;
+        if (!isFinite(nx) || !isFinite(ny)) continue;
+        var nr = Math.sqrt(nx * nx + ny * ny);
+        MS.pos[i].a = Math.atan2(ny, nx);
+        MS.pos[i].f = clamp((nr - R.inner) / span, 0.05, 0.95);
+      }
+    }
   }
   function drawMSElectrons(g, cx, cy, Z, sc, dark, t) {
     var R = msRadii();
