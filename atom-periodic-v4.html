@@ -3125,7 +3125,8 @@ window.addEventListener('resize',()=>{
     g.fillStyle = dark ? 'rgba(125,190,255,0.62)' : 'rgba(30,80,200,0.5)';
     g.font = 'bold ' + (9 * sc).toFixed(1) + 'px sans-serif'; g.textAlign = 'left';
     g.fillText('중학교 모형 · 전자는 원자핵 주위를 움직여요', cx - R.outer - 6 * sc, cy - R.outer - 18 * sc);
-    msSync();
+       msSync();
+    msRelax(t);
     MS.pos.forEach(function (o) {
       var p = msXY(o, t), er = 5.5 * sc;
       g.save(); g.globalCompositeOperation = dark ? 'lighter' : 'source-over';
