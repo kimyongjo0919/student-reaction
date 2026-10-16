@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>META FLOW+ | 사전-사후 문해력 비교 분석</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f6fb;--white:#fff;--navy:#0d1b3e;--blue:#1a56db;--blue-light:#e8f0fe;
+  --green:#0a9461;--green-light:#d1fae5;--amber:#b45309;--amber-light:#fef3c7;
+  --red:#c0392b;--red-light:#fde8e8;--purple:#6d28d9;--purple-light:#ede9fe;
+  --gray-100:#f1f5f9;--gray-200:#e2e8f0;--gray-400:#94a3b8;--gray-600:#475569;--gray-800:#1e293b;
+  --shadow:0 2px 12px rgba(13,27,62,.08);--radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--gray-800);line-height:1.6;font-size:14px}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 16px 60px}
+.hero{background:linear-gradient(135deg,var(--navy),#1a3a7a);color:#fff;border-radius:16px;padding:26px 28px;margin-bottom:18px}
+.hero h1{font-size:22px;font-weight:900;margin-bottom:4px}
+.hero p{font-size:12.5px;opacity:.8}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:4px 12px;font-size:12px}
+.chip b{font-family:'Space Mono',monospace}
+.banner{border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;font-weight:500}
+.banner.warn{background:var(--amber-light);color:var(--amber);border:1px solid #f5d38a}
+.banner.err{background:var(--red-light);color:var(--red);border:1px solid #f3b7b0}
+.banner.info{background:var(--blue-light);color:var(--blue);border:1px solid #bcd0f7}
+.card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:16px}
+.card h2{font-size:15.5px;font-weight:700;color:var(--navy);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h2 small{font-weight:400;color:var(--gray-400);font-size:11.5px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.toolbar label{font-size:12px;color:var(--gray-600)}
+select,button.btn{font-family:inherit;font-size:12.5px;padding:7px 12px;border-radius:8px;border:1px solid var(--gray-200);background:#fff;color:var(--gray-800);cursor:pointer}
+button.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+button.btn:disabled{opacity:.5;cursor:not-allowed}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--gray-100);border-radius:10px;padding:12px 14px}
+.kpi .v{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--navy)}
+.kpi .l{font-size:11.5px;color:var(--gray-600);margin-top:2px}
+.kpi.up .v{color:var(--green)}.kpi.down .v{color:var(--red)}
+.verdict{border-radius:10px;padding:14px 16px;font-size:13.5px;line-height:1.75;margin-top:6px}
+.verdict.sig-up{background:var(--green-light);color:#065f46}
+.verdict.sig-down{background:var(--red-light);color:#7f1d1d}
+.verdict.ns{background:var(--amber-light);color:#78350f}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--gray-200);text-align:right;white-space:nowrap}
+th{background:var(--gray-100);font-weight:700;color:var(--gray-600);font-size:11.5px}
+th:first-child,td:first-child{text-align:left}
+td.num{font-family:'Space Mono',monospace}
+td.sig{color:var(--green);font-weight:700}td.neg{color:var(--red);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+.note{font-size:12px;color:var(--gray-600);line-height:1.75}
+.note li{margin-left:18px;margin-bottom:3px}
+.copybox{background:var(--gray-100);border:1px dashed var(--gray-400);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.8;white-space:pre-wrap;word-break:keep-all}
+.empty{text-align:center;padding:40px 10px;color:var(--gray-600)}
+.empty .big{font-size:38px;margin-bottom:8px}
+svg text{font-family:'Noto Sans KR',sans-serif}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--gray-600);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
+.matrix td,.matrix th{text-align:center}
+.matrix td.diag{background:var(--gray-100);font-weight:700}
+.matrix td.up{background:var(--green-light)}.matrix td.dn{background:var(--red-light)}
+@media print{.toolbar,.noprint{display:none!important}body{background:#fff}.card{box-shadow:none;border:1px solid var(--gray-200)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>📈 사전-사후 문해력 비교 분석</h1>
+    <p>META FLOW+ · 사전검사(pre-test-results) ↔ 사후검사(post-test-results) 1:1 매칭 · 대응표본 t검정 / Wilcoxon 부호순위검정</p>
+    <p id="schoolNote" style="margin-top:4px"></p>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div id="banners"></div>
+
+  <div class="card noprint" id="toolbarCard" style="display:none">
+    <div class="toolbar">
+      <label for="classFilter">학급 필터</label>
+      <select id="classFilter"></select>
+      <button class="btn" id="btnReload">🔄 다시 불러오기</button>
+      <button class="btn primary" id="btnCsv" disabled>⬇ 짝지은 데이터 CSV</button>
+      <button class="btn" onclick="window.print()">🖨 인쇄 / PDF</button>
+    </div>
+  </div>
+
+  <div id="loading" class="card"><div class="empty"><div class="big">⏳</div>데이터를 불러오는 중입니다…</div></div>
+  <div id="content" style="display:none"></div>
+</div>
+
+<!-- ═════════ 통계 + 렌더 (일반 스크립트: 외부 라이브러리 없음) ═════════ -->
+<script>
+(function(){
+'use strict';
+
+/* ───────── 통계 함수 ───────── */
+function lgamma(x){
+  var c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
+  var y=x,tmp=x+5.5;
+  tmp-=(x+0.5)*Math.log(tmp);
+  var ser=1.000000000190015;
+  for(var j=0;j<6;j++){y+=1;ser+=c[j]/y;}
+  return -tmp+Math.log(2.5066282746310005*ser/x);
+}
+function betacf(a,b,x){
+  var MAXIT=300,EPS=3e-14,FPMIN=1e-300;
+  var qab=a+b,qap=a+1,qam=a-1,c=1,d=1-qab*x/qap;
+  if(Math.abs(d)<FPMIN)d=FPMIN;
+  d=1/d;var h=d;
+  for(var m=1;m<=MAXIT;m++){
+    var m2=2*m,aa=m*(b-m)*x/((qam+m2)*(a+m2));
+    d=1+aa*d;if(Math.abs(d)<FPMIN)d=FPMIN;
+    c=1+aa/c;if(Math.abs(c)<FPMIN)c=FPMIN;
+    d=1/d;h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
+    d=1+aa*d;if(Math.abs(d)<FPMIN)d=FPMIN;
+    c=1+aa/c;if(Math.abs(c)<FPMIN)c=FPMIN;
+    d=1/d;var del=d*c;h*=del;
+    if(Math.abs(del-1)<EPS)break;
+  }
+  return h;
+}
+function ibeta(x,a,b){
+  if(x<=0)return 0;if(x>=1)return 1;
+  var bt=Math.exp(lgamma(a+b)-lgamma(a)-lgamma(b)+a*Math.log(x)+b*Math.log(1-x));
+  if(x<(a+1)/(a+b+2))return bt*betacf(a,b,x)/a;
+  return 1-bt*betacf(b,a,1-x)/b;
+}
+function tTwoP(t,df){ // 양측 p
+  if(!isFinite(t))return 0;
+  return ibeta(df/(df+t*t),df/2,0.5);
+}
+function tCdf(t,df){
+  var p2=tTwoP(t,df);
+  return t>=0?1-p2/2:p2/2;
+}
+function tCrit(df,conf){ // 양측 conf 신뢰수준의 임계값
+  var target=1-(1-conf)/2,lo=0,hi=200;
+  for(var i=0;i<200;i++){var mid=(lo+hi)/2;if(tCdf(mid,df)<target)lo=mid;else hi=mid;}
+  return (lo+hi)/2;
+}
+function erfc(x){
+  var z=Math.abs(x),t=1/(1+0.5*z);
+  var r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));
+  return x>=0?r:2-r;
+}
+function mean(a){var s=0;for(var i=0;i<a.length;i++)s+=a[i];return s/a.length;}
+function sd(a){
+  if(a.length<2)return NaN;
+  var m=mean(a),s=0;for(var i=0;i<a.length;i++)s+=(a[i]-m)*(a[i]-m);
+  return Math.sqrt(s/(a.length-1));
+}
+function skewKurt(a){
+  var n=a.length;if(n<3)return {skew:NaN,kurt:NaN};
+  var m=mean(a),m2=0,m3=0,m4=0;
+  for(var i=0;i<n;i++){var d=a[i]-m;m2+=d*d;m3+=d*d*d;m4+=d*d*d*d;}
+  m2/=n;m3/=n;m4/=n;
+  if(m2===0)return {skew:NaN,kurt:NaN};
+  return {skew:m3/Math.pow(m2,1.5),kurt:m4/(m2*m2)-3};
+}
+function pairedT(pre,post){
+  var n=pre.length,diffs=[];
+  for(var i=0;i<n;i++)diffs.push(post[i]-pre[i]);
+  var out={n:n,preM:mean(pre),preSD:sd(pre),postM:mean(post),postSD:sd(post),diffM:mean(diffs),diffSD:sd(diffs),diffs:diffs};
+  if(n<2){out.ok=false;return out;}
+  var dsd=out.diffSD,se=dsd/Math.sqrt(n);
+  out.df=n-1;
+  if(!(dsd>0)){ // 모든 차이가 동일 → t 정의 불가
+    out.ok=false;out.degenerate=true;return out;
+  }
+  out.ok=true;
+  out.t=out.diffM/se;
+  out.p=tTwoP(out.t,out.df);
+  var tc=tCrit(out.df,0.95);
+  out.ciLo=out.diffM-tc*se;out.ciHi=out.diffM+tc*se;
+  out.dz=out.diffM/dsd;
+  var J=1-3/(4*out.df-1);out.g=out.dz*J;
+  return out;
+}
+function wilcoxon(diffs){
+  var nz=[];for(var i=0;i<diffs.length;i++)if(diffs[i]!==0)nz.push(diffs[i]);
+  var n=nz.length;
+  if(n<1)return {ok:false,n:0};
+  var idx=nz.map(function(v,i){return {a:Math.abs(v),s:v>0?1:-1,i:i};}).sort(function(x,y){return x.a-y.a;});
+  var ranks=new Array(n),tieSum=0,i2=0;
+  while(i2<n){
+    var j=i2;
+    while(j+1<n&&Math.abs(idx[j+1].a-idx[i2].a)<1e-12)j++;
+    var r=(i2+j)/2+1,t=j-i2+1;
+    for(var k=i2;k<=j;k++)ranks[k]=r;
+    if(t>1)tieSum+=t*t*t-t;
+    i2=j+1;
+  }
+  var Wp=0;
+  for(var q=0;q<n;q++)if(idx[q].s>0)Wp+=ranks[q];
+  var mu=n*(n+1)/4,v=n*(n+1)*(2*n+1)/24-tieSum/48;
+  if(!(v>0))return {ok:false,n:n};
+  var dev=Wp-mu,cc=dev>0?0.5:(dev<0?-0.5:0);
+  var z=(dev-cc)/Math.sqrt(v);
+  var p=erfc(Math.abs(z)/Math.SQRT2);
+  if(p>1)p=1;
+  return {ok:true,n:n,W:Wp,z:z,p:p,r:z/Math.sqrt(n)};
+}
+function holm(ps){ // ps: [{key,p}] → {key:adjP}
+  var arr=ps.filter(function(o){return isFinite(o.p);}).slice().sort(function(a,b){return a.p-b.p;});
+  var m=arr.length,res={},prev=0;
+  for(var i=0;i<m;i++){
+    var adj=Math.min(1,(m-i)*arr[i].p);
+    adj=Math.max(adj,prev);prev=adj;res[arr[i].key]=adj;
+  }
+  return res;
+}
+
+/* ───────── 표시 유틸 ───────── */
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function f(v,d){if(v==null||!isFinite(v))return '–';return Number(v).toFixed(d==null?2:d);}
+function sg(v,d){if(v==null||!isFinite(v))return '–';var s=Number(v).toFixed(d==null?2:d);return (v>0?'+':'')+s;}
+function fp(p){if(p==null||!isFinite(p))return '–';if(p<0.001)return '< 0.001';return p.toFixed(3);}
+function effLabel(d){var a=Math.abs(d);return a<0.2?'매우 작음':a<0.5?'작음':a<0.8?'중간':'큼';}
+function num(v){return (typeof v==='number'&&isFinite(v))?v:null;}
+var LV={high:'상위',mid:'중간',low:'기초'};
+
+/* ───────── 데이터 정리 (매칭) ───────── */
+var METRICS=[
+  {key:'composite',label:'종합 점수 (0~100)',max:100,primary:true},
+  {key:'total',label:'서술형 총점 (0~8)',max:8},
+  {key:'d1',label:'Ⅲ-1 핵심 요약 (0~2)',max:2,comp:true},
+  {key:'d2',label:'Ⅲ-2 현상 설명 (0~2)',max:2,comp:true},
+  {key:'d3',label:'Ⅲ-3 자료 해석·한계 (0~2)',max:2,comp:true},
+  {key:'d4',label:'Ⅲ-4 정보 평가 (0~2)',max:2,comp:true},
+  {key:'self',label:'자기인식 합계 (8~40)',max:40}
+];
+function extractScores(o){ // 사전/사후 문서에서 같은 형태로 점수 추출
+  var a=(o&&o.aiScore)||{};
+  return {
+    composite:num(a.composite),total:num(a.total),
+    d1:num(a.d1),d2:num(a.d2),d3:num(a.d3),d4:num(a.d4),
+    self:num(o&&o.selfTotal),level:a.level||'',passageId:(o&&o.passageId)||''
+  };
+}
+function extractPreSnapshot(p){ // 사후 문서에 저장해 둔 사전 스냅샷
+  if(!p)return null;
+  return {
+    composite:num(p.composite),total:num(p.total),d1:num(p.d1),d2:num(p.d2),d3:num(p.d3),d4:num(p.d4),
+    self:num(p.selfTotal),level:p.level||'',passageId:p.passageId||''
+  };
+}
+function buildPairs(preDocs,postDocs,includeTest){
+  var preMap={};
+  (preDocs||[]).forEach(function(d){preMap[d.id]=d;});
+  var st={preN:(preDocs||[]).length,postAll:(postDocs||[]).length,testExcluded:0,noPre:0,notMatched:0,incomplete:0,duplicate:0,used:0};
+  var pairs=[],seen={};
+  // 같은 학생이 사후검사를 여러 번 냈으면 가장 먼저 제출한 기록만 사용 (제출시각 오름차순 정렬)
+  function subMs(d){
+    var t=d&&d.submittedAt,BIG=8.64e15;
+    if(!t)return BIG;
+    if(typeof t.seconds==='number')return t.seconds*1000+(t.nanoseconds||0)/1e6;
+    if(typeof t.toMillis==='function'){var m=t.toMillis();return isFinite(m)?m:BIG;}
+    var n=new Date(t).getTime();return isFinite(n)?n:BIG;
+  }
+  var postSorted=(postDocs||[]).slice().sort(function(a,b){return subMs(a)-subMs(b);});
+  postSorted.forEach(function(pd){
+    var isTest=pd.isTest===true||String(pd.id).indexOf('TEST_')===0;
+    if(isTest&&!includeTest){st.testExcluded++;return;}
+    if(pd.phase&&pd.phase!=='사후'){st.notMatched++;return;}
+    var preId=pd.preDocId||pd.id;
+    if(seen[preId]){st.duplicate++;return;}
+    var preDoc=preMap[preId];
+    var pre=preDoc?extractScores(preDoc):extractPreSnapshot(pd.pre);
+    if(!pre){st.noPre++;return;}
+    var post=extractScores(pd);
+    var ok=['composite','total','d1','d2','d3','d4','self'].every(function(k){return pre[k]!=null&&post[k]!=null;});
+    if(!ok){st.incomplete++;return;}
+    seen[preId]=true;
+    pairs.push({
+      id:preId,studentId:pd.studentId||(preDoc&&preDoc.studentId)||'',
+      cls:pd.studentClass||(preDoc&&preDoc.studentClass)||'',
+      pre:pre,post:post,isTest:isTest
+    });
+  });
+  st.used=pairs.length;
+  return {pairs:pairs,stats:st};
+}
+
+/* ───────── 분석 ───────── */
+function analyze(pairs){
+  var res={n:pairs.length,metrics:{}};
+  var pvals=[];
+  METRICS.forEach(function(m){
+    var a=pairs.map(function(p){return p.pre[m.key];});
+    var b=pairs.map(function(p){return p.post[m.key];});
+    var t=pairedT(a,b);
+    t.wil=wilcoxon(t.diffs);
+    t.sk=skewKurt(t.diffs);
+    t.up=t.diffs.filter(function(x){return x>0;}).length;
+    t.same=t.diffs.filter(function(x){return x===0;}).length;
+    t.down=t.diffs.filter(function(x){return x<0;}).length;
+    res.metrics[m.key]=t;
+    if(m.comp&&t.ok)pvals.push({key:m.key,p:t.p});
+  });
+  res.holm=holm(pvals);
+  var order=['low','mid','high'],mx={};
+  order.forEach(function(a){mx[a]={};order.forEach(function(b){mx[a][b]=0;});});
+  var lvUp=0,lvSame=0,lvDown=0,lvN=0;
+  pairs.forEach(function(p){
+    var a=p.pre.level,b=p.post.level;
+    if(mx[a]&&mx[a][b]!=null){
+      mx[a][b]++;lvN++;
+      var ia=order.indexOf(a),ib=order.indexOf(b);
+      if(ib>ia)lvUp++;else if(ib<ia)lvDown++;else lvSame++;
+    }
+  });
+  res.matrix=mx;res.lv={n:lvN,up:lvUp,same:lvSame,down:lvDown};
+  var pp={};
+  pairs.forEach(function(p){
+    var k=(p.pre.passageId||'?')+'→'+(p.post.passageId||'?');
+    pp[k]=(pp[k]||0)+1;
+  });
+  res.passagePairs=pp;
+  return res;
+}
+
+/* ───────── 차트 (SVG) ───────── */
+function slopeChart(pairs){
+  var W=520,H=320,L=44,R=30,T=20,B=40;
+  var x0=L+40,x1=W-R-40;
+  function y(v){return T+(H-T-B)*(1-Math.max(0,Math.min(100,v))/100);}
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="개인별 사전-사후 종합점수 변화">';
+  [0,25,50,75,100].forEach(function(g){
+    s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(g)+'" y2="'+y(g)+'" stroke="#e2e8f0"/>';
+    s+='<text x="'+(L-6)+'" y="'+(y(g)+4)+'" text-anchor="end" font-size="10" fill="#94a3b8">'+g+'</text>';
+  });
+  pairs.forEach(function(p){
+    var d=p.post.composite-p.pre.composite;
+    var c=d>0?'#0a9461':d<0?'#c0392b':'#94a3b8';
+    s+='<line x1="'+x0+'" y1="'+y(p.pre.composite)+'" x2="'+x1+'" y2="'+y(p.post.composite)+'" stroke="'+c+'" stroke-opacity=".45" stroke-width="1.4"/>';
+    s+='<circle cx="'+x0+'" cy="'+y(p.pre.composite)+'" r="2.6" fill="'+c+'" fill-opacity=".7"/>';
+    s+='<circle cx="'+x1+'" cy="'+y(p.post.composite)+'" r="2.6" fill="'+c+'" fill-opacity=".7"/>';
+  });
+  var mp=mean(pairs.map(function(p){return p.pre.composite;})),mq=mean(pairs.map(function(p){return p.post.composite;}));
+  s+='<line x1="'+x0+'" y1="'+y(mp)+'" x2="'+x1+'" y2="'+y(mq)+'" stroke="#0d1b3e" stroke-width="3.2"/>';
+  s+='<circle cx="'+x0+'" cy="'+y(mp)+'" r="5" fill="#0d1b3e"/><circle cx="'+x1+'" cy="'+y(mq)+'" r="5" fill="#0d1b3e"/>';
+  s+='<text x="'+x0+'" y="'+(H-14)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#1e293b">사전</text>';
+  s+='<text x="'+x1+'" y="'+(H-14)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#1e293b">사후</text>';
+  s+='<text x="'+(x0-8)+'" y="'+(y(mp)-9)+'" text-anchor="end" font-size="11" font-weight="700" fill="#0d1b3e">'+f(mp,1)+'</text>';
+  s+='<text x="'+(x1+8)+'" y="'+(y(mq)-9)+'" text-anchor="start" font-size="11" font-weight="700" fill="#0d1b3e">'+f(mq,1)+'</text>';
+  s+='</svg>';
+  s+='<div class="legend"><span><i style="background:#0a9461"></i>향상</span><span><i style="background:#94a3b8"></i>동일</span><span><i style="background:#c0392b"></i>하락</span><span><i style="background:#0d1b3e"></i>평균</span></div>';
+  return s;
+}
+function barChart(an){
+  var keys=['d1','d2','d3','d4'],labels=['핵심 요약','현상 설명','자료 해석','정보 평가'];
+  var W=520,H=320,L=40,R=16,T=20,B=52,max=2;
+  function y(v){return T+(H-T-B)*(1-v/max);}
+  var gw=(W-L-R)/keys.length,bw=gw*0.28;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="역량별 사전-사후 평균">';
+  [0,0.5,1,1.5,2].forEach(function(g){
+    s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(g)+'" y2="'+y(g)+'" stroke="#e2e8f0"/>';
+    s+='<text x="'+(L-6)+'" y="'+(y(g)+4)+'" text-anchor="end" font-size="10" fill="#94a3b8">'+g+'</text>';
+  });
+  keys.forEach(function(k,i){
+    var m=an.metrics[k],cx=L+gw*i+gw/2;
+    var pv=Math.max(0,Math.min(max,m.preM)),qv=Math.max(0,Math.min(max,m.postM));
+    s+='<rect x="'+(cx-bw-2)+'" y="'+y(pv)+'" width="'+bw+'" height="'+Math.max(0,y(0)-y(pv))+'" fill="#94a3b8" rx="3"/>';
+    s+='<rect x="'+(cx+2)+'" y="'+y(qv)+'" width="'+bw+'" height="'+Math.max(0,y(0)-y(qv))+'" fill="#1a56db" rx="3"/>';
+    s+='<text x="'+(cx-bw/2-2)+'" y="'+(y(pv)-5)+'" text-anchor="middle" font-size="10.5" fill="#475569">'+f(m.preM)+'</text>';
+    s+='<text x="'+(cx+bw/2+2)+'" y="'+(y(qv)-5)+'" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1a56db">'+f(m.postM)+'</text>';
+    s+='<text x="'+cx+'" y="'+(H-28)+'" text-anchor="middle" font-size="11.5" fill="#1e293b">'+labels[i]+'</text>';
+  });
+  s+='</svg>';
+  s+='<div class="legend"><span><i style="background:#94a3b8"></i>사전 평균</span><span><i style="background:#1a56db"></i>사후 평균</span></div>';
+  return s;
+}
+
+/* ───────── 문장 생성 (결과에 따라 정직하게 분기) ───────── */
+function verdictText(an){
+  var m=an.metrics.composite,n=an.n;
+  if(n<2)return {cls:'ns',html:'짝지어진 학생이 2명 이상 있어야 검정할 수 있습니다.'};
+  if(m.degenerate)return {cls:'ns',html:'모든 학생의 변화량이 동일해서 t검정을 계산할 수 없습니다. (Wilcoxon 결과 또는 기술통계만 참고하세요.)'};
+  var sig=m.p<0.05,dir=m.diffM>0?'up':'down';
+  var cls=sig?(dir==='up'?'sig-up':'sig-down'):'ns';
+  var head;
+  if(sig&&dir==='up')head='✅ 종합점수가 통계적으로 유의하게 <b>향상</b>되었습니다.';
+  else if(sig&&dir==='down')head='⚠️ 종합점수가 통계적으로 유의하게 <b>낮아졌습니다</b>.';
+  else head='ℹ️ 종합점수의 사전-사후 차이가 통계적으로 <b>유의하지 않았습니다</b> (p ≥ 0.05).';
+  var body='사전 M='+f(m.preM,1)+' (SD='+f(m.preSD,1)+') → 사후 M='+f(m.postM,1)+' (SD='+f(m.postSD,1)+'), 평균 변화 '+sg(m.diffM,1)+'점, '+
+    't('+m.df+') = '+f(m.t)+', p '+(m.p<0.001?fp(m.p):'= '+fp(m.p))+', Cohen\'s dz = '+f(m.dz)+' ('+effLabel(m.dz)+' 효과), 95% CI ['+sg(m.ciLo,1)+', '+sg(m.ciHi,1)+'].';
+  return {cls:cls,html:head+'<br>'+body};
+}
+function summarySentence(an){
+  var m=an.metrics.composite,n=an.n;
+  if(n<2||!m.ok)return '(검정이 가능한 데이터가 아직 부족합니다.)';
+  var sig=m.p<0.05,dir=m.diffM>0?'향상':'하락';
+  var s='사전검사와 사후검사에 모두 참여한 학생 '+n+'명의 문해력 종합점수는 사전 평균 '+f(m.preM,1)+'점(SD '+f(m.preSD,1)+')에서 사후 평균 '+f(m.postM,1)+'점(SD '+f(m.postSD,1)+')으로 '+sg(m.diffM,1)+'점 변화하였다. '+
+    '대응표본 t검정 결과 t('+m.df+') = '+f(m.t)+', p '+(m.p<0.001?'< .001':'= '+m.p.toFixed(3).replace(/^0/,''))+', Cohen\'s dz = '+f(m.dz)+'으로 ';
+  if(sig)s+='통계적으로 유의한 '+dir+'이 확인되었다';
+  else s+='통계적으로 유의한 차이는 확인되지 않았다';
+  s+='. 본 결과는 통제집단이 없는 소규모·단기 예비 검증이므로, 이후 전체 학년으로 확대한 종단 추적을 통해 효과를 재확인할 계획이다.';
+  return s;
+}
+
+/* ───────── 렌더 ───────── */
+var STATE={pre:[],post:[],includeTest:false,filter:'__all__',lastPairs:[]};
+
+function chipsHtml(st,nShown){
+  var c=[['사전 문서',st.preN],['사후 문서',st.postAll],['매칭 성공',st.used],['분석 대상',nShown]];
+  return c.map(function(x){return '<span class="chip">'+esc(x[0])+' <b>'+esc(x[1])+'</b></span>';}).join('');
+}
+function bannersHtml(st){
+  var b='';
+  if(STATE.includeTest)b+='<div class="banner warn">🧪 테스트 모드(?test=1): 교사가 저장 점검용으로 제출한 TEST_ 문서가 분석에 포함되어 있습니다. <b>실제 결과가 아닙니다. 발표에는 사용하지 마세요.</b></div>';
+  var ex=[];
+  if(st.testExcluded)ex.push('테스트 문서 '+st.testExcluded+'건 제외');
+  if(st.noPre)ex.push('사전검사 기록을 찾을 수 없어 제외 '+st.noPre+'건');
+  if(st.incomplete)ex.push('점수 누락으로 제외 '+st.incomplete+'건');
+  if(st.duplicate)ex.push('같은 학생 중복 응시 '+st.duplicate+'건 제외(첫 응시만 반영)');
+  if(st.notMatched)ex.push('사후 문서가 아니어서 제외 '+st.notMatched+'건');
+  if(ex.length)b+='<div class="banner info">제외된 자료: '+esc(ex.join(' · '))+'</div>';
+  return b;
+}
+function fmtRow(m,label,an,key,isComp){
+  var t=an.metrics[key];
+  var adj=isComp&&t.ok?an.holm[key]:null;
+  var pcls=t.ok&&t.p<0.05?(t.diffM>0?'sig':'neg'):'';
+  return '<tr>'+
+    '<td>'+esc(label)+'</td>'+
+    '<td class="num">'+f(t.preM)+' ('+f(t.preSD)+')</td>'+
+    '<td class="num">'+f(t.postM)+' ('+f(t.postSD)+')</td>'+
+    '<td class="num">'+sg(t.diffM)+'</td>'+
+    '<td class="num">'+(t.ok?f(t.t):'–')+'</td>'+
+    '<td class="num">'+(t.df!=null?t.df:'–')+'</td>'+
+    '<td class="num '+pcls+'">'+(t.ok?fp(t.p):'–')+'</td>'+
+    '<td class="num">'+(isComp?(adj!=null?fp(adj):'–'):'')+'</td>'+
+    '<td class="num">'+(t.ok?f(t.dz):'–')+'</td>'+
+    '<td class="num">'+(t.ok?'['+sg(t.ciLo)+', '+sg(t.ciHi)+']':'–')+'</td>'+
+    '<td class="num">'+(t.wil&&t.wil.ok?fp(t.wil.p):'–')+'</td>'+
+    '<td class="num">'+t.up+' / '+t.same+' / '+t.down+'</td>'+
+  '</tr>';
+}
+function renderContent(pairs){
+  var box=document.getElementById('content');
+  var loading=document.getElementById('loading');
+  loading.style.display='none';
+  STATE.lastPairs=pairs;
+  document.getElementById('btnCsv').disabled=pairs.length===0;
+  if(pairs.length<2){
+    box.innerHTML='<div class="card"><div class="empty"><div class="big">📭</div>'+
+      (pairs.length===0?'아직 분석할 수 있는 사전-사후 짝이 없습니다.':'짝지어진 학생이 1명뿐입니다. 2명 이상이어야 검정할 수 있습니다.')+
+      '<br><span class="note">사후검사(post-test.html)를 제출한 학생이 생기면 이 페이지를 새로고침하세요.<br>학교코드·학번이 사전검사와 같아야 자동으로 짝지어집니다.</span></div></div>';
+    box.style.display='block';return;
+  }
+  var an=analyze(pairs);
+  var v=verdictText(an);
+  var m=an.metrics.composite;
+  var h='';
+
+  // 1. 핵심 결과
+  h+='<div class="card"><h2>① 핵심 결과 <small>1차 지표: 종합 점수 · 대응표본 t검정</small></h2>';
+  h+='<div class="kpis">'+
+    '<div class="kpi"><div class="v">'+an.n+'명</div><div class="l">분석 대상(짝)</div></div>'+
+    '<div class="kpi"><div class="v">'+f(m.preM,1)+'</div><div class="l">사전 평균</div></div>'+
+    '<div class="kpi"><div class="v">'+f(m.postM,1)+'</div><div class="l">사후 평균</div></div>'+
+    '<div class="kpi '+(m.diffM>0?'up':m.diffM<0?'down':'')+'"><div class="v">'+sg(m.diffM,1)+'</div><div class="l">평균 변화</div></div>'+
+    '<div class="kpi"><div class="v">'+(m.ok?f(m.dz):'–')+'</div><div class="l">Cohen\'s dz</div></div>'+
+    '<div class="kpi"><div class="v">'+(m.ok?fp(m.p):'–')+'</div><div class="l">p값 (양측)</div></div>'+
+  '</div>';
+  h+='<div class="verdict '+v.cls+'">'+v.html+'</div>';
+  if(an.n<10)h+='<div class="banner warn" style="margin-top:10px">⚠ 표본이 10명 미만이라 결과의 안정성이 낮습니다. 해석에 주의하세요.</div>';
+  else if(an.n<30)h+='<div class="note" style="margin-top:10px">※ 표본이 30명 미만입니다. 정규성이 의심되면 아래 Wilcoxon 결과를 함께 보고하세요.</div>';
+  h+='</div>';
+
+  // 2. 세부 표
+  h+='<div class="card"><h2>② 지표별 세부 결과 <small>평균(SD) · 대응표본 t검정 · Wilcoxon</small></h2><div class="tbl-wrap"><table><thead><tr>'+
+    '<th>지표</th><th>사전 M(SD)</th><th>사후 M(SD)</th><th>차이</th><th>t</th><th>df</th><th>p</th><th>Holm 보정 p</th><th>dz</th><th>차이의 95% CI</th><th>Wilcoxon p</th><th>↑ / = / ↓ (명)</th>'+
+    '</tr></thead><tbody>';
+  METRICS.forEach(function(mt){h+=fmtRow(mt,mt.label,an,mt.key,!!mt.comp);});
+  h+='</tbody></table></div>';
+  h+='<p class="note" style="margin-top:8px">※ Ⅲ-1~4 네 문항은 여러 번 검정하므로 Holm 보정 p를 함께 표시합니다. 보정 p 기준으로 판단하는 것이 안전합니다. dz는 대응표본 효과크기(0.2 작음 · 0.5 중간 · 0.8 큼).</p></div>';
+
+  // 3. 차트
+  h+='<div class="two"><div class="card"><h2>③ 개인별 종합점수 변화</h2>'+slopeChart(pairs)+'</div>'+
+     '<div class="card"><h2>④ 문항(역량)별 평균 비교</h2>'+barChart(an)+'</div></div>';
+
+  // 4. 수준 이동
+  var mx=an.matrix,order=['low','mid','high'];
+  h+='<div class="card"><h2>⑤ 수준 이동 <small>행 = 사전, 열 = 사후 (명)</small></h2><div class="two"><div><table class="matrix"><thead><tr><th>사전 \\ 사후</th>'+
+    order.map(function(k){return '<th>'+LV[k]+'</th>';}).join('')+'</tr></thead><tbody>';
+  order.forEach(function(a,ia){
+    h+='<tr><th>'+LV[a]+'</th>';
+    order.forEach(function(b,ib){
+      var cls=ia===ib?'diag':(ib>ia?'up':'dn');
+      h+='<td class="'+cls+'">'+mx[a][b]+'</td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table></div><div class="note">'+
+    '<p>수준이 <b>올라간</b> 학생 '+an.lv.up+'명 · <b>유지</b> '+an.lv.same+'명 · <b>내려간</b> '+an.lv.down+'명 (총 '+an.lv.n+'명)</p>'+
+    '<p style="margin-top:6px">※ 사전에 기초 수준이던 학생은 다시 검사해도 평균 쪽으로 올라오는 경향(평균으로의 회귀)이 있어, 수준 이동 전체가 활동 효과는 아닙니다.</p></div></div></div>';
+
+  // 5. 가정 점검
+  var sk=m.sk;
+  h+='<div class="card"><h2>⑥ 검정 가정 점검 <small>종합점수 변화량 분포</small></h2><div class="note"><ul>'+
+    '<li>변화량의 왜도 = '+f(sk.skew)+', 초과첨도 = '+f(sk.kurt)+' (왜도 절댓값이 1을 넘거나 표본이 작으면 Wilcoxon 결과를 우선 보고하는 것이 안전합니다.)</li>'+
+    '<li>Wilcoxon 부호순위검정(종합점수): '+(m.wil&&m.wil.ok?'z = '+f(m.wil.z)+', p '+(m.wil.p<0.001?fp(m.wil.p):'= '+fp(m.wil.p))+', 효과크기 r = '+f(m.wil.r)+' (동점·0 차이를 반영한 정규근사, 연속성 보정 적용)':'계산 불가(모든 변화량이 0이거나 자료 부족)')+'</li>'+
+    '</ul></div></div>';
+
+  // 6. 지문
+  var pk=Object.keys(an.passagePairs).sort();
+  h+='<div class="card"><h2>⑦ 지문 배정 현황 <small>사전 지문 → 사후 지문</small></h2><div class="tbl-wrap"><table><thead><tr><th>사전 → 사후</th><th>인원</th></tr></thead><tbody>'+
+    pk.map(function(k){return '<tr><td>'+esc(k)+'</td><td class="num">'+an.passagePairs[k]+'</td></tr>';}).join('')+'</tbody></table></div>'+
+    '<p class="note" style="margin-top:8px">※ 사전과 사후에 서로 다른 지문을 읽고, 지문마다 채점 키워드와 난도가 다를 수 있습니다. 이 점은 한계로 명시하세요.</p></div>';
+
+  // 7. 학생별 표
+  var rows=pairs.slice().sort(function(a,b){return (b.post.composite-b.pre.composite)-(a.post.composite-a.pre.composite);});
+  h+='<div class="card"><h2>⑧ 학생별 변화 <small>변화량 큰 순</small></h2><div class="tbl-wrap"><table><thead><tr><th>학번</th><th>학급</th><th>사전</th><th>사후</th><th>변화</th><th>사전 수준</th><th>사후 수준</th></tr></thead><tbody>'+
+    rows.map(function(p){
+      var d=p.post.composite-p.pre.composite;
+      return '<tr><td>'+esc(p.studentId||p.id)+'</td><td>'+esc(p.cls)+'</td><td class="num">'+p.pre.composite+'</td><td class="num">'+p.post.composite+'</td><td class="num '+(d>0?'sig':d<0?'neg':'')+'">'+sg(d,0)+'</td><td>'+esc(LV[p.pre.level]||'–')+'</td><td>'+esc(LV[p.post.level]||'–')+'</td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+
+  // 8. 문장
+  h+='<div class="card"><h2>⑨ 보고서·발표용 문장 <small>결과에 따라 자동으로 바뀝니다</small></h2><div class="copybox" id="sumText">'+esc(summarySentence(an))+'</div>'+
+    '<div style="margin-top:10px" class="noprint"><button class="btn" id="btnCopy">📋 문장 복사</button></div></div>';
+
+  // 9. 한계
+  h+='<div class="card"><h2>⑩ 반드시 함께 적을 한계</h2><div class="note"><ul>'+
+    '<li>통제집단이 없어 점수 변화를 플랫폼 활동만의 효과로 단정할 수 없습니다. (성숙, 재검사 효과, 평균으로의 회귀 가능)</li>'+
+    '<li>소규모·단기 자료입니다. "성장 입증"이 아니라 "단기 예비 검증"으로 표현하세요.</li>'+
+    '<li>사전·사후 지문이 다르고 지문별 채점 키워드가 달라 지문 난도 차이가 섞일 수 있습니다.</li>'+
+    '<li>채점은 키워드 기반 룰베이스 방식입니다. 교사 채점과의 일치도를 함께 제시하면 신뢰도가 높아집니다.</li>'+
+    '<li>사후검사에 참여하지 않은 학생은 분석에서 빠집니다(탈락 편향 가능).</li>'+
+    '</ul></div></div>';
+
+  box.innerHTML=h;
+  box.style.display='block';
+  var bc=document.getElementById('btnCopy');
+  if(bc)bc.onclick=function(){
+    var txt=document.getElementById('sumText').textContent;
+    function done(){bc.textContent='✅ 복사됨';setTimeout(function(){bc.textContent='📋 문장 복사';},1500);}
+    try{
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done,function(){fallbackCopy(txt,done);});}
+      else fallbackCopy(txt,done);
+    }catch(e){fallbackCopy(txt,done);}
+  };
+}
+function fallbackCopy(txt,cb){
+  try{
+    var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);cb();
+  }catch(e){alert('복사에 실패했습니다. 문장을 직접 선택해서 복사해 주세요.');}
+}
+
+function refresh(){
+  var built=buildPairs(STATE.pre,STATE.post,STATE.includeTest);
+  var classes={};
+  built.pairs.forEach(function(p){classes[p.cls||'(학급 미입력)']=1;});
+  var sel=document.getElementById('classFilter');
+  var keep=STATE.filter;
+  var opts='<option value="__all__">전체</option>'+Object.keys(classes).sort().map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>';}).join('');
+  sel.innerHTML=opts;
+  if(keep!=='__all__'&&classes[keep]){sel.value=keep;}else{sel.value='__all__';STATE.filter='__all__';}
+  var shown=STATE.filter==='__all__'?built.pairs:built.pairs.filter(function(p){return (p.cls||'(학급 미입력)')===STATE.filter;});
+  document.getElementById('chips').innerHTML=chipsHtml(built.stats,shown.length);
+  document.getElementById('banners').innerHTML=bannersHtml(built.stats);
+  document.getElementById('toolbarCard').style.display='block';
+  renderContent(shown);
+}
+
+function csvCell(v){var s=String(v==null?'':v);if(/^[=+\-@]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
+function downloadCsv(){
+  try{
+    var pairs=STATE.lastPairs;if(!pairs.length)return;
+    var head=['학번','학급','사전_종합','사후_종합','변화','사전_총점','사후_총점','사전_d1','사후_d1','사전_d2','사후_d2','사전_d3','사후_d3','사전_d4','사후_d4','사전_자기인식','사후_자기인식','사전_수준','사후_수준','사전_지문','사후_지문'];
+    var lines=[head.map(csvCell).join(',')];
+    pairs.forEach(function(p){
+      lines.push([p.studentId||p.id,p.cls,p.pre.composite,p.post.composite,p.post.composite-p.pre.composite,p.pre.total,p.post.total,p.pre.d1,p.post.d1,p.pre.d2,p.post.d2,p.pre.d3,p.post.d3,p.pre.d4,p.post.d4,p.pre.self,p.post.self,p.pre.level,p.post.level,p.pre.passageId,p.post.passageId].map(csvCell).join(','));
+    });
+    var blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pre-post-paired'+(STATE.includeTest?'_TEST':'')+'.csv';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},800);
+  }catch(e){alert('CSV를 만들지 못했습니다: '+e.message);}
+}
+
+/* ───────── 공개 API ───────── */
+window.MF={
+  Stats:{pairedT:pairedT,wilcoxon:wilcoxon,holm:holm,tTwoP:tTwoP,tCrit:tCrit,erfc:erfc,mean:mean,sd:sd},
+  buildPairs:buildPairs,analyze:analyze,summarySentence:summarySentence,
+  run:function(preDocs,postDocs,includeTest){
+    STATE.pre=preDocs||[];STATE.post=postDocs||[];STATE.includeTest=!!includeTest;STATE.filter='__all__';
+    refresh();
+  },
+  showError:function(msg){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('banners').innerHTML='<div class="banner err">⚠ '+esc(msg)+'</div>';
+    document.getElementById('toolbarCard').style.display='block';
+  },
+  setLoading:function(){
+    document.getElementById('loading').style.display='block';
+    document.getElementById('content').style.display='none';
+  }
+};
+document.getElementById('classFilter').addEventListener('change',function(){STATE.filter=this.value;refresh();});
+document.getElementById('btnCsv').addEventListener('click',downloadCsv);
+})();
+</script>
+
+<!-- ═════════ Firebase 읽기 (읽기 전용) ═════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBX-BE14JViw82xAiA3Gts6p-SC6gVBjG8",
+  authDomain: "student-literacy.firebaseapp.com",
+  projectId: "student-literacy",
+  storageBucket: "student-literacy.firebasestorage.app",
+  messagingSenderId: "66926306937",
+  appId: "1:66926306937:web:5204bff44a4cc5d62d16a8"
+};
+const INCLUDE_TEST = /[?&]test=1(&|$)/.test(location.search);
+// 교사 대시보드와 같은 학교 코드의 사후 기록만 분석 (주소 뒤에 ?school=코드 를 붙이면 다른 코드로 볼 수 있음)
+const SCHOOL_CODE = (function(){
+  try {
+    const m = location.search.match(/[?&]school=([^&]+)/);
+    const v = m ? decodeURIComponent(m[1]).trim().toUpperCase() : '';
+    return v || 'JOINT01';
+  } catch (e) { return 'JOINT01'; }
+})();
+
+function withTimeout(promise, ms, label){
+  return new Promise(function(resolve, reject){
+    const t = setTimeout(function(){ reject(new Error(label + ' 시간 초과')); }, ms);
+    promise.then(function(v){ clearTimeout(t); resolve(v); }, function(e){ clearTimeout(t); reject(e); });
+  });
+}
+async function readAll(db, name){
+  const snap = await withTimeout(getDocs(collection(db, name)), 25000, name + ' 읽기');
+  const out = [];
+  snap.forEach(function(d){ out.push(Object.assign({ id: d.id }, d.data())); });
+  return out;
+}
+async function load(){
+  window.MF.setLoading();
+  let db;
+  try {
+    db = getFirestore(initializeApp(firebaseConfig));
+  } catch (e) {
+    window.MF.showError('Firebase 초기화에 실패했습니다: ' + e.message);
+    return;
+  }
+  let pre, post;
+  try { pre = await readAll(db, 'pre-test-results'); }
+  catch (e) { window.MF.showError('사전검사 데이터를 불러오지 못했습니다. 인터넷 연결을 확인하고 다시 시도하세요. (' + e.message + ')'); return; }
+  try { post = await readAll(db, 'post-test-results'); }
+  catch (e) { window.MF.showError('사후검사 데이터를 불러오지 못했습니다. Firestore 규칙에 post-test-results 읽기 권한이 있는지 확인하세요. (' + e.message + ')'); return; }
+  post = post.filter(function(d){ return d && d.schoolCode === SCHOOL_CODE; });
+  try { document.getElementById('schoolNote').textContent = '학교 코드 ' + SCHOOL_CODE + ' 사후 기록만 분석 · 같은 학생이 여러 번 응시한 경우 첫 응시만 반영'; } catch (e) {}
+  window.MF.run(pre, post, INCLUDE_TEST);
+}
+document.getElementById('btnReload').addEventListener('click', load);
+load();
+</script>
+</body>
+</html>
